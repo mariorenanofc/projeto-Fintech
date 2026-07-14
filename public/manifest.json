@@ -1,0 +1,38 @@
+{
+  "name": "Finanças Compartilhadas para Casais",
+  "short_name": "Fintech Casal",
+  "description": "SaaS financeiro compartilhado e gamificado para casais, focado em resgate financeiro e hábitos saudáveis.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#eab308",
+  "orientation": "portrait",
+  "scope": "/",
+  "categories": ["finance", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

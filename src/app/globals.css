@@ -1,26 +1,167 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Estilização Customizada de Scrollbars para Tema Premium */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(24, 24, 27, 0.5);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(234, 179, 8, 0.3);
+  border-radius: 9999px;
+  border: 1px solid rgba(234, 179, 8, 0.1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(234, 179, 8, 0.6);
+}
+
+/* Firefox compatibility */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(234, 179, 8, 0.3) rgba(24, 24, 27, 0.5);
+}
+
+/* =====================================================================
+   DISSOCIAÇÃO DINÂMICA DE BOTÕES FLUTUANTES VS FOOTER MENU (SCROLL)
+   ===================================================================== */
+
+/* Balões Flutuantes (Chat & Calculadora) */
+.fixed.bottom-6 {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition: opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1), transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Oculta os balões quando rolar para baixo */
+body.scrolling-down .fixed.bottom-6 {
+  opacity: 0;
+  transform: translateY(32px);
+  pointer-events: none;
+}
+
+/* Menu de Rodapé (Footer PWA) */
+footer.border-t {
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Em dispositivos móveis (horizontal e vertical), controlamos a exibição do footer menu pelo scroll */
+@media (max-width: 768px) {
+  footer.border-t {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: rgba(9, 9, 11, 0.96);
+    backdrop-filter: blur(16px);
+    z-index: 40;
+    margin-top: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+    padding-top: 12px;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Quando o usuário NÃO está rolando para baixo (parado ou rolando para cima), ocultamos o footer para abrir espaço */
+  body:not(.scrolling-down) footer.border-t {
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  /* Quando rolar para baixo, exibe o footer menu para navegação rápida */
+  body.scrolling-down footer.border-t {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
 }
