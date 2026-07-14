@@ -42,8 +42,12 @@ export async function middleware(request: NextRequest) {
 
   const url = request.nextUrl.clone()
 
-  // REGRA 1: Usuário DESLOGADO tentando acessar rota protegida (/dashboard)
-  if (!user && url.pathname.startsWith('/dashboard')) {
+  // Lista de rotas protegidas (acessíveis apenas por usuários autenticados)
+  const protectedRoutes = ['/dashboard', '/profile', '/chat', '/transactions', '/onboarding']
+  const isProtectedRoute = protectedRoutes.some(route => url.pathname.startsWith(route))
+
+  // REGRA 1: Usuário DESLOGADO tentando acessar rota protegida
+  if (!user && isProtectedRoute) {
     url.pathname = '/' // Manda pro Login
     return NextResponse.redirect(url)
   }
