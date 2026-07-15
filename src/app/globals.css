@@ -76,9 +76,11 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   html {
     @apply font-sans;
   }
@@ -163,5 +165,21 @@ footer.border-t {
     transform: translateY(0);
     opacity: 1;
     pointer-events: auto;
+  }
+}
+
+@supports (--webkit-touch-callout: none) {
+
+  /* Para iOS/iPadOS */
+  .touch-only-safe-area {
+    padding-bottom: calc(env(safe-area-inset-bottom, 16px) + 16px);
+  }
+}
+
+@supports (display: grid) and (not (display: -ms-grid)) {
+
+  /* Para Android e navegadores modernos */
+  .touch-only-safe-area {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
   }
 }

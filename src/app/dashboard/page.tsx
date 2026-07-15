@@ -15,7 +15,8 @@ import {
   Info,
   DollarSign,
   TrendingDown,
-  ArrowRight
+  ArrowRight,
+  RefreshCcw
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -343,25 +344,25 @@ export default function DashboardPage() {
       
       {/* Header do App */}
       <header className="flex flex-col gap-4 xs:flex-row xs:justify-between xs:items-center mb-6 xs:mb-8 pb-4 border-b border-white/5">
-        <div className="flex items-center gap-2.5 w-full xs:w-auto">
-          <div className="w-10 h-10 rounded-xl bg-yellow-500 flex items-center justify-center shadow-lg shadow-yellow-500/20 relative overflow-hidden">
-            <Coins className="w-5.5 h-5.5 text-zinc-950" />
+        <div className="flex items-center gap-3 w-full xs:w-auto">
+          <div className="w-11 h-11 rounded-2xl bg-yellow-500 flex items-center justify-center shadow-[0_0_25px_rgba(234,179,8,0.4)] relative overflow-hidden transition-all duration-500 hover:scale-105">
+            <Coins className="w-6 h-6 text-zinc-950" />
           </div>
           <div>
-            <h1 className="text-base font-black tracking-tight text-white sm:text-lg">
+            <h1 className="text-base font-extrabold tracking-tight text-white sm:text-lg">
               {userProfile?.full_name ? `Olá, ${userProfile.full_name.split(" ")[0]} 👋` : "Fintech Casal"}
             </h1>
-            <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Dashboard Compartilhado</p>
+            <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold">Nosso Painel de Sintonia</p>
           </div>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap xs:flex-nowrap w-full xs:w-auto justify-between xs:justify-end">
-          <Badge variant="outline" className="border-yellow-500/20 text-yellow-400 bg-yellow-950/10 px-2.5 py-1 text-xs">
+          <Badge variant="outline" className="border-yellow-500/25 text-yellow-400 bg-yellow-950/15 px-3 py-1 text-xs font-bold shadow-[0_0_15px_rgba(234,179,8,0.05)]">
             {getReadableMonthLabel(selectedMonthStr)}
           </Badge>
           <Link href="/onboarding">
-            <Badge className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 px-2.5 py-1 text-xs font-black border-none cursor-pointer flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-zinc-950 fill-zinc-950" />
-              Configurar Finanças
+            <Badge className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 px-3 py-1 text-xs font-black border-none cursor-pointer flex items-center gap-1.5 transition-all duration-300 hover:shadow-[0_0_20px_rgba(234,179,8,0.3)] rounded-xl">
+              <Sparkles className="w-3.5 h-3.5 text-zinc-950 fill-zinc-950" />
+              Planejar Nosso Futuro ✨
             </Badge>
           </Link>
           {userProfile?.avatar_url ? (
@@ -386,40 +387,43 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-6 tablet:col-span-5">
           
           {/* Card do Semáforo */}
-          <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden">
-            <CardHeader className="p-6 pb-3 flex flex-row items-center justify-between space-y-0">
+          <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
+            <CardHeader className="p-5 xs:p-6 pb-2 xs:pb-3 flex flex-row items-center justify-between space-y-0">
               <div>
-                <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-500">Orçamento Diário</CardTitle>
-                <CardDescription className="text-[10px] text-zinc-500 mt-0.5">Semáforo de saúde financeira de hoje</CardDescription>
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-500">Nosso Ritmo Diário 💛</CardTitle>
+                <CardDescription className="text-[10px] text-zinc-550 mt-0.5">Como estamos cuidando do nosso dinheiro hoje</CardDescription>
               </div>
               
               {/* Seletor de Semáforo */}
-              <div className="flex gap-1.5 bg-zinc-950/80 p-1 rounded-lg border border-white/5">
+              <div className="flex gap-1.5 bg-zinc-950/80 p-1 rounded-xl border border-white/5 shadow-inner">
                 <button 
                   onClick={() => setFinanceStatus("green")}
-                  className={`w-6 h-6 rounded-md text-[10px] font-black transition-all ${financeStatus === 'green' ? 'bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  className={`w-6 h-6 rounded-lg text-[10px] font-black transition-all ${financeStatus === 'green' ? 'bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  title="Tudo sob controle"
                 >
                   V
                 </button>
                 <button 
                   onClick={() => setFinanceStatus("yellow")}
-                  className={`w-6 h-6 rounded-md text-[10px] font-black transition-all ${financeStatus === 'yellow' ? 'bg-yellow-400 text-zinc-950 shadow-md shadow-yellow-400/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  className={`w-6 h-6 rounded-lg text-[10px] font-black transition-all ${financeStatus === 'yellow' ? 'bg-yellow-400 text-zinc-950 shadow-md shadow-yellow-400/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  title="Atenção redobrada"
                 >
                   A
                 </button>
                 <button 
                   onClick={() => setFinanceStatus("red")}
-                  className={`w-6 h-6 rounded-md text-[10px] font-black transition-all ${financeStatus === 'red' ? 'bg-rose-500 text-zinc-950 shadow-md shadow-rose-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  className={`w-6 h-6 rounded-lg text-[10px] font-black transition-all ${financeStatus === 'red' ? 'bg-rose-500 text-zinc-950 shadow-md shadow-rose-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+                  title="Ajuste de rota"
                 >
-                  V
+                  C
                 </button>
               </div>
             </CardHeader>
             
-            <CardContent className="p-6 pt-0 flex flex-col items-center">
+            <CardContent className="p-5 xs:p-6 pt-0 flex flex-col items-center">
               {/* Lente circular com Glow neon correspondente */}
               <div className="relative flex items-center justify-center my-6">
-                <div className={`absolute w-36 h-36 rounded-full blur-3xl opacity-25 transition-all duration-700 ${
+                <div className={`absolute w-36 h-36 rounded-full blur-3xl opacity-20 transition-all duration-700 ${
                   financeStatus === "green" ? "bg-emerald-500" : 
                   financeStatus === "yellow" ? "bg-yellow-400" : "bg-rose-500"
                 }`} />
@@ -431,13 +435,13 @@ export default function DashboardPage() {
                 }`}>
                   <div className="absolute inset-0.5 rounded-full bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-40 pointer-events-none" />
                   
-                  {financeStatus === "green" && <CheckCircle2 className="w-10 h-10 animate-bounce" />}
-                  {financeStatus === "yellow" && <AlertTriangle className="w-10 h-10 animate-pulse" />}
-                  {financeStatus === "red" && <XCircle className="w-10 h-10" />}
+                  {financeStatus === "green" && <CheckCircle2 className="w-10 h-10 animate-bounce text-emerald-400" />}
+                  {financeStatus === "yellow" && <AlertTriangle className="w-10 h-10 animate-pulse text-yellow-400" />}
+                  {financeStatus === "red" && <XCircle className="w-10 h-10 text-rose-400" />}
                   
                   <span className="text-[10px] font-black uppercase tracking-widest mt-2.5">
-                    {financeStatus === "green" ? "Sinal Verde" : 
-                     financeStatus === "yellow" ? "Sinal Amarelo" : "Sinal Vermelho"}
+                    {financeStatus === "green" ? "Caminho Livre! ✨" : 
+                     financeStatus === "yellow" ? "Atenção Redobrada ⚠️" : "Ajuste de Rota! 🛡️"}
                   </span>
                 </div>
               </div>
@@ -446,26 +450,26 @@ export default function DashboardPage() {
               <div className="text-center max-w-sm mt-1 px-3">
                 <p className="text-xs text-zinc-400 leading-relaxed font-medium">
                   {strategy?.isChoqueRequired ? (
-                    <span className="text-rose-400 font-bold block">
-                      Operação de Choque Ativa! As faturas de cartão superam o resíduo financeiro livre do casal.
+                    <span className="text-rose-400 font-bold block mb-1">
+                      Atenção, casal! Nossas faturas estão exigindo mais do que nosso caixa livre. É hora de ativar a Operação de Choque para blindar nossas economias. Vamos juntos superar essa fase! 💪
                     </span>
                   ) : null}
-                  {financeStatus === "green" && "Ótimo trabalho! Vocês estão economizando e operando abaixo da margem diária limite. Gastos moderados liberados."}
-                  {financeStatus === "yellow" && "Atenção necessária! Gastos acumulados próximos ao teto do dia. Pondere novas saídas financeiras hoje."}
-                  {financeStatus === "red" && !strategy?.isChoqueRequired && "Limite diário estourado! Evite novas despesas não essenciais hoje para manter as metas mensais no rumo."}
+                  {financeStatus === "green" && "Sintonia perfeita, casal! Vocês estão cuidando super bem do orçamento hoje. Caminho livre para gastos conscientes!"}
+                  {financeStatus === "yellow" && "Atenção e carinho com o bolso hoje! Estamos perto do nosso limite diário. Que tal adiar aquela compra não urgente para amanhã?"}
+                  {financeStatus === "red" && !strategy?.isChoqueRequired && "Recalculando rota! Passamos do nosso teto diário hoje. Vamos segurar novos gastos não essenciais para proteger nosso final do mês?"}
                 </p>
               </div>
 
               {/* Info de valores compactos reais do casal */}
               <div className="w-full flex gap-3 mt-6 pt-4 border-t border-white/5 text-xs">
                 <div className="flex-1 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5 flex flex-col">
-                  <span className="text-[9px] text-zinc-550 uppercase tracking-wider font-semibold">Resíduo de Caixa</span>
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold">Reserva Livre do Casal</span>
                   <span className={`text-sm font-black mt-0.5 ${strategy?.remainingCashResidue && strategy.remainingCashResidue > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                     R$ {strategy?.hasStrategy ? strategy.remainingCashResidue.toFixed(2) : "0,00"}
                   </span>
                 </div>
                 <div className="flex-1 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5 flex flex-col">
-                  <span className="text-[9px] text-zinc-550 uppercase tracking-wider font-semibold">Teto diário</span>
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold">Nosso Teto Diário</span>
                   <span className="text-sm font-black text-yellow-500 mt-0.5">
                     R$ {tetoDiario.toFixed(2)}
                   </span>
@@ -478,38 +482,38 @@ export default function DashboardPage() {
           <div className="grid grid-cols-2 gap-3">
             <Link href="/chat" className="flex-1">
               <Button 
-                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 font-black shadow-lg shadow-yellow-500/10 flex items-center justify-center gap-1.5 h-11 rounded-xl text-xs border-none"
+                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 font-black shadow-[0_4px_15px_rgba(234,179,8,0.2)] flex items-center justify-center gap-1.5 h-11 rounded-xl text-xs border-none transition-all duration-300 hover:scale-[1.02]"
               >
                 <Sparkles className="w-4 h-4 text-zinc-950 fill-zinc-950" />
-                Conselheiro IA
+                Conselheiro IA 🤖
               </Button>
             </Link>
             <Link href="/profile" className="flex-1">
               <Button 
                 variant="outline" 
-                className="w-full border-white/5 hover:bg-zinc-900/50 hover:border-zinc-800 text-zinc-300 font-bold h-11 rounded-xl text-xs"
+                className="w-full border-white/5 hover:bg-zinc-900/50 hover:border-zinc-800 text-zinc-300 font-bold h-11 rounded-xl text-xs transition-all duration-300 hover:scale-[1.02]"
               >
-                Editar Orçamento
+                Ajustar Finanças ⚙️
               </Button>
             </Link>
           </div>
 
           {/* Conselheiro de Choque Dinâmico */}
           {strategy?.hasStrategy ? (
-            <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden">
-              <CardHeader className="p-6 pb-2">
+            <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
+              <CardHeader className="p-5 xs:p-6 pb-2">
                 <CardTitle className="text-xs font-black uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
                   <Info className="w-4 h-4" />
-                  Conselheiro IA Real
+                  Recomendações da Nossa IA 💡
                 </CardTitle>
                 <CardDescription className="text-[9px] text-zinc-550 mt-0.5">
-                  Diagnóstico estratégico com base no seu status
+                  Ideias personalizadas para apoiar a jornada de vocês
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-6 pt-0 space-y-4">
+              <CardContent className="p-5 xs:p-6 pt-0 space-y-4">
                 {strategy.isChoqueRequired ? (
                   <div className="space-y-3">
-                    <span className="text-[9px] text-rose-400 uppercase tracking-widest font-black block">Ações Recomendadas:</span>
+                    <span className="text-[9px] text-rose-400 uppercase tracking-widest font-black block">Passo a Passo para Cuidar do Bolso:</span>
                     
                     {strategy.cardActions.map((act, i) => (
                       <div key={i} className="bg-rose-500/5 border border-rose-500/10 p-3 rounded-xl space-y-1">
@@ -526,9 +530,9 @@ export default function DashboardPage() {
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-emerald-500/5 border border-emerald-500/10 p-3 rounded-xl text-center">
-                    <span className="text-xs font-bold text-emerald-400 block mb-1">Situação Saudável!</span>
-                    <p className="text-[10px] text-zinc-400 font-medium">Orçamento equilibrado e caixa livre suficiente. Continuem operando com controle das faturas agendadas.</p>
+                  <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-xl text-center">
+                    <span className="text-xs font-bold text-emerald-400 block mb-1">Caminho Lindo! 🌸</span>
+                    <p className="text-[10px] text-zinc-450 leading-relaxed font-semibold">Tudo em ordem por aqui, casal! O caixa está no azul e sob controle. Continuem nessa sintonia incrível cuidando do planejamento!</p>
                   </div>
                 )}
               </CardContent>
@@ -542,44 +546,44 @@ export default function DashboardPage() {
           
           {/* Resumo de Fluxo & Previsão Futura */}
           <section className="relative">
-            <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md relative overflow-hidden">
+            <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md relative overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
               <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-2xl pointer-events-none" />
               
-              <CardHeader className="p-6 pb-3">
+              <CardHeader className="p-5 xs:p-6 pb-2 xs:pb-3">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-1.5 text-yellow-400 font-bold text-xs uppercase tracking-wider">
                     <TrendingUp className="w-3.5 h-3.5" />
-                    <span>Fluxo & Planejamento</span>
+                    <span>Nosso Fluxo & Sonhos ✨</span>
                   </div>
                   <Badge className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 font-black px-2.5 py-0.5 text-[9px] uppercase tracking-wider">
                     {getReadableMonthLabel(selectedMonthStr)}
                   </Badge>
                 </div>
-                <CardTitle className="text-base font-extrabold text-zinc-100 mt-1">Resumo de Fluxo & Previsão</CardTitle>
-                <CardDescription className="text-[10px] text-zinc-500 mt-0.5">Visão transparente do caixa do casal e projeção do próximo período</CardDescription>
+                <CardTitle className="text-base font-extrabold text-zinc-100 mt-1">Raio-X das Nossas Finanças</CardTitle>
+                <CardDescription className="text-[10px] text-zinc-550 mt-0.5">Acompanhem o dinheiro deste mês e vejam como está o planejamento para o próximo</CardDescription>
               </CardHeader>
 
-              <CardContent className="p-6 pt-0 space-y-6">
+              <CardContent className="p-5 xs:p-6 pt-0 space-y-6">
                 {strategy?.hasStrategy ? (
                   <>
                     {/* Linha do Fluxo do Mês Selecionado */}
                     <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                       <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-white/5">
-                        <span className="text-[8px] text-zinc-550 uppercase font-bold block">Receitas</span>
+                        <span className="text-[8px] text-zinc-500 uppercase font-bold block">Receitas</span>
                         <span className="text-xs font-bold text-emerald-400 block mt-0.5">R$ {strategy.totalIncome.toFixed(0)}</span>
                       </div>
                       <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-white/5">
-                        <span className="text-[8px] text-zinc-550 uppercase font-bold block">Essenciais</span>
+                        <span className="text-[8px] text-zinc-500 uppercase font-bold block">Essenciais</span>
                         <span className="text-xs font-bold text-zinc-350 block mt-0.5">R$ {strategy.totalEssentialExpenses.toFixed(0)}</span>
                       </div>
                       <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-white/5">
-                        <span className="text-[8px] text-zinc-550 uppercase font-bold block">Compromissos</span>
+                        <span className="text-[8px] text-zinc-500 uppercase font-bold block">Compromissos</span>
                         <span className="text-xs font-bold text-rose-400 block mt-0.5">R$ {(strategy.totalDebtInstallments + strategy.totalCreditCardInvoices).toFixed(0)}</span>
                       </div>
                       <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-white/5">
-                        <span className="text-[8px] text-zinc-550 uppercase font-bold block">Livre</span>
-                        <span className={`text-xs font-black block mt-0.5 ${strategy.remainingCashResidue >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
-                          R$ {strategy.remainingCashResidue.toFixed(0)}
+                        <span className="text-[8px] text-zinc-500 uppercase font-bold block">Saldo Disponível</span>
+                        <span className={`text-xs font-black block mt-0.5 ${strategy.disposableIncomeForDebts >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                          R$ {strategy.disposableIncomeForDebts.toFixed(0)}
                         </span>
                       </div>
                     </div>
@@ -590,21 +594,89 @@ export default function DashboardPage() {
                       <div className="space-y-1">
                         <span className="text-[10px] text-zinc-300 font-black uppercase tracking-wider block">Diagnóstico do Período</span>
                         <p className="text-[10px] text-zinc-400 leading-relaxed font-semibold">
-                          {strategy.remainingCashResidue <= 0 ? (
-                            `Atenção crítica! Suas despesas e faturas deste mês superam suas receitas em R$ ${Math.abs(strategy.remainingCashResidue).toFixed(2)}. É fundamental acionar o Plano de Choque de cartões e renegociar os atrasos de imediato.`
+                          {strategy.isChoqueRequired ? (
+                            `Recalculando rota, casal! As contas deste período estão superando a renda em R$ ${Math.abs(strategy.remainingCashResidue).toFixed(2)}. Vamos acionar o Plano de Choque abaixo! Juntos, vocês conseguem colocar a casa em ordem! 💪`
                           ) : strategy.remainingCashResidue < 300 ? (
-                            `Alerta de margem estreita: Vocês possuem R$ ${strategy.remainingCashResidue.toFixed(2)} de caixa livre residual. Evitem compras supérfluas para evitar o uso do rotativo.`
+                            `Atenção redobrada, casal! Temos uma margem livre estreita de R$ ${strategy.remainingCashResidue.toFixed(2)}. Vamos evitar novas comprinhas supérfluas por agora para manter nosso caixa longe do rotativo! ⚠️`
                           ) : (
-                            `Fluxo sob controle: Orçamento balanceado com R$ ${strategy.remainingCashResidue.toFixed(2)} livres. Perfeito para guardar na reserva de emergência ou amortizar contratos antigos.`
+                            `Sintonia nota 10! Nosso orçamento está em perfeito equilíbrio com R$ ${strategy.remainingCashResidue.toFixed(2)} livres. Perfeito para guardar para nossos sonhos ou adiantar parcelas de contratos antigos! 🌱`
                           )}
                         </p>
                       </div>
                     </div>
 
+                    {/* Alocação Crítica e Engenharia (Aparece apenas em Choque) */}
+                    {strategy.isChoqueRequired && (
+                      <div className="space-y-4 border-t border-white/5 pt-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <ShieldCheck className="w-4 h-4 text-rose-500" />
+                            <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                              Alocação Crítica (R$ {strategy.disposableIncomeForDebts.toFixed(2)})
+                            </h4>
+                          </div>
+                          <p className="text-[10px] text-zinc-500 mb-3">As seguintes contas devem ser pagas integralmente assim que o salário for recebido para evitar penalidades e proteger o patrimônio.</p>
+                          
+                          <div className="bg-zinc-950/50 rounded-xl border border-white/5 overflow-hidden">
+                            {strategy.debtActions.map((action, i) => (
+                              <div key={i} className="flex justify-between items-center p-3 border-b border-white/5 last:border-none">
+                                <div className="flex flex-col">
+                                  <span className="text-[11px] font-bold text-zinc-300">{action.debtTitle}</span>
+                                  <span className="text-[9px] text-zinc-500 leading-tight mt-0.5 pr-2">{action.recommendation}</span>
+                                </div>
+                                <span className="text-xs font-black text-rose-400 whitespace-nowrap">R$ {action.installmentValue.toFixed(2)}</span>
+                              </div>
+                            ))}
+                            {/* Filtra cartões que foram sugeridos para pagamento integral */}
+                            {strategy.cardActions.filter(c => c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0).map((action, i) => (
+                              <div key={`c-${i}`} className="flex justify-between items-center p-3 border-b border-white/5 last:border-none">
+                                <div className="flex flex-col">
+                                  <span className="text-[11px] font-bold text-zinc-300">{action.cardName}</span>
+                                  <span className="text-[9px] text-zinc-500 leading-tight mt-0.5 pr-2">Pagamento integral da fatura atual.</span>
+                                </div>
+                                <span className="text-xs font-black text-rose-400 whitespace-nowrap">R$ {action.currentInvoice.toFixed(2)}</span>
+                              </div>
+                            ))}
+                            <div className="flex justify-between items-center p-3 bg-rose-500/10">
+                              <span className="text-[10px] font-bold text-rose-400 uppercase">Resíduo de Caixa Restante</span>
+                              <span className="text-xs font-black text-rose-400">R$ {strategy.remainingCashResidue.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Cartões para Engenharia */}
+                        {strategy.cardActions.filter(c => c.suggestedProportionalPayment < c.currentInvoice && c.currentInvoice > 0).length > 0 && (
+                          <div>
+                            <div className="flex items-center gap-2 mb-2 mt-4">
+                              <RefreshCcw className="w-4 h-4 text-yellow-500" />
+                              <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                                Ações de Engenharia Financeira
+                              </h4>
+                            </div>
+                            <p className="text-[10px] text-zinc-500 mb-3">Faturas que ultrapassam o saldo restante. Exigem ação ativa de renegociação (parcelamento da fatura) usando o resíduo como entrada.</p>
+                            
+                            <div className="bg-zinc-950/50 rounded-xl border border-white/5 overflow-hidden">
+                              {strategy.cardActions.filter(c => c.suggestedProportionalPayment < c.currentInvoice && c.currentInvoice > 0).map((action, i) => (
+                                <div key={`eng-${i}`} className="flex flex-col p-3 border-b border-white/5 last:border-none">
+                                  <div className="flex justify-between items-center mb-1">
+                                    <span className="text-[11px] font-bold text-zinc-300">{action.cardName}</span>
+                                    <span className="text-xs font-black text-yellow-500">R$ {action.currentInvoice.toFixed(2)}</span>
+                                  </div>
+                                  <span className="text-[9px] text-zinc-400 leading-tight bg-zinc-900/50 p-2 rounded border border-white/5">
+                                    {action.recommendation}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
                     {/* Previsão do Mês que Vem (Próximo Mês) */}
                     <div className="border-t border-white/5 pt-4 space-y-3">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Previsão Próximo Mês ({getReadableMonthLabel(getNextMonthStr(selectedMonthStr))})</span>
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Como será nosso próximo mês ({getReadableMonthLabel(getNextMonthStr(selectedMonthStr))})?</span>
                         <Badge 
                           className={`font-black text-[9px] uppercase tracking-wider border-none px-2.5 py-0.5 ${
                             forecast.nextResidue > strategy.remainingCashResidue
@@ -614,17 +686,17 @@ export default function DashboardPage() {
                               : "bg-yellow-500/10 text-yellow-400"
                           }`}
                         >
-                          {forecast.nextResidue > strategy.remainingCashResidue ? "Melhorando 📈" : forecast.nextResidue < 0 ? "Crítico ⚠️" : "Estável 🤝"}
+                          {forecast.nextResidue > strategy.remainingCashResidue ? "Melhorando 📈" : forecast.nextResidue < 0 ? "Ajuste Necessário ⚠️" : "Estável 🤝"}
                         </Badge>
                       </div>
 
                       <div className="grid grid-cols-2 gap-3 text-xs">
                         <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
-                          <span className="text-[9px] text-zinc-550 font-bold uppercase">Compromissos Previstos</span>
+                          <span className="text-[9px] text-zinc-500 font-bold uppercase">Contas já Programadas</span>
                           <span className="text-sm font-black text-zinc-300 mt-1">R$ {forecast.nextCommitments.toFixed(2)}</span>
                         </div>
                         <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
-                          <span className="text-[9px] text-zinc-550 font-bold uppercase">Caixa Livre Estimado</span>
+                          <span className="text-[9px] text-zinc-500 font-bold uppercase">Nossa Estimativa de Caixa</span>
                           <span className={`text-sm font-black mt-1 ${forecast.nextResidue >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                             R$ {forecast.nextResidue.toFixed(2)}
                           </span>
@@ -633,11 +705,11 @@ export default function DashboardPage() {
 
                       <p className="text-[10px] text-zinc-550 leading-relaxed font-semibold text-center italic mt-1">
                         {forecast.difference > 0 ? (
-                          `As faturas e parcelas previstas para o próximo mês caem de R$ ${totalCommitment.toFixed(2)} para R$ ${forecast.nextCommitments.toFixed(2)}, trazendo um alívio extra de R$ ${forecast.difference.toFixed(2)} no caixa!`
+                          `Boas notícias à vista! Nossos compromissos previstos para o próximo mês caem de R$ ${totalCommitment.toFixed(2)} para R$ ${forecast.nextCommitments.toFixed(2)}, trazendo um alívio de R$ ${forecast.difference.toFixed(2)} no caixa para respirarmos melhor!`
                         ) : forecast.difference < 0 ? (
-                          `Atenção: Os compromissos sobem em R$ ${Math.abs(forecast.difference).toFixed(2)} no próximo mês devido às faturas agendadas. Poupem o saldo atual.`
+                          `Atenção, casal: as contas do próximo mês sobem cerca de R$ ${Math.abs(forecast.difference).toFixed(2)}. Que tal pouparmos um pouquinho do saldo atual para começar o próximo período com tranquilidade?`
                         ) : (
-                          `As parcelas e faturas previstas mantêm-se estáveis no próximo período em R$ ${forecast.nextCommitments.toFixed(2)}.`
+                          `Previsão de estabilidade: nossos compromissos para o próximo período se mantêm firmes em R$ ${forecast.nextCommitments.toFixed(2)}.`
                         )}
                       </p>
                     </div>
@@ -645,7 +717,7 @@ export default function DashboardPage() {
                 ) : (
                   <div className="py-8 text-center">
                     <Info className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-                    <p className="text-xs text-zinc-400">Por favor, preencha o onboarding para habilitar os relatórios de fluxo.</p>
+                    <p className="text-xs text-zinc-400">Vamos começar? Clique em "Planejar Nosso Futuro" para nos contar um pouco sobre o orçamento de vocês e habilitar esta visão!</p>
                   </div>
                 )}
               </CardContent>
@@ -654,16 +726,16 @@ export default function DashboardPage() {
 
           {/* SEÇÃO DE CALENDÁRIO & CONTAS INTEGRADA */}
           <section>
-            <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden">
-              <CardHeader className="p-6 pb-3 border-b border-white/5">
+            <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
+              <CardHeader className="p-5 xs:p-6 pb-2 xs:pb-3 border-b border-white/5">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4 text-yellow-500" />
-                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400">Calendário & Contas a Vencer</CardTitle>
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400">Nosso Calendário de Vencimentos 📅</CardTitle>
                 </div>
-                <CardDescription className="text-[10px] text-zinc-500 mt-1">Selecione uma data para inspecionar os vencimentos do casal</CardDescription>
+                <CardDescription className="text-[10px] text-zinc-550 mt-1">Escolham um dia para acompanhar o fluxo das nossas contas juntos</CardDescription>
               </CardHeader>
               
-              <CardContent className="p-6">
+              <CardContent className="p-5 xs:p-6">
                 <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch w-full">
                   
                   {/* Calendário com Tradução PT-BR (locale={ptBR}) */}
@@ -687,7 +759,7 @@ export default function DashboardPage() {
                   <div className="flex-1 bg-zinc-950/50 p-4 rounded-xl border border-white/5 flex flex-col min-h-[320px]">
                     <div className="flex justify-between items-center pb-2 border-b border-white/5 mb-4">
                       <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
-                        Vencimentos no dia:
+                        Nosso plano para este dia:
                       </h4>
                       <Badge variant="outline" className="border-yellow-500/25 text-yellow-400 bg-yellow-950/10 text-[9px] font-bold">
                         {selectedDate ? selectedDate.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' }) : 'Data'}
@@ -712,7 +784,7 @@ export default function DashboardPage() {
                                   <span className={`text-[8px] font-black uppercase tracking-wider block mt-0.5 ${
                                     bill.status === "paid" ? "text-emerald-400" : "text-yellow-400"
                                   }`}>
-                                    {bill.status === "paid" ? "Pago" : "Pendente"}
+                                    {bill.status === "paid" ? "Pago" : "Aguardando"}
                                   </span>
                                 </div>
                                 
@@ -722,7 +794,7 @@ export default function DashboardPage() {
                                       size="sm" 
                                       variant="outline"
                                       onClick={() => handleSyncGoogleCalendar(bill)}
-                                      className="h-8 border-yellow-500/10 hover:border-yellow-500/30 hover:bg-yellow-500/5 text-yellow-500 text-[10px] px-2 font-bold rounded-lg shadow-sm"
+                                      className="h-8 border-yellow-500/10 hover:border-yellow-500/30 hover:bg-yellow-500/5 text-yellow-500 text-[10px] px-2.5 font-bold rounded-lg shadow-sm"
                                     >
                                       Agendar 📅
                                     </Button>
@@ -732,7 +804,7 @@ export default function DashboardPage() {
                                       onClick={() => markAsPaid(bill.id)}
                                       className="h-8 border-yellow-500/20 hover:border-yellow-400 hover:bg-yellow-500/10 text-yellow-400 text-xs px-2.5 font-bold rounded-lg shadow-sm"
                                     >
-                                      Pagar
+                                      Confirmar Pago ✅
                                     </Button>
                                   </div>
                                 ) : (
@@ -747,8 +819,8 @@ export default function DashboardPage() {
                       ) : (
                         <div className="flex-1 flex flex-col items-center justify-center py-6 px-4 bg-zinc-950/10 rounded-xl border border-dashed border-white/5">
                           <Info className="w-6 h-6 text-zinc-650 mb-2" />
-                          <p className="text-xs text-zinc-500 font-medium text-center">Nenhum compromisso agendado para este dia.</p>
-                          <p className="text-[9px] text-zinc-650 mt-1 text-center">Toque em dias com pontos amarelos no calendário para inspecionar.</p>
+                          <p className="text-xs text-zinc-500 font-medium text-center">Tudo em paz! Nenhuma conta vencendo hoje. Aproveitem! 🎉</p>
+                          <p className="text-[9px] text-zinc-650 mt-1.5 text-center">Dica: Dias marcados com bolinhas amarelas indicam contas programadas.</p>
                         </div>
                       )}
                     </div>

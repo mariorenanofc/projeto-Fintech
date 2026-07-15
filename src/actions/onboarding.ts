@@ -264,84 +264,99 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
     // PASSO A: Diagnóstico Frio
     const totalIncome = dbIncomes.reduce((sum, item) => sum + Number(item.amount), 0);
     const totalEssentialExpenses = dbExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
-    const disposableIncomeForDebts = totalIncome - totalEssentialExpenses; // Saldo Restante
+    const disposableIncomeForDebts = totalIncome - totalEssentialExpenses; // Saldo Disponível para Dívidas
 
-    // PASSO B: Pagamentos Obrigatórios
-    // Avaliar dinamicamente se cada parcela de dívida tem um valor previsto para este mês no schedule JSONB
-    const totalDebtInstallments = dbDebts.reduce((sum, item) => {
+    // PASSO B: Mapeamento de Compromissos (Dívidas Fixas)
+    const dbDebtsMapped = dbDebts.map(item => {
       let instVal = Number(item.current_installment_value);
-      
-      // Se tiver cronograma de parcelas variáveis, busca o mês selecionado
       if (item.installments_schedule && Array.isArray(item.installments_schedule)) {
         const schedItem = item.installments_schedule.find((s: any) => s.month === currentMonthStr);
-        if (schedItem) {
-          instVal = Number(schedItem.amount);
-        }
+        if (schedItem) instVal = Number(schedItem.amount);
       }
-      return sum + instVal;
-    }, 0);
+      return { ...item, current_installment_value: instVal };
+    });
+    const totalDebtInstallments = dbDebtsMapped.reduce((sum, item) => sum + item.current_installment_value, 0);
 
-    const remainingCashResidue = disposableIncomeForDebts - totalDebtInstallments; // Resíduo de Caixa Restante
-
-    // PASSO C: Motor de Choque
-    // Avaliar as faturas dos cartões dinamicamente baseando-se no schedule JSONB
-    const totalCreditCardInvoices = dbCards.reduce((sum, item) => {
+    // PASSO C: Mapeamento de Compromissos (Faturas de Cartão)
+    const dbCardsMapped = dbCards.map(item => {
       let invVal = Number(item.current_invoice);
+      let nextInvVal = Number(item.next_invoice || 0);
       if (item.invoices_schedule && Array.isArray(item.invoices_schedule)) {
-        const schedItem = item.invoices_schedule.find((s: any) => s.month === currentMonthStr);
-        if (schedItem) {
-          invVal = Number(schedItem.amount);
-        }
+        const currItem = item.invoices_schedule.find((s: any) => s.month === currentMonthStr);
+        if (currItem) invVal = Number(currItem.amount);
+        const nextItem = item.invoices_schedule.find((s: any) => s.month === nextMonthStr);
+        if (nextItem) nextInvVal = Number(nextItem.amount);
       }
-      return sum + invVal;
-    }, 0);
+      return { ...item, current_invoice: invVal, next_invoice: nextInvVal };
+    }).sort((a, b) => a.current_invoice - b.current_invoice); // Menor para a maior fatura
 
-    const isChoqueRequired = totalCreditCardInvoices > remainingCashResidue;
+    const totalCreditCardInvoices = dbCardsMapped.reduce((sum, item) => sum + item.current_invoice, 0);
+
+    // Avaliação de Cenário
+    const totalCommitments = totalDebtInstallments + totalCreditCardInvoices;
+    const isChoqueRequired = totalCommitments > disposableIncomeForDebts;
 
     const cardActions: CardTacticalAction[] = [];
     const debtActions: DebtNegotiationAction[] = [];
     const survivalRules: { title: string; description: string }[] = [];
 
-    // Busca gasto de alimentação/feira cadastrado para calcular a cota semanal
-    const foodExpense = dbExpenses.find(e => 
-      e.category === "Feira/Mercado" || e.title.toLowerCase().includes("mercado") || e.title.toLowerCase().includes("feira")
-    );
-    const weeklyFoodCota = foodExpense && Number(foodExpense.amount) > 0 
-      ? Number(foodExpense.amount) / 4 
-      : 200;
+    let currentResidue = disposableIncomeForDebts;
 
     if (isChoqueRequired) {
-      // 1. Ações de Cartões
-      dbCards.forEach(card => {
-        let invoiceVal = Number(card.current_invoice);
-        let nextInvoiceVal = Number(card.next_invoice || 0);
+      // OPERAÇÃO DE CHOQUE: Alocação Crítica e Engenharia Financeira
+      
+      // 1. Dívidas Fixas (Prioridade Máxima)
+      dbDebtsMapped.forEach(debt => {
+        const rate = Number(debt.monthly_late_interest_rate);
+        const penalty = Number(debt.penalty_value);
+        const instVal = debt.current_installment_value;
+        const totalInst = Number(debt.total_installments);
+        const titleLower = debt.title.toLowerCase();
+        const overdueInst = Number(debt.overdue_installments || 0);
+        const overdueAccum = Number(debt.overdue_value_accumulated || 0);
 
-        if (card.invoices_schedule && Array.isArray(card.invoices_schedule)) {
-          const currItem = card.invoices_schedule.find((s: any) => s.month === currentMonthStr);
-          if (currItem) invoiceVal = Number(currItem.amount);
-
-          const nextItem = card.invoices_schedule.find((s: any) => s.month === nextMonthStr);
-          if (nextItem) nextInvoiceVal = Number(nextItem.amount);
+        let rec = "";
+        if (overdueInst > 0) {
+          rec = `Urgente: Vocês possuem ${overdueInst} parcelas vencidas acumuladas em R$ ${overdueAccum.toFixed(2)} com juros. Solicite a 'Incorporação de Parcelas' para jogar os atrasos para o final do contrato, limpando o CPF.`;
+        } else if (titleLower.includes("lote") || titleLower.includes("terreno") || titleLower.includes("consorcio") || titleLower.includes("imovel")) {
+          rec = `Pagamento da parcela normal do mês de R$ ${instVal.toFixed(2)} para manter o contrato ativo e proteger o patrimônio.`;
+        } else {
+          rec = `Pagamento integral da parcela (evita juros bancários).`;
         }
-        
-        const proportionalPayment = totalCreditCardInvoices > 0 && remainingCashResidue > 0
-          ? (invoiceVal / totalCreditCardInvoices) * remainingCashResidue
-          : 0;
 
-        const formattedPayment = Math.max(0, Math.round(proportionalPayment * 100) / 100);
+        debtActions.push({
+          debtTitle: debt.title,
+          installmentValue: instVal,
+          interestRate: rate,
+          penaltyValue: penalty,
+          recommendation: rec
+        });
+
+        currentResidue -= instVal; // Subtrai do saldo
+      });
+
+      // 2. Faturas de Cartão (Engenharia)
+      dbCardsMapped.forEach(card => {
+        const invoiceVal = card.current_invoice;
+        const nextInvoiceVal = card.next_invoice;
 
         let recText = "";
-        
-        if (invoiceVal > 2 * nextInvoiceVal) {
-          recText = `Esta fatura é um gargalo temporário. No próximo mês ela cai de R$ ${invoiceVal.toFixed(2)} para R$ ${nextInvoiceVal.toFixed(2)}. Bloqueie o cartão ${card.name} imediatamente no app. Parcelem esta fatura utilizando o valor de R$ ${formattedPayment.toFixed(2)} como entrada para quebrar os juros compostos. No próximo mês o fluxo estará mais livre.`;
-        } else if (nextInvoiceVal > 0) {
-          recText = `Risco de superendividamento contínuo. As faturas dos próximos meses continuam elevadas (previsto R$ ${nextInvoiceVal.toFixed(2)} para o mês que vem). Bloqueie o cartão ${card.name} imediatamente para evitar novas compras. Negociem um parcelamento longo ou quitação total com desconto, pois o fluxo de caixa continuará sobrecarregado.`;
-        } else {
-          recText = `Bloqueie o cartão ${card.name} imediatamente no app. Façam um parcelamento de fatura utilizando R$ ${formattedPayment.toFixed(2)} como entrada para quebrar os juros compostos. Evitem qualquer novo uso do crédito.`;
-        }
+        let formattedPayment = 0;
 
-        if (remainingCashResidue <= 0) {
-          recText = `Resíduo de caixa zerado ou negativo (R$ ${remainingCashResidue.toFixed(2)}). Não há margem financeira para dar entrada de parcelamento no cartão ${card.name}. Vocês devem entrar em contato urgente com a instituição para negociar carência de 30 dias ou buscar a consolidação dessa dívida com taxas menores no empréstimo pessoal, congelando o cartão.`;
+        if (currentResidue >= invoiceVal && invoiceVal > 0) {
+          // Consegue pagar integralmente
+          formattedPayment = invoiceVal;
+          recText = `Pagamento integral da parcela correspondente ao mês. Bloqueie o cartão para evitar novos gastos.`;
+          currentResidue -= invoiceVal;
+        } else {
+          // Não consegue pagar integral, entra em Engenharia Financeira
+          formattedPayment = Math.max(0, currentResidue); // Usa o que sobrou como entrada
+          if (currentResidue > 0) {
+            recText = `Bloqueie o cartão imediatamente. Utilize o resíduo de R$ ${formattedPayment.toFixed(2)} como entrada para parcelar a fatura, evitando juros rotativos descontrolados.`;
+            currentResidue = 0; // Zerou o saldo
+          } else {
+            recText = `Saldo indisponível para entrada. Entre em contato urgente com a instituição para renegociar o saldo total com carência de 30 dias ou consolide a dívida no empréstimo pessoal. Cartão bloqueado.`;
+          }
         }
 
         cardActions.push({
@@ -353,104 +368,49 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
         });
       });
 
-      // 2. Ações de Dívidas
-      dbDebts.forEach(debt => {
-        const rate = Number(debt.monthly_late_interest_rate);
-        const penalty = Number(debt.penalty_value);
-        let instVal = Number(debt.current_installment_value);
-        const totalInst = Number(debt.total_installments);
-        const titleLower = debt.title.toLowerCase();
+      // 3. Regras de Sobrevivência (Agosto de Choque)
+      const foodExpense = dbExpenses.find(e => e.category === "Feira/Mercado" || e.title.toLowerCase().includes("mercado") || e.title.toLowerCase().includes("feira"));
+      const weeklyFoodCota = foodExpense && Number(foodExpense.amount) > 0 ? Number(foodExpense.amount) / 4 : 200;
 
-        if (debt.installments_schedule && Array.isArray(debt.installments_schedule)) {
-          const schedItem = debt.installments_schedule.find((s: any) => s.month === currentMonthStr);
-          if (schedItem) instVal = Number(schedItem.amount);
-        }
-
-        const overdueInst = Number(debt.overdue_installments || 0);
-        const overdueAccum = Number(debt.overdue_value_accumulated || 0);
-
-        let rec = "";
-
-        // Se houver parcelas vencidas em atraso reportadas
-        if (overdueInst > 0) {
-          rec = `Urgente: Vocês possuem ${overdueInst} parcelas vencidas acumuladas em R$ ${overdueAccum.toFixed(2)} com juros. Entre em contato imediatamente com a loteadora/credora de '${debt.title}' e solicite a 'Incorporação de Parcelas' para jogar os atrasos para o final do contrato de ${totalInst} meses, limpando o CPF e travando as taxas diárias de mora.`;
-        } else if (titleLower.includes("lote") || titleLower.includes("terreno") || titleLower.includes("consorcio") || titleLower.includes("imovel") || rate > 0 || penalty > 0) {
-          rec = `Urgente: Entre em contato com a loteadora/credora para solicitar a 'Incorporação de Parcelas' no final do contrato de ${totalInst} meses. Solicite jogar as parcelas atrasadas para o final do contrato para travar a cobrança de juros de mora diários e evitar a perda do patrimônio.`;
-        } else if (titleLower.includes("emprestimo") || titleLower.includes("banco") || titleLower.includes("financiamento")) {
-          rec = `Proteção de Patrimônio: Mantenham o pagamento em dia de R$ ${instVal.toFixed(2)} para evitar cobranças judiciais ou multas bancárias pesadas. Assim que o fluxo aliviar a partir dos próximos meses, usem o excedente para antecipar parcelas de trás para frente (amortização) para eliminar juros embutidos.`;
-        } else {
-          rec = `Acordo Local: Procurem a loja ou credor de '${debt.title}' e proponham um parcelamento fixo amigável do saldo devedor. Mantenham o pagamento de R$ ${instVal.toFixed(2)} em dia para preservar a confiança local e evitar restrições no CPF.`;
-        }
-
-        debtActions.push({
-          debtTitle: debt.title,
-          installmentValue: instVal,
-          interestRate: rate,
-          penaltyValue: penalty,
-          recommendation: rec
-        });
-      });
-
-      // 3. Regras de Sobrevivência
       survivalRules.push(
-        {
-          title: "Corte de Supérfluos",
-          description: "Corte temporário de supérfluos (Delivery, Shopee, compras casuais) por 30 dias para estancar o vazamento financeiro."
-        },
-        {
-          title: "PIX/Débito Apenas",
-          description: "Suspensão imediata do uso de cartões de crédito. A feira e os gastos essenciais devem ser pagos exclusivamente via PIX ou Débito para evitar novas faturas."
-        },
-        {
-          title: "Cota de Alimentação Semanal",
-          description: `Limite máximo de feira semanal calculado em R$ ${weeklyFoodCota.toFixed(2)} com base no seu custo essencial de alimentação. Comprem apenas itens básicos (arroz, feijão, frango, ovos, vegetais da estação).`
-        }
+        { title: "Uso Exclusivo de Débito e PIX", description: "Suspensão temporária do uso de cartões. A feira e os gastos essenciais devem ser movimentados integralmente em dinheiro vivo ou saldo em conta." },
+        { title: "Suspensão de Gastos Supérfluos", description: "Compras de roupas, objetos gerais e delivery ficam totalmente suspensos. O foco total está na transição de orçamento." },
+        { title: "Metas Semanais de Alimentação", description: `Revisar o saldo a cada domingo. Limite de feira semanal estipulado em R$ ${weeklyFoodCota.toFixed(2)}.` }
       );
     } else {
-      // Cenário estável
-      dbCards.forEach(card => {
-        let invoiceVal = Number(card.current_invoice);
-        if (card.invoices_schedule && Array.isArray(card.invoices_schedule)) {
-          const currItem = card.invoices_schedule.find((s: any) => s.month === currentMonthStr);
-          if (currItem) invoiceVal = Number(currItem.amount);
-        }
-
-        cardActions.push({
-          cardName: card.name,
-          currentInvoice: invoiceVal,
-          nextInvoice: Number(card.next_invoice || 0),
-          suggestedProportionalPayment: invoiceVal,
-          recommendation: `Vocês possuem caixa suficiente! Paguem o valor integral de R$ ${invoiceVal.toFixed(2)} no vencimento para manter seu Score excelente.`
-        });
-      });
-
-      dbDebts.forEach(debt => {
-        let instVal = Number(debt.current_installment_value);
-        if (debt.installments_schedule && Array.isArray(debt.installments_schedule)) {
-          const schedItem = debt.installments_schedule.find((s: any) => s.month === currentMonthStr);
-          if (schedItem) instVal = Number(schedItem.amount);
-        }
-
+      // CENÁRIO SAUDÁVEL (Regra 50/30/20)
+      dbDebtsMapped.forEach(debt => {
         debtActions.push({
           debtTitle: debt.title,
-          installmentValue: instVal,
+          installmentValue: debt.current_installment_value,
           interestRate: Number(debt.monthly_late_interest_rate),
           penaltyValue: Number(debt.penalty_value),
-          recommendation: `Mantenham o fluxo normal de pagamento de R$ ${instVal.toFixed(2)}/mês para quitação do contrato.`
+          recommendation: `Pagamento integral da parcela no vencimento para amortização saudável.`
         });
+        currentResidue -= debt.current_installment_value;
       });
 
+      dbCardsMapped.forEach(card => {
+        cardActions.push({
+          cardName: card.name,
+          currentInvoice: card.current_invoice,
+          nextInvoice: card.next_invoice,
+          suggestedProportionalPayment: card.current_invoice,
+          recommendation: `Caixa livre! Pagamento integral no vencimento para manter Score alto.`
+        });
+        currentResidue -= card.current_invoice;
+      });
+
+      const lifestyleTarget = totalIncome * 0.30;
+      const investTarget = totalIncome * 0.20;
+
       survivalRules.push(
-        {
-          title: "Manutenção Saudável",
-          description: "Continuem operando abaixo do limite e registrando as contas em dia."
-        },
-        {
-          title: "Reserva de Emergência",
-          description: "Invistam o excedente mensal de caixa diretamente em uma reserva de liquidez imediata."
-        }
+        { title: "Regra 50/30/20 (Ativa)", description: `Vocês estão no verde! Podem direcionar até R$ ${lifestyleTarget.toFixed(2)} para lazer/desejos sem culpa.` },
+        { title: "Fundo de Emergência / Investimentos", description: `Destinem R$ ${investTarget.toFixed(2)} (ou o saldo livre de R$ ${currentResidue.toFixed(2)}) para a sua poupança ou corretora. O dinheiro tem que trabalhar por vocês!` }
       );
     }
+
+    const remainingCashResidue = currentResidue; // O que sobrou após pagar as dívidas e cartões possíveis
 
     return {
       hasStrategy: true,

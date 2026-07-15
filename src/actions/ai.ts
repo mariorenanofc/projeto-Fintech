@@ -90,28 +90,36 @@ export async function askFinancialAdvisor(question: string, history: ChatMessage
     const strategy = await generateFinancialStrategy(monthStr);
 
     // 5. Construir o Prompt de Contexto (Instrução do Sistema) para a LLM
+    const totalCommitments = strategy.totalDebtInstallments + strategy.totalCreditCardInvoices;
+    const isChoque = strategy.isChoqueRequired;
+
     const systemPrompt = `
-Você é o "Conselheiro IA", um mentor financeiro exclusivo da Fintech Casal especializado na estratégia "Operação de Choque".
-Seu objetivo é ajudar este casal a sair das dívidas, otimizar despesas e alcançar estabilidade financeira de forma honesta, motivadora e direta.
+Você é o "Conselheiro IA", um mentor financeiro exclusivo da Fintech Casal.
+Seu objetivo é ajudar este casal a sair das dívidas, otimizar despesas e alcançar estabilidade financeira de forma empática, motivadora e direta.
 
 DADOS REAIS DO CASAL NESTE MÊS DE ANÁLISE (${monthStr}):
 - Renda Total Familiar: R$ ${strategy.totalIncome.toFixed(2)}
-- Despesas Fixas Essenciais: R$ ${strategy.totalEssentialExpenses.toFixed(2)}
+- Custo de Vida Essencial: R$ ${strategy.totalEssentialExpenses.toFixed(2)}
+- Saldo Disponível para Dívidas: R$ ${strategy.disposableIncomeForDebts.toFixed(2)}
 - Faturas de Cartão de Crédito: R$ ${strategy.totalCreditCardInvoices.toFixed(2)}
-- Parcelas de Dívidas / Empréstimos: R$ ${strategy.totalDebtInstallments.toFixed(2)}
-- Saldo Restante / Resíduo de Caixa Livre: R$ ${strategy.remainingCashResidue.toFixed(2)}
-- Necessita de Plano de Choque?: ${strategy.isChoqueRequired ? "SIM, faturas estouram o caixa livre!" : "NÃO, caixa sob controle."}
+- Dívidas Fixas (Empréstimos/Carnês): R$ ${strategy.totalDebtInstallments.toFixed(2)}
+- Total de Compromissos (Dívidas + Cartões): R$ ${totalCommitments.toFixed(2)}
+- Resíduo de Caixa Restante pós-alocação: R$ ${strategy.remainingCashResidue.toFixed(2)}
+- Estado Atual: ${isChoque ? "🔴 OPERAÇÃO DE CHOQUE (Compromissos > Saldo Disponível)" : "🟢 SAUDÁVEL (Regra 50/30/20)"}
 
-AÇÕES RECOMENDADAS PELO MOTOR FINANCEIRO DO CASAL:
-${strategy.cardActions.map((c: any) => `- Cartão ${c.cardName}: ${c.recommendation}`).join("\n")}
-${strategy.debtActions.map((d: any) => `- Dívida ${d.debtTitle}: ${d.recommendation}`).join("\n")}
+AÇÕES TÁTICAS DO MOTOR FINANCEIRO PARA ESTE MÊS:
+${strategy.debtActions.map((d: any) => `- Dívida/Lote '${d.debtTitle}': ${d.recommendation}`).join("\n")}
+${strategy.cardActions.map((c: any) => `- Cartão '${c.cardName}': ${c.recommendation}`).join("\n")}
 
-INSTRUÇÕES DE RESPOSTA E COMPORTAMENTO:
-1. Responda em português de forma clara, amigável, concisa e altamente prática.
-2. Limite suas respostas a no máximo 2 ou 3 parágrafos curtos.
-3. Se o saldo livre for negativo e o usuário sugerir gastos supérfluos (como delivery, pizza, passeios, etc.), lembre-o com firmeza da regra de sobrevivência "Corte de Supérfluos" e sugira alternativas econômicas ou caseiras.
-4. Nunca recomende novos empréstimos ou cartões de crédito.
-5. Baseie suas respostas estritamente no histórico da conversa e no contexto financeiro fornecido do casal.
+INSTRUÇÕES DE COMPORTAMENTO:
+1. Responda em português de forma calorosa, amigável, concisa e prática. No máximo 2 ou 3 parágrafos curtos.
+2. Se estiverem na 🔴 OPERAÇÃO DE CHOQUE:
+   - O saldo livre é negativo ou insuficiente. Se eles sugerirem gastos supérfluos (delivery, passeios caros, roupas), lembre-os com carinho de priorizar o básico (PIX/Débito) e cortar os supérfluos, sugerindo programas caseiros e baratos.
+   - Reforce a urgência da "Alocação Crítica" (pagar dívidas fixas integralmente) e da "Engenharia Financeira" (parcelar faturas de cartão grandes usando apenas o resíduo de caixa como entrada).
+3. Se estiverem 🟢 SAUDÁVEIS:
+   - Estão com saldo positivo. Recomende aplicar a regra 50/30/20. Sugira usar 30% da renda total para lazer sem culpa e destinar 20% para montar a Reserva de Emergência ou investir.
+4. Nunca recomende novos empréstimos, consórcios ou uso desnecessário de crédito.
+5. Baseie suas orientações no histórico e nos números informados acima, sem inventar valores.
     `;
 
     let replyText = "";
@@ -195,35 +203,33 @@ INSTRUÇÕES DE RESPOSTA E COMPORTAMENTO:
 function getFallbackAdvisorResponse(question: string, strategy: any, monthStr: string): string {
   const query = question.toLowerCase();
   
-  if (strategy.remainingCashResidue <= 0 || strategy.isChoqueRequired) {
+  if (strategy.isChoqueRequired) {
     if (query.includes("pizza") || query.includes("delivery") || query.includes("shopee") || query.includes("gastar") || query.includes("comprar")) {
-      return `Alerta da Operação de Choque! Seu saldo de caixa livre está negativo neste mês de ${monthStr} (R$ ${strategy.remainingCashResidue.toFixed(2)}). Pedir delivery ou fazer compras supérfluas agora vai comprometer o pagamento das parcelas essenciais. Sugiro cozinhar juntos em casa para economizar e blindar seu orçamento!`;
+      return `Alerta da Operação de Choque! O total de compromissos deste mês ultrapassa o nosso Saldo Disponível em ${monthStr}. Pedir delivery ou fazer compras agora vai comprometer nossa Engenharia Financeira. Que tal cozinharmos juntos em casa para economizar e blindar nosso orçamento?`;
+    }
+  } else {
+    if (query.includes("investir") || query.includes("poupar") || query.includes("reserva")) {
+      return `Que iniciativa fantástica! Como estamos na zona Verde (Regra 50/30/20), temos R$ ${strategy.remainingCashResidue.toFixed(2)} livres de resíduo. É o momento perfeito para transferir esse dinheiro para uma conta que renda 100% do CDI ou para o Tesouro Direto!`;
     }
   }
 
   if (query.includes("lote") || query.includes("terreno") || query.includes("atraso")) {
-    return `Para o financiamento do lote/terreno no mês de ${monthStr}, a nossa orientação tática é entrar em contato imediato com a loteadora e propor a 'Incorporação de Parcelas' atrasadas para o final do contrato. Isso limpa seu nome imediatamente e congela os juros de mora diários.`;
+    return `Para dívidas como terrenos e lotes, a nossa prioridade na Alocação Crítica é pagar integralmente a parcela atual. Se houver atrasos, entrem em contato imediato para propor a 'Incorporação de Parcelas' para o final do contrato, travando os juros!`;
   }
 
   if (query.includes("cartao") || query.includes("fatura") || query.includes("neon") || query.includes("nubank")) {
-    return `Para as faturas de cartão em ${monthStr}, a regra de ouro é bloquear os cartões no aplicativo para evitar novos gastos. O saldo livre de R$ ${strategy.remainingCashResidue.toFixed(2)} deve ser usado proporcionalmente como entrada para refinanciar as faturas no menor número de parcelas possível.`;
+    return strategy.isChoqueRequired 
+      ? `Ação de Engenharia Financeira: O saldo restante que temos deve ser usado como entrada no parcelamento de faturas grandes que não conseguimos cobrir. Bloqueie os cartões no app para estancar os gastos de imediato.`
+      : `Vocês possuem saldo saudável de R$ ${strategy.remainingCashResidue.toFixed(2)}. Paguem o valor integral das faturas para evitar qualquer juro rotativo e manterem o Score excelente!`;
   }
 
   if (query.includes("emprestimo") || query.includes("banco")) {
-    return `Mantenha as parcelas do empréstimo em dia para evitar juros de mora contratuais do banco. Assim que o fluxo aliviar nos próximos meses, utilize o excedente para amortizar as últimas parcelas de trás para frente, garantindo desconto nos juros embutidos.`;
+    return `Ação de Alocação Crítica: Mantenham as parcelas do empréstimo em dia para proteger o patrimônio e evitar juros. Assim que estivermos totalmente no verde, utilizem o excedente mensal para amortizar o contrato de trás para frente!`;
   }
 
-  if (query.includes("dezembro") || query.includes("fim de ano") || query.includes("natal")) {
-    return `Analisando a sua previsão financeira de despesas para Dezembro (${monthStr}): a receita familiar cadastrada é de R$ ${strategy.totalIncome.toFixed(2)} e o resíduo estimado de caixa livre é de R$ ${strategy.remainingCashResidue.toFixed(2)}. ${
-      strategy.isChoqueRequired 
-        ? "Devido às faturas altas agendadas e parcelas em atraso de contratos anteriores, o caixa está no vermelho. Recomendo cortar 100% de gastos adicionais de final de ano (presentes caros, viagens extravagantes) e focar na blindagem de despesas básicas."
-        : "Vocês possuem uma margem saudável! Mantenham as metas de poupança ativas e usem o excedente para criar uma reserva para despesas de início de ano (IPVA, IPTU)."
-    }`;
-  }
-
-  return `Olá! Analisando seu fluxo de caixa para ${monthStr}, vocês têm R$ ${strategy.totalIncome.toFixed(2)} de receita familiar e R$ ${strategy.remainingCashResidue.toFixed(2)} livres após despesas fixas e dívidas. ${
+  return `Olá! Analisando nosso fluxo para ${monthStr}: Temos R$ ${strategy.totalIncome.toFixed(2)} de receita e um saldo disponível de R$ ${strategy.disposableIncomeForDebts.toFixed(2)}. ${
     strategy.isChoqueRequired 
-      ? "Como vocês estão no vermelho devido ao acúmulo de faturas, recomendo suspender o uso do crédito e focar apenas no PIX e no corte de supérfluos."
-      : "Sua situação está estável! Continuem operando com controle e reservem o caixa para formar uma reserva de liquidez rápida."
+      ? "Devido às faturas altas agendadas, estamos na Operação de Choque. Foquem nos pagamentos via PIX/Débito e nas Ações de Engenharia Financeira recomendadas no Dashboard."
+      : "Situação 100% controlada (Regra 50/30/20)! Mantenham os limites e usem o excedente mensal para a Reserva de Emergência."
   }`;
 }
