@@ -16,7 +16,23 @@ const geistMono = Roboto_Mono({
 
 export const metadata: Metadata = {
   title: "Fintech Casal - Finanças Compartilhadas",
-  description: "SaaS financeiro compartilhado e gamificado para casais. Planejem, poupem e joguem juntos pelo seu futuro.",
+  description: "O Fintech Casal é um aplicativo de organização financeira projetado para ajudar casais a gerenciar orçamentos conjuntos.",
+  openGraph: {
+    title: "Fintech Casal",
+    description: "SaaS financeiro compartilhado e gamificado para casais. Planejem, poupem e joguem juntos pelo seu futuro.",
+    url: "https://projeto-fintech-kohl.vercel.app",
+    siteName: "Fintech Casal",
+    images: [
+      {
+        url: "/opengraph-image.png", // Imagem na pasta public/
+        width: 1200,
+        height: 630,
+        alt: "Fintech Casal Preview",
+      },
+    ],
+    locale: "pt_BR",
+    type: "website",
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

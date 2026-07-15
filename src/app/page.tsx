@@ -36,8 +36,8 @@ export default function LoginPage() {
             Finanças Compartilhadas
           </p>
 
-          <p className="text-xs text-zinc-400 mt-4 leading-relaxed max-w-xs">
-            Planejem, poupem e joguem juntos. Conecte-se com sua conta Google para sincronizar o painel financeiro compartilhado e o calendário.
+          <p className="text-xs text-zinc-400 mt-4 leading-relaxed max-w-sm">
+            O Fintech Casal é um aplicativo de organização financeira projetado para ajudar casais a gerenciar orçamentos conjuntos, despesas e sincronizar datas de vencimento com o Google Calendar.
           </p>
 
           {/* Botão de Google Auth Premium Centralizado */}
