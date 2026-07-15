@@ -20,6 +20,7 @@ export function AuthButton() {
           queryParams: {
             access_type: "offline",
             prompt: "consent",
+            include_granted_scopes: "true", // Resolve o aviso de "Autorização Incremental" do Google
           },
           scopes: "https://www.googleapis.com/auth/calendar.events",
         },
