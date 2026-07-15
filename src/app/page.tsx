@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 import { AuthButton } from "@/components/auth-button";
 import { Coins, ShieldAlert, Sparkles, CalendarRange, Heart } from "lucide-react";
 
@@ -88,11 +89,22 @@ export default function LoginPage() {
 
         </div>
 
-        {/* Footer da Página */}
-        <footer className="mt-12 text-[10px] text-zinc-650 flex items-center gap-1.5 font-medium tracking-wide">
-          <span>Desenvolvido com</span>
-          <Heart className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500 animate-pulse" />
-          <span>para casais investidores</span>
+        {/* Footer da Página com Links Legais (Exigência do Google OAuth) */}
+        <footer className="mt-12 flex flex-col items-center gap-3">
+          <div className="flex items-center gap-4 text-xs text-zinc-500 font-medium">
+            <Link href="/politica-de-privacidade" className="hover:text-yellow-500 transition-colors underline underline-offset-4">
+              Política de Privacidade
+            </Link>
+            <span>&bull;</span>
+            <Link href="/termos-de-uso" className="hover:text-yellow-500 transition-colors underline underline-offset-4">
+              Termos de Uso
+            </Link>
+          </div>
+          <div className="text-[10px] text-zinc-650 flex items-center gap-1.5 font-medium tracking-wide">
+            <span>Desenvolvido com</span>
+            <Heart className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500 animate-pulse" />
+            <span>para casais investidores</span>
+          </div>
         </footer>
 
       </div>
