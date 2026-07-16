@@ -14,37 +14,35 @@ export function FloatingTools() {
   const [expression, setExpression] = useState("");
   const [result, setResult] = useState("");
 
+  // Não exibe a barra de ferramentas nas rotas públicas
+  const publicPaths = ["/", "/politica-de-privacidade", "/termos-de-uso"];
+  if (publicPaths.includes(pathname)) {
+    return null;
+  }
+
   // Não exibe o balão de chat se já estiver na página do próprio chat
   const showChatBubble = pathname !== "/chat";
 
   React.useEffect(() => {
-    let scrollTimeout: NodeJS.Timeout;
     let lastScrollTop = 0;
 
     const handleScroll = () => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
       
       if (scrollTop > lastScrollTop && scrollTop > 50) {
-        // Rolando para baixo -> esconde balões flutuantes, mostra o menu
+        // Rolando para baixo -> esconde balões flutuantes
         document.body.classList.add("scrolling-down");
-      } else {
-        // Rolando para cima -> mostra balões, esconde o menu
+      } else if (scrollTop < lastScrollTop) {
+        // Rolando para cima -> mostra balões flutuantes
         document.body.classList.remove("scrolling-down");
       }
+      
       lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
-
-      // Debounce para detectar parada de scroll
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        document.body.classList.remove("scrolling-down");
-      }, 400);
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      clearTimeout(scrollTimeout);
-      // Limpa ao desmontar
       document.body.classList.remove("scrolling-down");
     };
   }, []);
