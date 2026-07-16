@@ -15,8 +15,8 @@ const geistMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fintech Casal - Finanças Compartilhadas",
-  description: "O Fintech Casal é um aplicativo de organização financeira projetado para ajudar casais a gerenciar orçamentos conjuntos.",
+  title: "Fintech Casal",
+  description: "O Fintech Casal é um aplicativo de organização financeira projetado para ajudar casais a gerenciar orçamentos conjuntos, com integração oficial ao Google Calendar.",
   openGraph: {
     title: "Fintech Casal",
     description: "SaaS financeiro compartilhado e gamificado para casais. Planejem, poupem e joguem juntos pelo seu futuro.",

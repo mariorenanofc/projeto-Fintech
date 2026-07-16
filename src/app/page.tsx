@@ -37,9 +37,14 @@ export default function LoginPage() {
             Finanças Compartilhadas
           </p>
 
-          <p className="text-xs text-zinc-400 mt-4 leading-relaxed max-w-sm">
-            O Fintech Casal é um aplicativo de organização financeira projetado para ajudar casais a gerenciar orçamentos conjuntos, despesas e sincronizar datas de vencimento com o Google Calendar.
-          </p>
+          <div className="bg-zinc-950/50 border border-white/5 p-4 rounded-xl mt-4">
+            <h2 className="text-sm font-bold text-white mb-2">Qual a finalidade deste app?</h2>
+            <p className="text-xs text-zinc-400 leading-relaxed text-justify">
+              O <strong>Fintech Casal</strong> é um aplicativo de organização financeira projetado para ajudar casais a planejar orçamentos conjuntos, gerenciar despesas e acompanhar contas a pagar de forma gamificada. 
+              <br/><br/>
+              <strong>Integração com Google:</strong> Utilizamos o Login do Google para garantir acesso seguro à sua conta. Solicitamos acesso ao seu <strong>Google Calendar (Google Agenda)</strong> exclusivamente para poder adicionar, de forma automática, lembretes das datas de vencimento das contas cadastradas no aplicativo diretamente na sua agenda pessoal, evitando multas e atrasos. Seus dados não são compartilhados com terceiros.
+            </p>
+          </div>
 
           {/* Botão de Google Auth Premium Centralizado */}
           <div className="w-full flex justify-center mt-8 mb-2">
