@@ -45,8 +45,12 @@ export default function ProfilePage() {
   const [debts, setDebts] = useState<any[]>([]);
 
   // Estados de edição / criação
-  const [activeTab, setActiveTab] = useState<"incomes" | "expenses" | "cards" | "debts">("incomes");
+  const [activeTab, setActiveTab] = useState<"account" | "incomes" | "expenses" | "cards" | "debts">("account");
   const [editId, setEditId] = useState<string | null>(null);
+
+  // Estados de Voz
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>("");
 
   // Form templates para novos itens
   const [incomeForm, setIncomeForm] = useState<IncomeInput>({ title: "", amount: 0, owner: "Parceiro A" });
@@ -65,7 +69,43 @@ export default function ProfilePage() {
   useEffect(() => {
     setMounted(true);
     fetchData();
+
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      const loadVoices = () => {
+        const availableVoices = window.speechSynthesis.getVoices();
+        const ptVoices = availableVoices.filter(v => v.lang.startsWith("pt-"));
+        setVoices(ptVoices);
+        const savedVoice = localStorage.getItem("preferredVoiceURI");
+        if (savedVoice) {
+          setSelectedVoiceURI(savedVoice);
+        } else if (ptVoices.length > 0) {
+          const defaultVoice = ptVoices.find(v => v.name.includes("Google") || v.name.includes("Microsoft Maria")) || ptVoices[0];
+          setSelectedVoiceURI(defaultVoice.voiceURI);
+        }
+      };
+      
+      loadVoices();
+      if (window.speechSynthesis.onvoiceschanged !== undefined) {
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+      }
+    }
   }, []);
+
+  const handleVoiceChange = (uri: string) => {
+    setSelectedVoiceURI(uri);
+    localStorage.setItem("preferredVoiceURI", uri);
+  };
+
+  const testVoice = () => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance("Olá! Eu serei a sua conselheira financeira IA.");
+      utterance.lang = "pt-BR";
+      const voiceToUse = voices.find(v => v.voiceURI === selectedVoiceURI);
+      if (voiceToUse) utterance.voice = voiceToUse;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -344,12 +384,37 @@ export default function ProfilePage() {
         </div>
       </header>
 
-      {/* NOVO CARD: Conta Conjugal & Parceria */}
-      <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md mb-6 overflow-hidden">
-        <CardHeader className="p-6 pb-2.5 flex flex-row items-center justify-between space-y-0">
-          <div>
-            <CardTitle className="text-xs font-black uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
-              <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
+      {/* Tabs */}
+      <div className="grid grid-cols-5 gap-1.5 mb-6">
+        {[
+          { id: "account", label: "Conta" },
+          { id: "incomes", label: "Receitas" },
+          { id: "expenses", label: "Despesas" },
+          { id: "cards", label: "Cartões" },
+          { id: "debts", label: "Dívidas" }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => { setActiveTab(tab.id as any); setEditId(null); }}
+            className={`py-2 px-1 text-center rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${
+              activeTab === tab.id
+                ? "bg-yellow-500 border-yellow-500 text-zinc-950 shadow-md shadow-yellow-500/10"
+                : "bg-zinc-900/30 border-white/5 text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {activeTab === "account" ? (
+        <div className="space-y-6">
+          {/* NOVO CARD: Conta Conjugal & Parceria */}
+          <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden">
+            <CardHeader className="p-6 pb-2.5 flex flex-row items-center justify-between space-y-0">
+              <div>
+                <CardTitle className="text-xs font-black uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
+                  <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
               Conta Conjugal & Parceria
             </CardTitle>
             <CardDescription className="text-[10px] text-zinc-500 mt-0.5">
@@ -419,32 +484,53 @@ export default function ProfilePage() {
               </div>
             </form>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      {/* Tabs */}
-      <div className="grid grid-cols-4 gap-1.5 mb-6">
-        {[
-          { id: "incomes", label: "Receitas" },
-          { id: "expenses", label: "Despesas" },
-          { id: "cards", label: "Cartões" },
-          { id: "debts", label: "Dívidas" }
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => { setActiveTab(tab.id as any); setEditId(null); }}
-            className={`py-2 px-1 text-center rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${
-              activeTab === tab.id
-                ? "bg-yellow-500 border-yellow-500 text-zinc-950 shadow-md shadow-yellow-500/10"
-                : "bg-zinc-900/30 border-white/5 text-zinc-400 hover:text-zinc-200"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex-1 flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
+          {/* CARD: Configurações de Voz */}
+          <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden">
+            <CardHeader className="p-6 pb-2.5">
+              <CardTitle className="text-xs font-black uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-yellow-500" />
+                Voz da IA & Conselheiro
+              </CardTitle>
+              <CardDescription className="text-[10px] text-zinc-500 mt-0.5">
+                Escolha a voz que fará a leitura do diagnóstico e relatórios (Apenas para o seu dispositivo atual).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 pt-0 space-y-4">
+              <div className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 space-y-3">
+                <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block">
+                  Vozes Disponíveis (Português)
+                </label>
+                {voices.length > 0 ? (
+                  <div className="flex gap-2">
+                    <select
+                      value={selectedVoiceURI}
+                      onChange={(e) => handleVoiceChange(e.target.value)}
+                      className="bg-zinc-950/85 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 flex-1 text-xs"
+                    >
+                      {voices.map(v => (
+                        <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>
+                      ))}
+                    </select>
+                    <Button 
+                      onClick={testVoice}
+                      type="button"
+                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-black h-11 px-4 rounded-xl text-xs flex items-center gap-1.5"
+                    >
+                      Testar
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="text-[10px] text-zinc-500">Nenhuma voz em português encontrada neste dispositivo.</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
 
         {/* COLUNA ESQUERDA: Formulário de Cadastro/Edição */}
         <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md">
@@ -999,6 +1085,7 @@ export default function ProfilePage() {
         </Card>
 
       </div>
+      )}
 
       {/* Footer / Barra de Navegação PWA Minimalista */}
       <footer className="mt-10 pt-5 border-t border-white/5 flex justify-around text-zinc-600 text-xs">

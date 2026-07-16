@@ -38,6 +38,7 @@ import { getTransactions, addTransaction, deleteTransaction } from "@/actions/tr
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AudioExplainerButton } from "@/components/ui/audio-explainer";
 
 // Tipagem para as contas
 interface Bill {
@@ -681,7 +682,12 @@ export default function DashboardPage() {
                     <div className="bg-zinc-950/40 p-3.5 rounded-xl border border-white/5 flex gap-2.5 items-start">
                       <Info className="w-4.5 h-4.5 text-yellow-500 flex-shrink-0 mt-0.5" />
                       <div className="space-y-1">
-                        <span className="text-[10px] text-zinc-300 font-black uppercase tracking-wider block">Diagnóstico do Período</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-zinc-300 font-black uppercase tracking-wider block">Diagnóstico do Período</span>
+                          <AudioExplainerButton 
+                            text={`Veja só, sua receita inserida é no valor de ${strategy.totalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, com base nos seus registros seus gastos essenciais chegam a ${(strategy.totalIncome - strategy.disposableIncomeForDebts).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Esse valor é descontado obrigatoriamente. Então, o valor de ${strategy.disposableIncomeForDebts.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} é o que ficou disponível para fazer a divisão e pagar as outras contas pendentes como Empréstimos e Cartões.`} 
+                          />
+                        </div>
                         <p className="text-[10px] text-zinc-400 leading-relaxed font-semibold">
                           {strategy.isChoqueRequired ? (
                             `Recalculando rota, casal! As contas deste período estão superando a renda em R$ ${Math.abs(strategy.disposableIncomeForDebts - (strategy.totalDebtInstallments + strategy.totalCreditCardInvoices)).toFixed(2)}. Vamos acionar o Plano de Choque abaixo! Juntos, vocês conseguem colocar a casa em ordem! 💪`
@@ -709,6 +715,10 @@ export default function DashboardPage() {
                               <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
                                 Alocação Crítica (Total: R$ {totalAlocacaoCritica.toFixed(2)})
                               </h4>
+                              <AudioExplainerButton 
+                                text={`A Alocação Crítica soma ${totalAlocacaoCritica.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Estas contas representam os pagamentos obrigatórios e prioritários do mês. Elas devem ser pagas integralmente assim que o salário for recebido para evitar penalidades e proteger o seu patrimônio.`} 
+                                className="ml-1"
+                              />
                             </div>
                             <p className="text-[10px] text-zinc-500 mb-3">As seguintes contas devem ser pagas integralmente assim que o salário for recebido para evitar penalidades e proteger o patrimônio.</p>
                             
@@ -747,6 +757,10 @@ export default function DashboardPage() {
                                 <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
                                   Engenharia Financeira
                                 </h4>
+                                <AudioExplainerButton 
+                                  text={`Na sessão de Engenharia Financeira, identificamos faturas de cartões que ultrapassam o saldo restante para este período. O valor de ${totalResiduoPosAlocacao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} sobrou após a Alocação Crítica. Ele deve ser usado como entrada para renegociar e parcelar estas faturas ativamente com o banco.`} 
+                                  className="ml-1"
+                                />
                               </div>
                               <p className="text-[10px] text-zinc-500 mb-3">
                                 Faturas que ultrapassam o saldo restante. Exigem ação ativa de renegociação (parcelamento da fatura) usando o resíduo (se houver) como entrada.
