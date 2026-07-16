@@ -328,6 +328,7 @@ export default function ProfilePage() {
           <div>
             <h1 className="text-base font-black tracking-tight text-white sm:text-lg">Configurações do Casal</h1>
             <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Perfil & Parâmetros</p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Badge variant="outline" className="border-yellow-500/20 text-yellow-400 bg-yellow-950/10 px-2.5 py-1 text-xs">
@@ -1005,10 +1006,10 @@ export default function ProfilePage() {
           <Coins className="w-5 h-5" />
           <span className="text-[9px] tracking-wider uppercase font-semibold">Dashboard</span>
         </Link>
-        <button className="flex flex-col items-center gap-1 hover:text-zinc-400 transition-colors" onClick={() => alert("Histórico de Transações em breve!")}>
+        <Link href="/transactions" className="flex flex-col items-center gap-1 hover:text-zinc-400 transition-colors">
           <TrendingUp className="w-5 h-5" />
           <span className="text-[9px] tracking-wider uppercase font-semibold">Transações</span>
-        </button>
+        </Link>
         <Link href="/profile" className="flex flex-col items-center gap-1 text-yellow-500 font-bold transition-colors">
           <ShieldCheck className="w-5 h-5 animate-pulse" />
           <span className="text-[9px] tracking-wider uppercase font-semibold">Perfil</span>

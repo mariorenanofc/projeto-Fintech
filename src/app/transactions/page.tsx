@@ -21,6 +21,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { 
   getTransactions, 
   addTransaction, 
@@ -41,6 +42,7 @@ export default function TransactionsPage() {
 
   // Estados de Edição / Cadastro
   const [editId, setEditId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [form, setForm] = useState<TransactionInput>({
     type: "expense",
     amount: 0,
@@ -102,9 +104,15 @@ export default function TransactionsPage() {
     });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta transação?")) return;
+  const openDeleteConfirm = (id: string) => {
+    setConfirmDeleteId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!confirmDeleteId) return;
     setLoading(true);
+    const id = confirmDeleteId;
+    setConfirmDeleteId(null);
     const res = await deleteTransaction(id);
     if (res.success) await fetchData(selectedMonth);
     else alert(res.error);
@@ -320,7 +328,7 @@ export default function TransactionsPage() {
                       <button onClick={() => handleEdit(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleDelete(item.id)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
+                      <button onClick={() => openDeleteConfirm(item.id)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -338,6 +346,36 @@ export default function TransactionsPage() {
         </Card>
 
       </div>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <Dialog open={!!confirmDeleteId} onOpenChange={(open) => !open && setConfirmDeleteId(null)}>
+        <DialogContent className="bg-zinc-950 border border-white/10 shadow-2xl sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-100 flex items-center gap-2 text-lg">
+              <Trash2 className="w-5 h-5 text-rose-500" />
+              Excluir Transação
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-sm mt-1.5 leading-relaxed">
+              Tem certeza que deseja excluir esta transação? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setConfirmDeleteId(null)}
+              className="flex-1 bg-zinc-900 text-zinc-300 border-white/10 hover:bg-zinc-800 hover:text-white h-11 rounded-xl font-bold"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleConfirmDelete}
+              className="flex-1 bg-rose-500 hover:bg-rose-600 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)] h-11 rounded-xl font-bold border-none"
+            >
+              Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Footer PWA */}
       <footer className="mt-8 pt-5 border-t border-white/5 flex justify-around text-zinc-600 text-xs">

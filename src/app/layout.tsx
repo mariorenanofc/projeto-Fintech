@@ -4,6 +4,7 @@ import "./globals.css";
 import { PWAProvider } from "@/components/pwa-provider";
 import { FloatingTools } from "@/components/floating-tools";
 import { CookieBanner } from "@/components/cookie-banner";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Inter({
   variable: "--font-geist-sans",
@@ -68,6 +69,7 @@ export default function RootLayout({
         {children}
         <FloatingTools />
         <CookieBanner />
+        <Toaster position="top-right" />
       </body>
     </html>
   );

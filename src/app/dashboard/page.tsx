@@ -17,7 +17,10 @@ import {
   TrendingDown,
   ArrowRight,
   RefreshCcw,
-  LogOut
+  LogOut,
+  MoreHorizontal,
+  CalendarPlus,
+  Undo2
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -31,6 +34,10 @@ import {
 } from "@/actions/onboarding";
 import { createCalendarEvent } from "@/actions/calendar";
 import { ptBR } from "date-fns/locale";
+import { getTransactions, addTransaction, deleteTransaction } from "@/actions/transactions";
+import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 // Tipagem para as contas
 interface Bill {
@@ -40,6 +47,8 @@ interface Bill {
   dueDate: string; // Formato: AAAA-MM-DD
   status: "paid" | "pending";
   category: string;
+  transactionId?: string;
+  paidAmount?: number;
 }
 
 export default function DashboardPage() {
@@ -70,6 +79,12 @@ export default function DashboardPage() {
   const [rawCards, setRawCards] = useState<any[]>([]);
   const [rawDebts, setRawDebts] = useState<any[]>([]);
 
+  // Novos estados para a inteligência de pagamentos e economia
+  const [economyTotal, setEconomyTotal] = useState(0);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [billToConfirm, setBillToConfirm] = useState<Bill | null>(null);
+  const [actualAmountPaid, setActualAmountPaid] = useState<number>(0);
+
   // Garante a montagem inicial
   useEffect(() => {
     setMounted(true);
@@ -99,11 +114,22 @@ export default function DashboardPage() {
 
       // 2. Busca dados brutos para construir as contas do calendário e previsões
       const rawRes = await getProfileFinancialData();
+      const txRes = await getTransactions(monthStr);
+
       if (rawRes.success) {
         setRawCards(rawRes.creditCards);
         setRawDebts(rawRes.debts);
-        const realBills = buildRealBills(rawRes.fixedExpenses, rawRes.debts, rawRes.creditCards, monthStr);
+        const realBills = buildRealBills(rawRes.fixedExpenses, rawRes.debts, rawRes.creditCards, monthStr, txRes.data || []);
         setBills(realBills);
+
+        // Calcula economia total do mês
+        let econ = 0;
+        realBills.forEach(b => {
+          if (b.status === "paid" && b.paidAmount !== undefined) {
+            econ += (b.amount - b.paidAmount);
+          }
+        });
+        setEconomyTotal(econ);
       }
 
       // 3. Busca a estratégia/diagnóstico para o mês selecionado
@@ -137,7 +163,7 @@ export default function DashboardPage() {
   };
 
   // Helper para construir faturas e parcelas em cima dos dias do mês
-  const buildRealBills = (expenses: any[], debts: any[], cards: any[], currentMonthStr: string) => {
+  const buildRealBills = (expenses: any[], debts: any[], cards: any[], currentMonthStr: string, transactions: any[]) => {
     const generatedBills: Bill[] = [];
     const currentYearMonth = `${currentMonthStr}-`;
 
@@ -199,7 +225,16 @@ export default function DashboardPage() {
       });
     });
 
-    return generatedBills;
+    // Cruza com transações pagas
+    return generatedBills.map(bill => {
+      const tx = transactions.find(t => t.description === bill.title && t.category === bill.category);
+      if (tx) {
+        bill.status = "paid";
+        bill.transactionId = tx.id;
+        bill.paidAmount = Number(tx.amount);
+      }
+      return bill;
+    });
   };
 
   // Formatação de data local robusta
@@ -220,16 +255,47 @@ export default function DashboardPage() {
 
   const selectedDateBills = getBillsForDate(selectedDate);
 
-  // Marcar conta como paga
-  const markAsPaid = (billId: string) => {
-    setBills(prev => 
-      prev.map(bill => {
-        if (bill.id === billId && bill.status === "pending") {
-          return { ...bill, status: "paid" };
-        }
-        return bill;
-      })
-    );
+  // Abrir Modal de Pagamento
+  const openConfirmModal = (bill: Bill) => {
+    setBillToConfirm(bill);
+    setActualAmountPaid(bill.amount);
+    setConfirmModalOpen(true);
+  };
+
+  // Confirmar pagamento real no BD
+  const handleConfirmPayment = async () => {
+    if (!billToConfirm) return;
+    setLoadingRealData(true);
+    setConfirmModalOpen(false);
+    
+    const res = await addTransaction({
+      type: "expense",
+      amount: actualAmountPaid,
+      description: billToConfirm.title,
+      category: billToConfirm.category,
+      date: billToConfirm.dueDate
+    });
+
+    if (res.success) {
+      toast.success("Pagamento confirmado e registrado!");
+      await loadDashboardData(selectedMonthStr);
+    } else {
+      toast.error("Erro ao registrar pagamento: " + res.error);
+      setLoadingRealData(false);
+    }
+  };
+
+  // Desfazer Pagamento
+  const handleUndoPayment = async (transactionId: string) => {
+    setLoadingRealData(true);
+    const res = await deleteTransaction(transactionId);
+    if (res.success) {
+      toast.info("Pagamento desfeito com sucesso.");
+      await loadDashboardData(selectedMonthStr);
+    } else {
+      toast.error("Erro ao desfazer pagamento: " + res.error);
+      setLoadingRealData(false);
+    }
   };
 
   // Sincronizar conta com o Google Calendar
@@ -241,12 +307,12 @@ export default function DashboardPage() {
         amount: bill.amount
       });
       if (res.success) {
-        alert(`Sucesso! A conta "${bill.title}" foi agendada no seu Google Agenda.`);
+        toast.success(`Conta "${bill.title}" agendada no Google Agenda!`);
       } else {
-        alert(`Aviso: ${res.error}\n\nNota: Para sincronizar compromissos, faça login usando sua conta do Google neste aplicativo.`);
+        toast.warning(`Aviso: ${res.error}`, { description: "Faça login com Google para sincronizar." });
       }
     } catch (err: any) {
-      alert("Erro ao conectar com a API do Google: " + err.message);
+      toast.error("Erro ao conectar com a API do Google: " + err.message);
     }
   };
 
@@ -394,14 +460,14 @@ export default function DashboardPage() {
           
           {/* Card do Semáforo */}
           <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
-            <CardHeader className="p-5 xs:p-6 pb-2 xs:pb-3 flex flex-row items-center justify-between space-y-0">
+            <CardHeader className="p-6 sm:p-8 pb-2 sm:pb-3 flex flex-row items-center justify-between space-y-0">
               <div>
                 <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-500">Nosso Ritmo Diário 💛</CardTitle>
                 <CardDescription className="text-[10px] text-zinc-550 mt-0.5">Como estamos cuidando do nosso dinheiro hoje</CardDescription>
               </div>
             </CardHeader>
             
-            <CardContent className="p-5 xs:p-6 pt-0 flex flex-col items-center">
+            <CardContent className="p-6 sm:p-8 pt-0 flex flex-col items-center">
               {/* Lente circular com Glow neon correspondente */}
               <div className="relative flex flex-col items-center justify-center mt-4 mb-6 w-full">
                 {/* Glow de fundo */}
@@ -446,6 +512,42 @@ export default function DashboardPage() {
                   {financeStatus === "red" && !strategy?.isChoqueRequired && "Recalculando rota! Passamos do nosso teto diário hoje. Vamos segurar novos gastos não essenciais para proteger nosso final do mês?"}
                 </p>
               </div>
+              
+              {/* Métrica de Economia Real do Casal */}
+              {(economyTotal !== 0) && (
+                <div className={`w-full max-w-sm mt-2 p-3 rounded-xl border flex items-center justify-between transition-all duration-300 ${
+                  economyTotal > 0 
+                    ? "bg-emerald-500/10 border-emerald-500/20" 
+                    : "bg-rose-500/10 border-rose-500/20"
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      economyTotal > 0 ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
+                    }`}>
+                      {economyTotal > 0 ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className={`text-[10px] uppercase font-black tracking-widest ${
+                        economyTotal > 0 ? "text-emerald-500" : "text-rose-500"
+                      }`}>
+                        {economyTotal > 0 ? "Economia no Mês" : "Despesa Extra"}
+                      </span>
+                      <span className={`text-[10px] font-semibold ${
+                        economyTotal > 0 ? "text-emerald-400/80" : "text-rose-400/80"
+                      }`}>
+                        {economyTotal > 0 ? "Poupamos mais do que o previsto!" : "Gastamos além do previsto."}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className={`text-sm font-black ${
+                      economyTotal > 0 ? "text-emerald-400" : "text-rose-400"
+                    }`}>
+                      R$ {Math.abs(economyTotal).toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Info de valores compactos reais do casal */}
               <div className="w-full flex gap-3 mt-6 pt-4 border-t border-white/5 text-xs">
@@ -466,7 +568,7 @@ export default function DashboardPage() {
           </Card>
           
           {/* Botões alinhados com o Card */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 w-full">
             <Link href="/chat" className="flex-1">
               <Button 
                 className="w-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 font-black shadow-[0_4px_15px_rgba(234,179,8,0.2)] flex items-center justify-center gap-1.5 h-11 rounded-xl text-xs border-none transition-all duration-300 hover:scale-[1.02]"
@@ -488,7 +590,7 @@ export default function DashboardPage() {
           {/* Conselheiro de Choque Dinâmico */}
           {strategy?.hasStrategy ? (
             <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
-              <CardHeader className="p-5 xs:p-6 pb-2">
+              <CardHeader className="p-6 sm:p-8 pb-2">
                 <CardTitle className="text-xs font-black uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
                   <Info className="w-4 h-4" />
                   Recomendações da Nossa IA 💡
@@ -497,7 +599,7 @@ export default function DashboardPage() {
                   Ideias personalizadas para apoiar a jornada de vocês
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-5 xs:p-6 pt-0 space-y-4">
+              <CardContent className="p-6 sm:p-8 pt-0 space-y-4">
                 {strategy.isChoqueRequired ? (
                   <div className="space-y-3">
                     <span className="text-[9px] text-rose-400 uppercase tracking-widest font-black block">Passo a Passo para Cuidar do Bolso:</span>
@@ -536,7 +638,7 @@ export default function DashboardPage() {
             <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md relative overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
               <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-2xl pointer-events-none" />
               
-              <CardHeader className="p-5 xs:p-6 pb-2 xs:pb-3">
+              <CardHeader className="p-6 sm:p-8 pb-2 sm:pb-3">
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-1.5 text-yellow-400 font-bold text-xs uppercase tracking-wider">
                     <TrendingUp className="w-3.5 h-3.5" />
@@ -550,7 +652,7 @@ export default function DashboardPage() {
                 <CardDescription className="text-[10px] text-zinc-550 mt-0.5">Acompanhem o dinheiro deste mês e vejam como está o planejamento para o próximo</CardDescription>
               </CardHeader>
 
-              <CardContent className="p-5 xs:p-6 pt-0 space-y-6">
+              <CardContent className="p-6 sm:p-8 pt-0 space-y-6">
                 {strategy?.hasStrategy ? (
                   <>
                     {/* Linha do Fluxo do Mês Selecionado */}
@@ -729,9 +831,9 @@ export default function DashboardPage() {
           </section>
 
           {/* SEÇÃO DE CALENDÁRIO & CONTAS INTEGRADA */}
-          <section>
-            <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
-              <CardHeader className="p-5 xs:p-6 pb-2 xs:pb-3 border-b border-white/5">
+          <section className="flex-1 flex flex-col">
+            <Card className="flex-1 flex flex-col bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
+              <CardHeader className="p-6 sm:p-8 pb-2 sm:pb-3 border-b border-white/5">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4 text-yellow-500" />
                   <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400">Nosso Calendário de Vencimentos 📅</CardTitle>
@@ -739,11 +841,11 @@ export default function DashboardPage() {
                 <CardDescription className="text-[10px] text-zinc-550 mt-1">Escolham um dia para acompanhar o fluxo das nossas contas juntos</CardDescription>
               </CardHeader>
               
-              <CardContent className="p-5 xs:p-6">
-                <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch w-full mt-2">
+              <CardContent className="flex-1 p-6 sm:p-8 pt-4 sm:pt-6">
+                <div className="flex flex-col gap-8 lg:gap-12 lg:flex-row lg:items-stretch w-full mt-2 h-full">
                   
                   {/* Calendário com Tradução PT-BR (locale={ptBR}) */}
-                  <div className="lg:w-[45%] bg-zinc-950/50 p-6 rounded-xl border border-white/5 flex flex-col justify-center items-center shadow-inner min-h-[360px]">
+                  <div className="lg:w-[55%] min-w-fit bg-zinc-950/50 p-6 sm:p-8 rounded-xl border border-white/5 flex flex-col justify-center items-center shadow-inner min-h-[360px]">
                     {mounted ? (
                       <Calendar
                         mode="single"
@@ -767,7 +869,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Lista de Contas */}
-                  <div className="lg:w-[55%] bg-zinc-950/50 p-6 rounded-xl border border-white/5 flex flex-col min-h-[360px]">
+                  <div className="lg:w-[45%] bg-zinc-950/50 p-6 sm:p-8 rounded-xl border border-white/5 flex flex-col min-h-[360px]">
                     <div className="flex justify-between items-center pb-2 border-b border-white/5 mb-4">
                       <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
                         Nosso plano para este dia:
@@ -783,46 +885,68 @@ export default function DashboardPage() {
                           {selectedDateBills.map((bill) => (
                             <div 
                               key={bill.id}
-                              className="flex items-center justify-between bg-zinc-950/40 p-3 rounded-xl border border-white/5 hover:border-zinc-800 transition-all duration-300"
+                              className="flex flex-col bg-zinc-950/40 p-4 rounded-xl border border-white/5 hover:border-zinc-800 transition-all duration-300"
                             >
-                              <div className="flex flex-col">
-                                <span className="text-xs font-bold text-zinc-200">{bill.title}</span>
-                                <span className="text-[9px] text-zinc-550 mt-0.5">{bill.category}</span>
+                              {/* Titulo isolado no topo */}
+                              <div className="mb-3">
+                                <h5 className="text-xs font-bold text-zinc-200 block">{bill.title}</h5>
+                                <span className="text-[9px] text-zinc-550 font-semibold">{bill.category}</span>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <div className="text-right">
-                                  <span className="text-xs font-black text-zinc-100 block">R$ {bill.amount.toFixed(2)}</span>
-                                  <span className={`text-[8px] font-black uppercase tracking-wider block mt-0.5 ${
-                                    bill.status === "paid" ? "text-emerald-400" : "text-yellow-400"
-                                  }`}>
-                                    {bill.status === "paid" ? "Pago" : "Aguardando"}
-                                  </span>
+                              
+                              {/* Valores e Botões na mesma linha */}
+                              <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-3">
+                                <div className="text-left">
+                                  {bill.status === "paid" ? (
+                                    <div className="flex flex-col">
+                                      <span className="text-xs text-emerald-400 font-black">R$ {bill.paidAmount?.toFixed(2)} Pago</span>
+                                      {bill.paidAmount !== bill.amount && (
+                                        <span className="text-[9px] text-zinc-500 line-through">R$ {bill.amount.toFixed(2)}</span>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm font-black text-white block">R$ {bill.amount.toFixed(2)}</span>
+                                  )}
                                 </div>
                                 
-                                {bill.status === "pending" ? (
-                                  <div className="flex gap-1.5">
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => handleSyncGoogleCalendar(bill)}
-                                      className="h-8 border-yellow-500/10 hover:border-yellow-500/30 hover:bg-yellow-500/5 text-yellow-500 text-[10px] px-2.5 font-bold rounded-lg shadow-sm"
-                                    >
-                                      Agendar 📅
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => markAsPaid(bill.id)}
-                                      className="h-8 border-yellow-500/20 hover:border-yellow-400 hover:bg-yellow-500/10 text-yellow-400 text-xs px-2.5 font-bold rounded-lg shadow-sm"
-                                    >
-                                      Confirmar Pago ✅
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="w-8 h-8 rounded-lg bg-emerald-950/10 border border-emerald-500/10 flex items-center justify-center">
-                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                                  </div>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {bill.status === "pending" ? (
+                                    <>
+                                      <Badge variant="outline" className="border-yellow-500/20 text-yellow-400 bg-yellow-950/10 text-[9px] uppercase font-black px-2 py-0.5 hidden xs:inline-flex">
+                                        Aguardando
+                                      </Badge>
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="h-8 px-3 bg-zinc-900 border-white/10 hover:bg-zinc-800 text-zinc-300 rounded-lg" />}>
+                                          Ações <MoreHorizontal className="w-3.5 h-3.5 ml-1.5" />
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-48 bg-zinc-900 border border-white/10 shadow-xl rounded-xl">
+                                          <DropdownMenuItem onClick={() => handleSyncGoogleCalendar(bill)} className="text-xs focus:bg-zinc-800 focus:text-white cursor-pointer rounded-lg p-2 m-1">
+                                            <CalendarPlus className="w-3.5 h-3.5 mr-2 text-blue-400" />
+                                            Agendar no Google
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem onClick={() => openConfirmModal(bill)} className="text-xs focus:bg-emerald-500/20 focus:text-emerald-400 cursor-pointer font-bold rounded-lg p-2 m-1">
+                                            <CheckCircle2 className="w-3.5 h-3.5 mr-2 text-emerald-500" />
+                                            Confirmar Pagamento
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] uppercase font-black px-2 py-0.5">
+                                        Pago ✓
+                                      </Badge>
+                                      <Button 
+                                        variant="ghost" 
+                                        size="sm" 
+                                        onClick={() => bill.transactionId && handleUndoPayment(bill.transactionId)}
+                                        className="h-8 px-2 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg"
+                                        title="Desfazer Pagamento"
+                                      >
+                                        <Undo2 className="w-3.5 h-3.5" />
+                                      </Button>
+                                    </>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -861,7 +985,54 @@ export default function DashboardPage() {
           <span className="text-[9px] tracking-wider uppercase font-semibold">Perfil</span>
         </Link>
       </footer>
-      
+
+      {/* Modal de Confirmação de Pagamento */}
+      <Dialog open={confirmModalOpen} onOpenChange={setConfirmModalOpen}>
+        <DialogContent className="bg-zinc-950 border border-white/10 shadow-2xl sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              Confirmar Pagamento
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs mt-2">
+              Você está confirmando o pagamento de <strong>{billToConfirm?.title}</strong>. 
+              Ajuste o valor abaixo se você pagou um valor diferente do planejado (isso nos ajuda a calcular sua economia).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2 block">
+              Valor Real Pago (R$)
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              value={actualAmountPaid}
+              onChange={(e) => setActualAmountPaid(Number(e.target.value))}
+              className="w-full bg-zinc-900 border border-white/10 rounded-xl p-3 text-white focus:outline-none focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50"
+            />
+            {billToConfirm && actualAmountPaid < billToConfirm.amount && (
+              <p className="text-xs text-emerald-400 mt-3 font-bold flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 p-2 rounded-lg">
+                <TrendingDown className="w-4 h-4" />
+                Economia de R$ {(billToConfirm.amount - actualAmountPaid).toFixed(2)}! 🎉
+              </p>
+            )}
+            {billToConfirm && actualAmountPaid > billToConfirm.amount && (
+              <p className="text-xs text-rose-400 mt-3 font-bold flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 p-2 rounded-lg">
+                <TrendingUp className="w-4 h-4" />
+                Extrapolou R$ {(actualAmountPaid - billToConfirm.amount).toFixed(2)} do planejado.
+              </p>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2">
+            <Button variant="ghost" onClick={() => setConfirmModalOpen(false)} className="text-zinc-400 hover:text-white rounded-xl">
+              Cancelar
+            </Button>
+            <Button onClick={handleConfirmPayment} className="bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black rounded-xl">
+              Confirmar Pagamento
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
