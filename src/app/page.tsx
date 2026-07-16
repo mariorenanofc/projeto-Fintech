@@ -40,7 +40,7 @@ export default function LoginPage() {
           <div className="bg-zinc-950/50 border border-white/5 p-4 rounded-xl mt-4">
             <h2 className="text-sm font-bold text-white mb-2">Qual a finalidade deste app?</h2>
             <p className="text-xs text-zinc-400 leading-relaxed text-justify">
-              O <strong>Fintech Casal</strong> é um aplicativo de organização financeira projetado para ajudar casais a planejar orçamentos conjuntos, gerenciar despesas e acompanhar contas a pagar de forma gamificada. 
+              O <strong>Fintech Casal</strong> é um aplicativo de organização financeira projetado para ajudar casais a planejar orçamentos conjuntos, gerenciar despesas e acompanhar contas a pagar.
               <br/><br/>
               <strong>Integração com Google:</strong> Utilizamos o Login do Google para garantir acesso seguro à sua conta. Solicitamos acesso ao seu <strong>Google Calendar (Google Agenda)</strong> exclusivamente para poder adicionar, de forma automática, lembretes das datas de vencimento das contas cadastradas no aplicativo diretamente na sua agenda pessoal, evitando multas e atrasos. Seus dados não são compartilhados com terceiros.
             </p>
@@ -57,7 +57,7 @@ export default function LoginPage() {
         </div>
 
         {/* Estética dos Textos: Funcionalidades em Grid Elegante abaixo do Card */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-10 w-full max-w-3xl">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10 w-full max-w-3xl">
           
           {/* Item 1: Semáforo */}
           <div className="bg-zinc-900/20 border border-white/5 backdrop-blur-sm p-5 rounded-2xl flex flex-col items-center text-center hover:bg-zinc-900/30 hover:border-white/10 transition-all duration-300 group">
@@ -67,17 +67,6 @@ export default function LoginPage() {
             <h3 className="text-xs font-black text-zinc-200 uppercase tracking-wider">Semáforo de Gastos</h3>
             <p className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
               Sinal visual diário (Verde, Amarelo ou Vermelho) indicando se vocês podem realizar novas compras.
-            </p>
-          </div>
-
-          {/* Item 2: Gamificação */}
-          <div className="bg-zinc-900/20 border border-white/5 backdrop-blur-sm p-5 rounded-2xl flex flex-col items-center text-center hover:bg-zinc-900/30 hover:border-white/10 transition-all duration-300 group">
-            <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 mb-3 group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5 text-yellow-500 filter drop-shadow-[0_0_5px_rgba(234,179,8,0.3)]" />
-            </div>
-            <h3 className="text-xs font-black text-zinc-200 uppercase tracking-wider">Metas Gamificadas</h3>
-            <p className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
-              Acumulem XP pagando contas no prazo e conquistem medalhas premium compartilhadas.
             </p>
           </div>
 

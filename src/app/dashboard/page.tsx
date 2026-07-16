@@ -16,7 +16,8 @@ import {
   DollarSign,
   TrendingDown,
   ArrowRight,
-  RefreshCcw
+  RefreshCcw,
+  LogOut
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -249,6 +250,13 @@ export default function DashboardPage() {
     }
   };
 
+  // Função de Sair (Logout)
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
+
   // Trata a seleção de data no calendário, mudando dinamicamente o mês ativo do Dashboard
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
@@ -303,20 +311,7 @@ export default function DashboardPage() {
     return bills.some(bill => bill.dueDate === formatted);
   };
 
-  if (!mounted) {
-    return (
-      <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col items-center justify-center min-h-screen px-4">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center animate-pulse">
-            <Coins className="w-6 h-6 text-yellow-500 animate-spin-slow" />
-          </div>
-          <span className="text-xs text-zinc-550 uppercase tracking-widest font-black animate-pulse">
-            Carregando Fintech Casal...
-          </span>
-        </div>
-      </div>
-    );
-  }
+  // O bloco de loading foi removido para permitir o SSR do Dashboard (melhora drástica no LCP)
 
   // Valores consolidados reais
   const totalCommitment = strategy?.hasStrategy
@@ -359,32 +354,43 @@ export default function DashboardPage() {
           <Badge variant="outline" className="border-yellow-500/25 text-yellow-400 bg-yellow-950/15 px-3 py-1 text-xs font-bold shadow-[0_0_15px_rgba(234,179,8,0.05)]">
             {getReadableMonthLabel(selectedMonthStr)}
           </Badge>
-          <Link href="/onboarding">
-            <Badge className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 px-3 py-1 text-xs font-black border-none cursor-pointer flex items-center gap-1.5 transition-all duration-300 hover:shadow-[0_0_20px_rgba(234,179,8,0.3)] rounded-xl">
-              <Sparkles className="w-3.5 h-3.5 text-zinc-950 fill-zinc-950" />
-              Planejar Nosso Futuro ✨
-            </Badge>
-          </Link>
-          {userProfile?.avatar_url ? (
-            <img 
-              src={userProfile.avatar_url} 
-              alt="Avatar do Usuário" 
-              className="w-9 h-9 rounded-full border border-white/5 object-cover"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <div className="w-9 h-9 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-xs font-bold text-zinc-400">
-              {userProfile?.full_name ? userProfile.full_name.substring(0, 2).toUpperCase() : "MC"}
-            </div>
+          {!loadingRealData && !strategy?.hasStrategy && (
+            <Link href="/onboarding">
+              <Badge className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 px-3 py-1 text-xs font-black border-none cursor-pointer flex items-center gap-1.5 transition-all duration-300 hover:shadow-[0_0_20px_rgba(234,179,8,0.3)] rounded-xl">
+                <Sparkles className="w-3.5 h-3.5 text-zinc-950 fill-zinc-950" />
+                Planejar Nosso Futuro
+              </Badge>
+            </Link>
           )}
+          <div className="flex items-center gap-3 border-l border-white/10 pl-3">
+            {userProfile?.avatar_url ? (
+              <img 
+                src={userProfile.avatar_url} 
+                alt="Avatar do Usuário" 
+                className="w-9 h-9 rounded-full border border-white/5 object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-xs font-bold text-zinc-400">
+                {userProfile?.full_name ? userProfile.full_name.substring(0, 2).toUpperCase() : "MC"}
+              </div>
+            )}
+            <button 
+              onClick={handleLogout}
+              className="p-2 rounded-xl bg-zinc-900/50 hover:bg-rose-500/10 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors group"
+              title="Sair da Conta"
+            >
+              <LogOut className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Grid Geral de Responsividade */}
-      <div className="flex-1 flex flex-col gap-6 tablet:grid tablet:grid-cols-12 tablet:gap-6 lg:gap-8 tablet:items-start">
+      <div className="flex-1 flex flex-col gap-6 tablet:grid tablet:grid-cols-12 tablet:gap-6 lg:gap-8 tablet:items-stretch h-full">
         
         {/* COLUNA ESQUERDA (tablet:col-span-5): Semáforo e Atalhos */}
-        <div className="flex flex-col gap-6 tablet:col-span-5">
+        <div className="flex flex-col gap-6 tablet:col-span-5 h-full">
           
           {/* Card do Semáforo */}
           <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
@@ -428,7 +434,7 @@ export default function DashboardPage() {
               </div>
 
               {/* Texto explicativo polido e dinâmico */}
-              <div className="text-center max-w-sm mt-1 px-3">
+              <div className="text-center max-w-sm mt-1 px-3 min-h-[80px] flex flex-col justify-center">
                 <p className="text-xs text-zinc-400 leading-relaxed font-medium">
                   {strategy?.isChoqueRequired ? (
                     <span className="text-rose-400 font-bold block mb-1">
@@ -523,7 +529,7 @@ export default function DashboardPage() {
         </div>
 
         {/* COLUNA DIREITA (tablet:col-span-7): Resumo do Fluxo & Calendário */}
-        <div className="flex flex-col gap-6 tablet:col-span-7">
+        <div className="flex flex-col gap-6 tablet:col-span-7 h-full">
           
           {/* Resumo de Fluxo & Previsão Futura */}
           <section className="relative">
@@ -734,27 +740,34 @@ export default function DashboardPage() {
               </CardHeader>
               
               <CardContent className="p-5 xs:p-6">
-                <div className="flex flex-col gap-6 lg:flex-row lg:items-stretch w-full">
+                <div className="flex flex-col gap-8 lg:flex-row lg:items-stretch w-full mt-2">
                   
                   {/* Calendário com Tradução PT-BR (locale={ptBR}) */}
-                  <div className="flex-1 bg-zinc-950/50 p-4 rounded-xl border border-white/5 flex flex-col justify-center items-center min-w-[280px] shadow-inner">
-                    <Calendar
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={handleDateSelect}
-                      locale={ptBR}
-                      className="rounded-md text-zinc-100"
-                      modifiers={{
-                        hasBill: (date) => hasBillOnDay(date)
-                      }}
-                      modifiersClassNames={{
-                        hasBill: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:rounded-full after:bg-yellow-500"
-                      }}
-                    />
+                  <div className="lg:w-[45%] bg-zinc-950/50 p-6 rounded-xl border border-white/5 flex flex-col justify-center items-center shadow-inner min-h-[360px]">
+                    {mounted ? (
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={handleDateSelect}
+                        locale={ptBR}
+                        className="rounded-md text-zinc-100"
+                        modifiers={{
+                          hasBill: (date) => hasBillOnDay(date)
+                        }}
+                        modifiersClassNames={{
+                          hasBill: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1.5 after:h-1.5 after:rounded-full after:bg-yellow-500"
+                        }}
+                      />
+                    ) : (
+                      <div className="flex flex-col items-center justify-center gap-3 text-zinc-500 animate-pulse">
+                        <CalendarIcon className="w-8 h-8 opacity-20" />
+                        <span className="text-xs font-bold uppercase tracking-wider opacity-50">Carregando Agenda...</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Lista de Contas */}
-                  <div className="flex-1 bg-zinc-950/50 p-4 rounded-xl border border-white/5 flex flex-col min-h-[320px]">
+                  <div className="lg:w-[55%] bg-zinc-950/50 p-6 rounded-xl border border-white/5 flex flex-col min-h-[360px]">
                     <div className="flex justify-between items-center pb-2 border-b border-white/5 mb-4">
                       <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
                         Nosso plano para este dia:

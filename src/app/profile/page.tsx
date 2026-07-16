@@ -12,7 +12,8 @@ import {
   Info, 
   AlertTriangle,
   Heart,
-  Sparkles
+  Sparkles,
+  LogOut
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
   linkPartnerByEmail, getLinkedPartner,
   IncomeInput, FixedExpenseInput, CreditCardInput, DebtInput
 } from "@/actions/onboarding";
+import { createClient } from "@/lib/supabase/client";
 
 export default function ProfilePage() {
   const [mounted, setMounted] = useState(false);
@@ -106,6 +108,13 @@ export default function ProfilePage() {
       alert("Aviso: " + res.error);
     }
     setLinkingPartner(false);
+  };
+
+  // --- Operações de Logout ---
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    window.location.href = "/";
   };
 
   // --- Operações CRUD Receitas ---
@@ -319,11 +328,19 @@ export default function ProfilePage() {
           <div>
             <h1 className="text-base font-black tracking-tight text-white sm:text-lg">Configurações do Casal</h1>
             <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-semibold">Perfil & Parâmetros</p>
-          </div>
         </div>
-        <Badge variant="outline" className="border-yellow-500/20 text-yellow-400 bg-yellow-950/10 px-2.5 py-1 text-xs">
-          Modo Editor
-        </Badge>
+        <div className="flex items-center gap-3">
+          <Badge variant="outline" className="border-yellow-500/20 text-yellow-400 bg-yellow-950/10 px-2.5 py-1 text-xs">
+            Modo Editor
+          </Badge>
+          <button 
+            onClick={handleLogout}
+            className="p-2 rounded-xl bg-zinc-900/50 hover:bg-rose-500/10 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors group"
+            title="Sair da Conta"
+          >
+            <LogOut className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+          </button>
+        </div>
       </header>
 
       {/* NOVO CARD: Conta Conjugal & Parceria */}

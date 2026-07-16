@@ -3,6 +3,7 @@ import { Inter, Roboto_Mono } from "next/font/google";
 import "./globals.css";
 import { PWAProvider } from "@/components/pwa-provider";
 import { FloatingTools } from "@/components/floating-tools";
+import { CookieBanner } from "@/components/cookie-banner";
 
 const geistSans = Inter({
   variable: "--font-geist-sans",
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   description: "O Fintech Casal é um aplicativo de organização financeira projetado para ajudar casais a gerenciar orçamentos conjuntos, com integração oficial ao Google Calendar.",
   openGraph: {
     title: "Fintech Casal",
-    description: "SaaS financeiro compartilhado e gamificado para casais. Planejem, poupem e joguem juntos pelo seu futuro.",
+    description: "SaaS financeiro compartilhado para casais. Planejem e poupem juntos pelo seu futuro.",
     url: "https://fintechcasal.com.br",
     siteName: "Fintech Casal",
     images: [
@@ -66,6 +67,7 @@ export default function RootLayout({
         <PWAProvider />
         {children}
         <FloatingTools />
+        <CookieBanner />
       </body>
     </html>
   );
