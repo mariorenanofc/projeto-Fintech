@@ -135,10 +135,10 @@ export default function ChatPage() {
   if (!mounted) return null;
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col min-h-screen px-4 py-6 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-3xl lg:px-8">
+    <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col md:min-h-screen max-md:h-[100dvh] px-4 py-4 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-3xl lg:px-8 max-md:overflow-hidden">
       
       {/* Header do Chat */}
-      <header className="flex flex-col gap-4 xs:flex-row xs:justify-between xs:items-center mb-6 pb-4 border-b border-white/5">
+      <header className="flex-none flex flex-col gap-4 xs:flex-row xs:justify-between xs:items-center mb-4 pb-4 border-b border-white/5">
         <div className="flex items-center gap-2.5 w-full xs:w-auto">
           <Link href="/dashboard" className="p-2 rounded-xl bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors mr-1">
             <ArrowLeft className="w-4 h-4" />
@@ -189,8 +189,8 @@ export default function ChatPage() {
       )}
 
       {/* Janela de Conversa Scrollable */}
-      <Card className="flex-1 bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden flex flex-col min-h-[350px]">
-        <CardContent className="p-4 flex-1 overflow-y-auto space-y-4 max-h-[500px]">
+      <Card className="flex-1 bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden flex flex-col max-md:min-h-0 md:min-h-[350px]">
+        <CardContent className="p-4 flex-1 overflow-y-auto space-y-4 md:max-h-[500px]">
           {messages.map((msg, i) => (
             <div 
               key={i} 
@@ -246,7 +246,7 @@ export default function ChatPage() {
       </Card>
 
       {/* Caixa de Entrada e Prompt Ideas */}
-      <div className="mt-4 space-y-4">
+      <div className="flex-none mt-4 max-md:pb-2 space-y-4 bg-zinc-950">
         {/* Sugestões rápidas (Só exibe se o chat estiver ocioso) */}
         {!loading && (
           <div className="flex gap-2 overflow-x-auto pb-1.5 max-w-full">
@@ -277,7 +277,7 @@ export default function ChatPage() {
         >
           <input
             type="text"
-            placeholder={outOfTokensAlert ? "Saldo de tokens esgotado..." : "Pergunte ao conselheiro (Ex: Posso gastar R$100?)"}
+            placeholder={outOfTokensAlert ? "Saldo esgotado..." : "Pergunte ao conselheiro..."}
             value={inputMessage}
             onChange={e => setInputMessage(e.target.value)}
             disabled={loading || outOfTokensAlert}
@@ -287,15 +287,15 @@ export default function ChatPage() {
           <Button 
             type="submit" 
             disabled={loading || !inputMessage.trim() || outOfTokensAlert}
-            className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black h-12 w-12 rounded-xl flex items-center justify-center p-0 disabled:opacity-50"
+            className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black h-[46px] w-[46px] rounded-xl flex items-center justify-center p-0 disabled:opacity-50 flex-shrink-0"
           >
             <Send className="w-4 h-4" />
           </Button>
         </form>
       </div>
 
-      {/* Footer PWA */}
-      <footer className="mt-8 pt-5 border-t border-white/5 flex justify-around text-zinc-600 text-xs">
+      {/* Footer PWA (Oculto no mobile porque a tela de chat ocupa 100% da altura e input fica sticky) */}
+      <footer className="hidden md:flex mt-8 pt-5 border-t border-white/5 justify-around text-zinc-600 text-xs">
         <Link href="/dashboard" className="flex flex-col items-center gap-1 hover:text-zinc-400 transition-colors">
           <Coins className="w-5 h-5" />
           <span className="text-[9px] tracking-wider uppercase font-semibold">Dashboard</span>

@@ -13,15 +13,17 @@ export function FloatingTools() {
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [expression, setExpression] = useState("");
   const [result, setResult] = useState("");
+  const [isVisible, setIsVisible] = useState(true);
 
   // Não exibe a barra de ferramentas nas rotas públicas
-  const publicPaths = ["/", "/politica-de-privacidade", "/termos-de-uso"];
-  if (publicPaths.includes(pathname)) {
+  const isChat = pathname?.includes("/chat");
+  const isPublic = ["/", "/politica-de-privacidade", "/termos-de-uso"].includes(pathname);
+  
+  if (isPublic) {
     return null;
   }
 
-  // Não exibe o balão de chat se já estiver na página do próprio chat
-  const showChatBubble = pathname !== "/chat";
+  const showChatBubble = !isChat; // Não mostra o botão de chat se já estiver na página de chat
 
   React.useEffect(() => {
     let lastScrollTop = 0;
@@ -31,10 +33,10 @@ export function FloatingTools() {
       
       if (scrollTop > lastScrollTop && scrollTop > 50) {
         // Rolando para baixo -> esconde balões flutuantes
-        document.body.classList.add("scrolling-down");
+        setIsVisible(false);
       } else if (scrollTop < lastScrollTop) {
         // Rolando para cima -> mostra balões flutuantes
-        document.body.classList.remove("scrolling-down");
+        setIsVisible(true);
       }
       
       lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
@@ -43,9 +45,34 @@ export function FloatingTools() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      document.body.classList.remove("scrolling-down");
     };
   }, []);
+
+  // Suporte a teclado físico para a calculadora
+  React.useEffect(() => {
+    if (!isCalcOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key;
+      
+      if (/[0-9+\-*/.()]/.test(key)) {
+        e.preventDefault();
+        handleKeyPress(key);
+      } else if (key === "Enter" || key === "=") {
+        e.preventDefault();
+        handleKeyPress("=");
+      } else if (key === "Backspace") {
+        e.preventDefault();
+        handleKeyPress("del");
+      } else if (key === "Escape" || key === "c" || key === "C") {
+        e.preventDefault();
+        handleKeyPress("C");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isCalcOpen, expression]);
 
   const handleKeyPress = (val: string) => {
     if (val === "C") {
@@ -84,7 +111,7 @@ export function FloatingTools() {
     <>
       {/* 1. Balão Flutuante do Chat IA (Canto Inferior Esquerdo) */}
       {showChatBubble && (
-        <div className="fixed bottom-6 left-6 z-50 group">
+        <div className={`fixed left-6 z-[9990] group transition-all duration-300 ${isVisible ? 'bottom-6 translate-y-0 opacity-100' : 'bottom-0 translate-y-full opacity-0 pointer-events-none'}`}>
           <Button
             onClick={() => router.push("/chat")}
             className="w-14 h-14 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 shadow-xl shadow-yellow-500/20 flex items-center justify-center p-0 border border-yellow-400/20 animate-pulse transition-transform hover:scale-110"
@@ -99,7 +126,7 @@ export function FloatingTools() {
       )}
 
       {/* 2. Botão Flutuante da Calculadora (Canto Inferior Direito) */}
-      <div className="fixed bottom-6 right-6 z-50 group">
+      <div className={`fixed right-6 z-[9990] group transition-all duration-300 ${isVisible || isCalcOpen ? 'bottom-6 translate-y-0 opacity-100' : 'bottom-0 translate-y-full opacity-0 pointer-events-none'} ${isChat ? 'max-md:hidden' : ''}`}>
         <Button
           onClick={() => setIsCalcOpen(!isCalcOpen)}
           className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center p-0 border transition-all hover:scale-110 ${
@@ -118,7 +145,7 @@ export function FloatingTools() {
 
       {/* 3. Modal / Widget da Calculadora Glassmorphic */}
       {isCalcOpen && (
-        <div className="fixed bottom-24 right-6 w-[280px] bg-zinc-950/95 border border-white/10 rounded-2xl p-4 shadow-2xl backdrop-blur-md z-50 text-xs text-white">
+        <div className={`fixed bottom-24 right-6 w-[280px] bg-zinc-950/95 border border-white/10 rounded-2xl p-4 shadow-2xl backdrop-blur-md z-[9999] text-xs text-white ${isChat ? 'max-md:hidden' : ''}`}>
           {/* Header */}
           <div className="flex justify-between items-center mb-3 pb-2 border-b border-white/5">
             <span className="text-[10px] uppercase tracking-widest font-black text-yellow-500 flex items-center gap-1.5">
