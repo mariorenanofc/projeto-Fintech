@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { 
   getProfileFinancialData,
   addIncome, updateIncome, deleteIncome,
@@ -69,6 +70,10 @@ export default function ProfilePage() {
   // Schedule sub-editors
   const [tempScheduleMonth, setTempScheduleMonth] = useState("");
   const [tempScheduleAmount, setTempScheduleAmount] = useState(0);
+
+  // Confirmar exclusão dialog
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: "income" | "expense" | "card" | "debt"; title: string } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -202,12 +207,36 @@ export default function ProfilePage() {
     setIncomeForm({ title: item.title, amount: item.amount, owner: item.owner });
   };
 
-  const handleDeleteIncome = async (id: string) => {
-    if (!confirm("Tem certeza que deseja excluir esta receita?")) return;
+  const confirmDelete = (id: string, type: "income" | "expense" | "card" | "debt", title: string) => {
+    setItemToDelete({ id, type, title });
+    setDeleteConfirmOpen(true);
+  };
+
+  const executeDelete = async () => {
+    if (!itemToDelete) return;
     setLoading(true);
-    const res = await deleteIncome(id);
-    if (res.success) await fetchData();
-    else toast.error(res.error);
+    setDeleteConfirmOpen(false);
+    
+    let res;
+    if (itemToDelete.type === "income") {
+      res = await deleteIncome(itemToDelete.id);
+    } else if (itemToDelete.type === "expense") {
+      res = await deleteFixedExpense(itemToDelete.id);
+    } else if (itemToDelete.type === "card") {
+      res = await deleteCreditCard(itemToDelete.id);
+    } else if (itemToDelete.type === "debt") {
+      res = await deleteDebt(itemToDelete.id);
+    }
+
+    if (res?.success) {
+      toast.success("Registro excluído com sucesso!");
+      await fetchData();
+    } else if (res) {
+      toast.error(res.error);
+    }
+    
+    setItemToDelete(null);
+    setLoading(false);
   };
 
   // --- Operações CRUD Despesas ---
@@ -237,13 +266,7 @@ export default function ProfilePage() {
     setExpenseForm({ category: item.category, title: item.title, amount: item.amount });
   };
 
-  const handleDeleteExpense = async (id: string) => {
-    if (!confirm("Deseja excluir esta despesa?")) return;
-    setLoading(true);
-    const res = await deleteFixedExpense(id);
-    if (res.success) await fetchData();
-    else toast.error(res.error);
-  };
+  // Exclusão gerenciada pelo modal centralizado
 
   // --- Operações CRUD Cartões ---
   const handleSaveCard = async (e: React.FormEvent) => {
@@ -278,13 +301,7 @@ export default function ProfilePage() {
     });
   };
 
-  const handleDeleteCard = async (id: string) => {
-    if (!confirm("Deseja excluir este cartão de crédito?")) return;
-    setLoading(true);
-    const res = await deleteCreditCard(id);
-    if (res.success) await fetchData();
-    else toast.error(res.error);
-  };
+  // Exclusão gerenciada pelo modal centralizado
 
   const addCardScheduleItem = () => {
     if (!tempScheduleMonth || tempScheduleAmount <= 0) return;
@@ -349,13 +366,7 @@ export default function ProfilePage() {
     });
   };
 
-  const handleDeleteDebt = async (id: string) => {
-    if (!confirm("Deseja excluir esta dívida?")) return;
-    setLoading(true);
-    const res = await deleteDebt(id);
-    if (res.success) await fetchData();
-    else toast.error(res.error);
-  };
+  // Exclusão gerenciada pelo modal centralizado
 
   const addDebtScheduleItem = () => {
     if (!tempScheduleMonth || tempScheduleAmount <= 0) return;
@@ -1009,7 +1020,7 @@ export default function ProfilePage() {
                       <button onClick={() => handleEditIncome(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleDeleteIncome(item.id)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
+                      <button onClick={() => confirmDelete(item.id, "income", item.title)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -1030,7 +1041,7 @@ export default function ProfilePage() {
                       <button onClick={() => handleEditExpense(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => handleDeleteExpense(item.id)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
+                      <button onClick={() => confirmDelete(item.id, "expense", item.title)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -1049,7 +1060,7 @@ export default function ProfilePage() {
                         <button onClick={() => handleEditCard(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => handleDeleteCard(item.id)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
+                         <button onClick={() => confirmDelete(item.id, "card", item.name)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -1092,7 +1103,7 @@ export default function ProfilePage() {
                         <button onClick={() => handleEditDebt(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={() => handleDeleteDebt(item.id)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
+                         <button onClick={() => confirmDelete(item.id, "debt", item.title)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -1153,6 +1164,29 @@ export default function ProfilePage() {
           <span className="text-[9px] tracking-wider uppercase font-semibold">Perfil</span>
         </Link>
       </footer>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="bg-zinc-950 border border-white/10 shadow-2xl sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-rose-500" />
+              Confirmar Exclusão
+            </DialogTitle>
+            <DialogDescription className="text-zinc-405 text-xs mt-2">
+              Tem certeza que deseja excluir <strong>{itemToDelete?.title}</strong>? Esta ação não pode ser desfeita.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex gap-2 mt-4">
+            <Button variant="ghost" onClick={() => setDeleteConfirmOpen(false)} className="text-zinc-400 hover:text-white rounded-xl">
+              Cancelar
+            </Button>
+            <Button onClick={executeDelete} className="bg-rose-500 hover:bg-rose-600 text-white font-black rounded-xl">
+              Excluir Registro
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
     </div>
   );
