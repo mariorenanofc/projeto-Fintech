@@ -393,57 +393,38 @@ export default function DashboardPage() {
                 <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-500">Nosso Ritmo Diário 💛</CardTitle>
                 <CardDescription className="text-[10px] text-zinc-550 mt-0.5">Como estamos cuidando do nosso dinheiro hoje</CardDescription>
               </div>
-              
-              {/* Seletor de Semáforo */}
-              <div className="flex gap-1.5 bg-zinc-950/80 p-1 rounded-xl border border-white/5 shadow-inner">
-                <button 
-                  onClick={() => setFinanceStatus("green")}
-                  className={`w-6 h-6 rounded-lg text-[10px] font-black transition-all ${financeStatus === 'green' ? 'bg-emerald-500 text-zinc-950 shadow-md shadow-emerald-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
-                  title="Tudo sob controle"
-                >
-                  V
-                </button>
-                <button 
-                  onClick={() => setFinanceStatus("yellow")}
-                  className={`w-6 h-6 rounded-lg text-[10px] font-black transition-all ${financeStatus === 'yellow' ? 'bg-yellow-400 text-zinc-950 shadow-md shadow-yellow-400/20' : 'text-zinc-500 hover:text-zinc-300'}`}
-                  title="Atenção redobrada"
-                >
-                  A
-                </button>
-                <button 
-                  onClick={() => setFinanceStatus("red")}
-                  className={`w-6 h-6 rounded-lg text-[10px] font-black transition-all ${financeStatus === 'red' ? 'bg-rose-500 text-zinc-950 shadow-md shadow-rose-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
-                  title="Ajuste de rota"
-                >
-                  C
-                </button>
-              </div>
             </CardHeader>
             
             <CardContent className="p-5 xs:p-6 pt-0 flex flex-col items-center">
               {/* Lente circular com Glow neon correspondente */}
-              <div className="relative flex items-center justify-center my-6">
-                <div className={`absolute w-36 h-36 rounded-full blur-3xl opacity-20 transition-all duration-700 ${
+              <div className="relative flex flex-col items-center justify-center mt-4 mb-6 w-full">
+                {/* Glow de fundo */}
+                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full blur-[60px] opacity-20 transition-all duration-700 pointer-events-none ${
                   financeStatus === "green" ? "bg-emerald-500" : 
                   financeStatus === "yellow" ? "bg-yellow-400" : "bg-rose-500"
                 }`} />
 
-                <div className={`w-32 h-32 rounded-full border flex flex-col items-center justify-center transition-all duration-500 relative overflow-hidden bg-zinc-950/60 ${
-                  financeStatus === "green" ? "border-emerald-500/20 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]" : 
-                  financeStatus === "yellow" ? "border-yellow-400/20 text-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.1)]" : 
-                  "border-rose-500/20 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.1)]"
+                {/* Círculo do Ícone */}
+                <div className={`w-28 h-28 rounded-full border flex items-center justify-center transition-all duration-500 relative overflow-hidden bg-zinc-950/80 z-10 ${
+                  financeStatus === "green" ? "border-emerald-500/30 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.2)]" : 
+                  financeStatus === "yellow" ? "border-yellow-400/30 text-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.2)]" : 
+                  "border-rose-500/30 text-rose-400 shadow-[0_0_30px_rgba(244,63,94,0.2)]"
                 }`}>
-                  <div className="absolute inset-0.5 rounded-full bg-gradient-to-tr from-transparent via-white/5 to-transparent opacity-40 pointer-events-none" />
+                  <div className="absolute inset-0.5 rounded-full bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-50 pointer-events-none" />
                   
-                  {financeStatus === "green" && <CheckCircle2 className="w-10 h-10 animate-bounce text-emerald-400" />}
-                  {financeStatus === "yellow" && <AlertTriangle className="w-10 h-10 animate-pulse text-yellow-400" />}
-                  {financeStatus === "red" && <XCircle className="w-10 h-10 text-rose-400" />}
-                  
-                  <span className="text-[10px] font-black uppercase tracking-widest mt-2.5">
-                    {financeStatus === "green" ? "Caminho Livre! ✨" : 
-                     financeStatus === "yellow" ? "Atenção Redobrada ⚠️" : "Ajuste de Rota! 🛡️"}
-                  </span>
+                  {financeStatus === "green" && <CheckCircle2 className="w-12 h-12 text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />}
+                  {financeStatus === "yellow" && <AlertTriangle className="w-12 h-12 text-yellow-400 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]" />}
+                  {financeStatus === "red" && <XCircle className="w-12 h-12 text-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.5)]" />}
                 </div>
+                
+                {/* Título de Status fora do Círculo para não vazar */}
+                <span className={`text-xs font-black uppercase tracking-widest mt-6 z-10 ${
+                  financeStatus === "green" ? "text-emerald-400" : 
+                  financeStatus === "yellow" ? "text-yellow-400" : "text-rose-400"
+                }`}>
+                  {financeStatus === "green" ? "Caminho Livre! ✨" : 
+                   financeStatus === "yellow" ? "Atenção Redobrada ⚠️" : "Ajuste de Rota! 🛡️"}
+                </span>
               </div>
 
               {/* Texto explicativo polido e dinâmico */}
@@ -595,7 +576,7 @@ export default function DashboardPage() {
                         <span className="text-[10px] text-zinc-300 font-black uppercase tracking-wider block">Diagnóstico do Período</span>
                         <p className="text-[10px] text-zinc-400 leading-relaxed font-semibold">
                           {strategy.isChoqueRequired ? (
-                            `Recalculando rota, casal! As contas deste período estão superando a renda em R$ ${Math.abs(strategy.remainingCashResidue).toFixed(2)}. Vamos acionar o Plano de Choque abaixo! Juntos, vocês conseguem colocar a casa em ordem! 💪`
+                            `Recalculando rota, casal! As contas deste período estão superando a renda em R$ ${Math.abs(strategy.disposableIncomeForDebts - (strategy.totalDebtInstallments + strategy.totalCreditCardInvoices)).toFixed(2)}. Vamos acionar o Plano de Choque abaixo! Juntos, vocês conseguem colocar a casa em ordem! 💪`
                           ) : strategy.remainingCashResidue < 300 ? (
                             `Atenção redobrada, casal! Temos uma margem livre estreita de R$ ${strategy.remainingCashResidue.toFixed(2)}. Vamos evitar novas comprinhas supérfluas por agora para manter nosso caixa longe do rotativo! ⚠️`
                           ) : (
@@ -606,72 +587,89 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Alocação Crítica e Engenharia (Aparece apenas em Choque) */}
-                    {strategy.isChoqueRequired && (
-                      <div className="space-y-4 border-t border-white/5 pt-4">
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <ShieldCheck className="w-4 h-4 text-rose-500" />
-                            <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                              Alocação Crítica (R$ {strategy.disposableIncomeForDebts.toFixed(2)})
-                            </h4>
-                          </div>
-                          <p className="text-[10px] text-zinc-500 mb-3">As seguintes contas devem ser pagas integralmente assim que o salário for recebido para evitar penalidades e proteger o patrimônio.</p>
-                          
-                          <div className="bg-zinc-950/50 rounded-xl border border-white/5 overflow-hidden">
-                            {strategy.debtActions.map((action, i) => (
-                              <div key={i} className="flex justify-between items-center p-3 border-b border-white/5 last:border-none">
-                                <div className="flex flex-col">
-                                  <span className="text-[11px] font-bold text-zinc-300">{action.debtTitle}</span>
-                                  <span className="text-[9px] text-zinc-500 leading-tight mt-0.5 pr-2">{action.recommendation}</span>
-                                </div>
-                                <span className="text-xs font-black text-rose-400 whitespace-nowrap">R$ {action.installmentValue.toFixed(2)}</span>
-                              </div>
-                            ))}
-                            {/* Filtra cartões que foram sugeridos para pagamento integral */}
-                            {strategy.cardActions.filter(c => c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0).map((action, i) => (
-                              <div key={`c-${i}`} className="flex justify-between items-center p-3 border-b border-white/5 last:border-none">
-                                <div className="flex flex-col">
-                                  <span className="text-[11px] font-bold text-zinc-300">{action.cardName}</span>
-                                  <span className="text-[9px] text-zinc-500 leading-tight mt-0.5 pr-2">Pagamento integral da fatura atual.</span>
-                                </div>
-                                <span className="text-xs font-black text-rose-400 whitespace-nowrap">R$ {action.currentInvoice.toFixed(2)}</span>
-                              </div>
-                            ))}
-                            <div className="flex justify-between items-center p-3 bg-rose-500/10">
-                              <span className="text-[10px] font-bold text-rose-400 uppercase">Resíduo de Caixa Restante</span>
-                              <span className="text-xs font-black text-rose-400">R$ {strategy.remainingCashResidue.toFixed(2)}</span>
-                            </div>
-                          </div>
-                        </div>
+                    {strategy.isChoqueRequired && (() => {
+                      // Calcula os totais diretamente na UI
+                      const totalAlocacaoCritica = strategy.debtActions.reduce((acc, a) => acc + a.installmentValue, 0) + 
+                        strategy.cardActions.filter(c => c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0).reduce((acc, c) => acc + c.currentInvoice, 0);
+                      const totalResiduoPosAlocacao = Math.max(0, strategy.disposableIncomeForDebts - totalAlocacaoCritica);
 
-                        {/* Cartões para Engenharia */}
-                        {strategy.cardActions.filter(c => c.suggestedProportionalPayment < c.currentInvoice && c.currentInvoice > 0).length > 0 && (
+                      return (
+                        <div className="space-y-4 border-t border-white/5 pt-4">
                           <div>
-                            <div className="flex items-center gap-2 mb-2 mt-4">
-                              <RefreshCcw className="w-4 h-4 text-yellow-500" />
+                            <div className="flex items-center gap-2 mb-2">
+                              <ShieldCheck className="w-4 h-4 text-rose-500" />
                               <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                                Ações de Engenharia Financeira
+                                Alocação Crítica (Total: R$ {totalAlocacaoCritica.toFixed(2)})
                               </h4>
                             </div>
-                            <p className="text-[10px] text-zinc-500 mb-3">Faturas que ultrapassam o saldo restante. Exigem ação ativa de renegociação (parcelamento da fatura) usando o resíduo como entrada.</p>
+                            <p className="text-[10px] text-zinc-500 mb-3">As seguintes contas devem ser pagas integralmente assim que o salário for recebido para evitar penalidades e proteger o patrimônio.</p>
                             
                             <div className="bg-zinc-950/50 rounded-xl border border-white/5 overflow-hidden">
-                              {strategy.cardActions.filter(c => c.suggestedProportionalPayment < c.currentInvoice && c.currentInvoice > 0).map((action, i) => (
-                                <div key={`eng-${i}`} className="flex flex-col p-3 border-b border-white/5 last:border-none">
-                                  <div className="flex justify-between items-center mb-1">
-                                    <span className="text-[11px] font-bold text-zinc-300">{action.cardName}</span>
-                                    <span className="text-xs font-black text-yellow-500">R$ {action.currentInvoice.toFixed(2)}</span>
+                              {strategy.debtActions.map((action, i) => (
+                                <div key={i} className="flex justify-between items-center p-3 border-b border-white/5 last:border-none">
+                                  <div className="flex flex-col">
+                                    <span className="text-[11px] font-bold text-zinc-300">{action.debtTitle}</span>
+                                    <span className="text-[9px] text-zinc-500 leading-tight mt-0.5 pr-2">{action.recommendation}</span>
                                   </div>
-                                  <span className="text-[9px] text-zinc-400 leading-tight bg-zinc-900/50 p-2 rounded border border-white/5">
-                                    {action.recommendation}
-                                  </span>
+                                  <span className="text-xs font-black text-rose-400 whitespace-nowrap">R$ {action.installmentValue.toFixed(2)}</span>
                                 </div>
                               ))}
+                              {/* Filtra cartões que foram sugeridos para pagamento integral */}
+                              {strategy.cardActions.filter(c => c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0).map((action, i) => (
+                                <div key={`c-${i}`} className="flex justify-between items-center p-3 border-b border-white/5 last:border-none">
+                                  <div className="flex flex-col">
+                                    <span className="text-[11px] font-bold text-zinc-300">{action.cardName}</span>
+                                    <span className="text-[9px] text-zinc-500 leading-tight mt-0.5 pr-2">Pagamento integral da fatura atual.</span>
+                                  </div>
+                                  <span className="text-xs font-black text-rose-400 whitespace-nowrap">R$ {action.currentInvoice.toFixed(2)}</span>
+                                </div>
+                              ))}
+                              <div className="flex justify-between items-center p-3 bg-zinc-900/80 border-t border-white/5">
+                                <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-wider">Saldo que sobrou para renegociações</span>
+                                <span className="text-xs font-black text-yellow-500">R$ {totalResiduoPosAlocacao.toFixed(2)}</span>
+                              </div>
                             </div>
                           </div>
-                        )}
-                      </div>
-                    )}
+
+                          {/* Cartões para Engenharia */}
+                          {strategy.cardActions.filter(c => c.suggestedProportionalPayment < c.currentInvoice && c.currentInvoice > 0).length > 0 && (
+                            <div>
+                              <div className="flex items-center gap-2 mb-2 mt-4">
+                                <RefreshCcw className="w-4 h-4 text-yellow-500" />
+                                <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
+                                  Engenharia Financeira
+                                </h4>
+                              </div>
+                              <p className="text-[10px] text-zinc-500 mb-3">
+                                Faturas que ultrapassam o saldo restante. Exigem ação ativa de renegociação (parcelamento da fatura) usando o resíduo (se houver) como entrada.
+                              </p>
+                              
+                              <div className="bg-zinc-950/50 rounded-xl border border-white/5 overflow-hidden">
+                                {strategy.cardActions.filter(c => c.suggestedProportionalPayment < c.currentInvoice && c.currentInvoice > 0).map((action, i) => (
+                                  <div key={`eng-${i}`} className="flex flex-col p-3 border-b border-white/5 last:border-none">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <span className="text-[11px] font-bold text-zinc-300">{action.cardName}</span>
+                                      <span className="text-xs font-black text-yellow-500">R$ {action.currentInvoice.toFixed(2)}</span>
+                                    </div>
+                                    <span className="text-[9px] text-zinc-400 leading-tight bg-zinc-900/50 p-2 rounded border border-white/5">
+                                      {action.recommendation}
+                                    </span>
+                                  </div>
+                                ))}
+                                
+                                {/* Alerta importante sobre Valores Mínimos Bancários */}
+                                <div className="p-3 bg-yellow-500/10 border-t border-yellow-500/20 flex gap-2">
+                                  <Info className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                                  <span className="text-[9px] text-yellow-500 font-medium leading-relaxed">
+                                    <strong>Importante:</strong> Verifique com o banco o valor mínimo exigido para entrada no parcelamento da fatura. Caso o resíduo sugerido pelo app seja inferior ao mínimo do banco, entre em contato com a instituição para negociar condições especiais.
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {/* Previsão do Mês que Vem (Próximo Mês) */}
                     <div className="border-t border-white/5 pt-4 space-y-3">

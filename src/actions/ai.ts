@@ -139,7 +139,7 @@ INSTRUÇÕES DE COMPORTAMENTO:
       ];
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -149,8 +149,8 @@ INSTRUÇÕES DE COMPORTAMENTO:
               parts: [{ text: systemPrompt }]
             },
             generationConfig: {
-              maxOutputTokens: 600,
-              temperature: 0.2
+              maxOutputTokens: 8192,
+              temperature: 0.7
             }
           })
         }
@@ -158,7 +158,9 @@ INSTRUÇÕES DE COMPORTAMENTO:
 
       if (response.ok) {
         const result = await response.json();
-        replyText = result.candidates?.[0]?.content?.parts?.[0]?.text || "Desculpe, não consegui formular a resposta.";
+        const candidate = result.candidates?.[0];
+        console.log("Finish Reason da IA:", candidate?.finishReason);
+        replyText = candidate?.content?.parts?.[0]?.text || "Desculpe, não consegui formular a resposta.";
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error("Erro da API do Gemini:", errorData);
@@ -184,6 +186,22 @@ INSTRUÇÕES DE COMPORTAMENTO:
       action_type: "chat"
     });
 
+    // 8. Salvar as mensagens no histórico do casal (Banco de Dados)
+    await supabase.from("ai_chat_messages").insert([
+      {
+        family_group_id: familyGroupId,
+        profile_id: user.id,
+        role: "user",
+        content: question
+      },
+      {
+        family_group_id: familyGroupId,
+        profile_id: user.id,
+        role: "model",
+        content: replyText
+      }
+    ]);
+
     return { 
       success: true, 
       answer: replyText,
@@ -193,6 +211,39 @@ INSTRUÇÕES DE COMPORTAMENTO:
   } catch (error: any) {
     console.error("Erro na Server Action askFinancialAdvisor:", error);
     return { success: false, error: error.message || "Erro interno do servidor.", status: 500 };
+  }
+}
+
+/**
+ * Server Action para buscar o histórico de conversas do grupo familiar
+ */
+export async function getChatHistory(limit = 50) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, messages: [] };
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("family_group_id")
+      .eq("id", user.id)
+      .single();
+
+    if (!profile) return { success: false, messages: [] };
+
+    const { data: messages, error } = await supabase
+      .from("ai_chat_messages")
+      .select("role, content, created_at")
+      .eq("family_group_id", profile.family_group_id)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+
+    if (error) throw error;
+
+    return { success: true, messages: messages || [] };
+  } catch (error) {
+    console.error("Erro ao buscar histórico de chat:", error);
+    return { success: false, messages: [] };
   }
 }
 

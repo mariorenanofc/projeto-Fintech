@@ -19,7 +19,8 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getAiTokenBalance, askFinancialAdvisor } from "@/actions/ai";
+import { getAiTokenBalance, askFinancialAdvisor, getChatHistory } from "@/actions/ai";
+import ReactMarkdown from "react-markdown";
 
 interface Message {
   role: "user" | "model";
@@ -50,6 +51,7 @@ export default function ChatPage() {
   useEffect(() => {
     setMounted(true);
     fetchBalance();
+    fetchHistory();
   }, []);
 
   useEffect(() => {
@@ -63,6 +65,17 @@ export default function ChatPage() {
       if (res.balance <= 0) {
         setOutOfTokensAlert(true);
       }
+    }
+  };
+
+  const fetchHistory = async () => {
+    const res = await getChatHistory(50);
+    if (res.success && res.messages.length > 0) {
+      // Adiciona o histórico mantendo a mensagem de boas vindas no topo
+      setMessages(prev => [
+        prev[0], // Boas vindas
+        ...res.messages.map((m: any) => ({ role: m.role, content: m.content }))
+      ]);
     }
   };
 
@@ -195,7 +208,21 @@ export default function ChatPage() {
                   ? "bg-zinc-800 text-zinc-150 rounded-tr-none" 
                   : "bg-zinc-950/60 border border-white/5 text-zinc-350 rounded-tl-none"
               }`}>
-                <p className="whitespace-pre-wrap">{msg.content}</p>
+                {msg.role === "user" ? (
+                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                ) : (
+                  <ReactMarkdown
+                    components={{
+                      p: ({node, ...props}) => <p className="mb-3 last:mb-0" {...props} />,
+                      strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+                      ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-3 space-y-1" {...props} />,
+                      ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-3 space-y-1" {...props} />,
+                      li: ({node, ...props}) => <li className="text-zinc-300" {...props} />
+                    }}
+                  >
+                    {msg.content}
+                  </ReactMarkdown>
+                )}
               </div>
             </div>
           ))}
