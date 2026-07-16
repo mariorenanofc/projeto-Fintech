@@ -20,6 +20,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getAiTokenBalance, askFinancialAdvisor, getChatHistory } from "@/actions/ai";
+import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -134,7 +135,7 @@ export default function ChatPage() {
   };
 
   const reloadTokensSimulation = () => {
-    alert("Simulação de Recarga: Adicionados +50.000 XP/Tokens à carteira!");
+    toast.success("Simulação de Recarga: Adicionados +50.000 XP/Tokens à carteira!");
     setTokenBalance(50000);
     setOutOfTokensAlert(false);
   };

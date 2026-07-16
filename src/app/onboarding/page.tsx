@@ -23,6 +23,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { 
   saveOnboardingData, 
@@ -203,7 +204,7 @@ export default function OnboardingPage() {
       });
 
       if (!saveRes.success) {
-        alert("Erro ao salvar dados: " + saveRes.error);
+        toast.error("Erro ao salvar dados: " + saveRes.error);
         setLoading(false);
         return;
       }
@@ -221,7 +222,7 @@ export default function OnboardingPage() {
       setStrategyResult(strategy);
       setStep(5); // Avança para a etapa de resultados
     } catch (e: any) {
-      alert("Ocorreu um erro no processamento: " + e.message);
+      toast.error("Ocorreu um erro no processamento: " + e.message);
     } finally {
       setLoading(false);
     }

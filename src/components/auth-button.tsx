@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 export function AuthButton() {
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +30,7 @@ export function AuthButton() {
       if (error) throw error;
     } catch (err) {
       console.error("Erro ao iniciar login com Google OAuth:", err);
-      alert("Falha ao iniciar autenticação com o Google. Verifique o console.");
+      toast.error("Falha ao iniciar autenticação com o Google. Verifique o console.");
     } finally {
       setIsLoading(false);
     }

@@ -22,6 +22,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { 
   getTransactions, 
@@ -87,7 +88,7 @@ export default function TransactionsPage() {
       setTransactions(res.data);
       currentTransactions = res.data;
     } else {
-      alert("Erro ao buscar transações: " + res.error);
+      toast.error("Erro ao buscar transações: " + res.error);
     }
 
     // 2. Busca as previsões e filtra o que já foi liquidado/realizado
@@ -220,13 +221,13 @@ export default function TransactionsPage() {
         setEditId(null);
         resetForm();
         await fetchData(selectedMonth);
-      } else alert(res.error);
+      } else toast.error(res.error);
     } else {
       const res = await addTransaction(form);
       if (res.success) {
         resetForm();
         await fetchData(selectedMonth);
-      } else alert(res.error);
+      } else toast.error(res.error);
     }
   };
 
@@ -252,7 +253,7 @@ export default function TransactionsPage() {
     setConfirmDeleteId(null);
     const res = await deleteTransaction(id);
     if (res.success) await fetchData(selectedMonth);
-    else alert(res.error);
+    else toast.error(res.error);
   };
 
   const resetForm = () => {

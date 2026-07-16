@@ -18,6 +18,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { 
   getProfileFinancialData,
   addIncome, updateIncome, deleteIncome,
@@ -135,7 +136,7 @@ export default function ProfilePage() {
         if (savedRate) setVoiceRate(parseFloat(savedRate));
       }
     } else {
-      alert("Erro ao buscar dados: " + res.error);
+      toast.error("Erro ao buscar dados: " + res.error);
     }
 
     // 2. Busca parceiro de conta vinculado
@@ -158,11 +159,11 @@ export default function ProfilePage() {
     setLinkingPartner(true);
     const res = await linkPartnerByEmail(partnerEmail);
     if (res.success) {
-      alert(`Sucesso! Parceiro ${res.partnerName} foi vinculado. Agora vocês visualizam e gerenciam as finanças juntos.`);
+      toast.success(`Sucesso! Parceiro ${res.partnerName} foi vinculado. Agora vocês visualizam e gerenciam as finanças juntos.`);
       setPartnerEmail("");
       await fetchData();
     } else {
-      alert("Aviso: " + res.error);
+      toast.warning("Aviso: " + res.error);
     }
     setLinkingPartner(false);
   };
@@ -186,13 +187,13 @@ export default function ProfilePage() {
         setEditId(null);
         setIncomeForm({ title: "", amount: 0, owner: "Parceiro A" });
         await fetchData();
-      } else alert(res.error);
+      } else toast.error(res.error);
     } else {
       const res = await addIncome(incomeForm);
       if (res.success) {
         setIncomeForm({ title: "", amount: 0, owner: "Parceiro A" });
         await fetchData();
-      } else alert(res.error);
+      } else toast.error(res.error);
     }
   };
 
@@ -206,7 +207,7 @@ export default function ProfilePage() {
     setLoading(true);
     const res = await deleteIncome(id);
     if (res.success) await fetchData();
-    else alert(res.error);
+    else toast.error(res.error);
   };
 
   // --- Operações CRUD Despesas ---
@@ -221,13 +222,13 @@ export default function ProfilePage() {
         setEditId(null);
         setExpenseForm({ category: "Customizada", title: "", amount: 0 });
         await fetchData();
-      } else alert(res.error);
+      } else toast.error(res.error);
     } else {
       const res = await addFixedExpense(expenseForm);
       if (res.success) {
         setExpenseForm({ category: "Customizada", title: "", amount: 0 });
         await fetchData();
-      } else alert(res.error);
+      } else toast.error(res.error);
     }
   };
 
@@ -241,7 +242,7 @@ export default function ProfilePage() {
     setLoading(true);
     const res = await deleteFixedExpense(id);
     if (res.success) await fetchData();
-    else alert(res.error);
+    else toast.error(res.error);
   };
 
   // --- Operações CRUD Cartões ---
@@ -256,13 +257,13 @@ export default function ProfilePage() {
         setEditId(null);
         setCardForm({ name: "", totalLimit: 0, currentInvoice: 0, nextInvoice: 0, invoicesSchedule: [] });
         await fetchData();
-      } else alert(res.error);
+      } else toast.error(res.error);
     } else {
       const res = await addCreditCard(cardForm);
       if (res.success) {
         setCardForm({ name: "", totalLimit: 0, currentInvoice: 0, nextInvoice: 0, invoicesSchedule: [] });
         await fetchData();
-      } else alert(res.error);
+      } else toast.error(res.error);
     }
   };
 
@@ -282,7 +283,7 @@ export default function ProfilePage() {
     setLoading(true);
     const res = await deleteCreditCard(id);
     if (res.success) await fetchData();
-    else alert(res.error);
+    else toast.error(res.error);
   };
 
   const addCardScheduleItem = () => {
@@ -318,7 +319,7 @@ export default function ProfilePage() {
           overdueInstallments: 0, overdueValueAccumulated: 0
         });
         await fetchData();
-      } else alert(res.error);
+      } else toast.error(res.error);
     } else {
       const res = await addDebt(debtForm);
       if (res.success) {
@@ -328,7 +329,7 @@ export default function ProfilePage() {
           overdueInstallments: 0, overdueValueAccumulated: 0
         });
         await fetchData();
-      } else alert(res.error);
+      } else toast.error(res.error);
     }
   };
 
@@ -353,7 +354,7 @@ export default function ProfilePage() {
     setLoading(true);
     const res = await deleteDebt(id);
     if (res.success) await fetchData();
-    else alert(res.error);
+    else toast.error(res.error);
   };
 
   const addDebtScheduleItem = () => {
