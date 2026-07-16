@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Fintech Casal",
     description: "SaaS financeiro compartilhado e gamificado para casais. Planejem, poupem e joguem juntos pelo seu futuro.",
-    url: "https://projeto-fintech-kohl.vercel.app",
+    url: "https://fintechcasal.com.br",
     siteName: "Fintech Casal",
     images: [
       {
