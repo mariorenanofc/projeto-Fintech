@@ -91,35 +91,45 @@ export async function askFinancialAdvisor(question: string, history: ChatMessage
 
     // 5. Construir o Prompt de Contexto (Instrução do Sistema) para a LLM
     const totalCommitments = strategy.totalDebtInstallments + strategy.totalCreditCardInvoices;
-    const isChoque = strategy.isChoqueRequired;
+
+    const stageStr = 
+      strategy.financialStage === "red" ? "🔴 VERMELHO (Fase de Resgate - Foco em quitar dívidas)" : 
+      strategy.financialStage === "yellow" ? "🟡 AMARELO (Fase de Segurança - Foco em montar Fundo de Reserva)" : 
+      "🟢 VERDE (Fase de Prosperidade - Foco em Investimentos e Regra 50/30/20)";
 
     const systemPrompt = `
 Você é o "Conselheiro IA", um mentor financeiro exclusivo da Fintech Casal.
-Seu objetivo é ajudar este casal a sair das dívidas, otimizar despesas e alcançar estabilidade financeira de forma empática, motivadora e direta.
+Seu objetivo é ajudar este casal a progredir em sua jornada financeira através de 3 estágios (Vermelho -> Amarelo -> Verde) de forma empática, motivadora e direta, respeitando o "Design Emocional" e distinguindo dívidas tóxicas de estruturais.
 
 DADOS REAIS DO CASAL NESTE MÊS DE ANÁLISE (${monthStr}):
 - Renda Total Familiar: R$ ${strategy.totalIncome.toFixed(2)}
-- Custo de Vida Essencial: R$ ${strategy.totalEssentialExpenses.toFixed(2)}
-- Saldo Disponível para Dívidas: R$ ${strategy.disposableIncomeForDebts.toFixed(2)}
+- Custo de Vida Essencial Real: R$ ${strategy.essentialsValue.toFixed(2)}
 - Faturas de Cartão de Crédito: R$ ${strategy.totalCreditCardInvoices.toFixed(2)}
-- Dívidas Fixas (Empréstimos/Carnês): R$ ${strategy.totalDebtInstallments.toFixed(2)}
-- Total de Compromissos (Dívidas + Cartões): R$ ${totalCommitments.toFixed(2)}
-- Resíduo de Caixa Restante pós-alocação: R$ ${strategy.remainingCashResidue.toFixed(2)}
-- Estado Atual: ${isChoque ? "🔴 OPERAÇÃO DE CHOQUE (Compromissos > Saldo Disponível)" : "🟢 SAUDÁVEL (Regra 50/30/20)"}
+- Dívidas Tóxicas (Curto Prazo/Empréstimos): R$ ${strategy.toxicDebtsValue.toFixed(2)}
+- Dívidas Estruturais (Financiamentos Patrimônio/Consórcios): R$ ${strategy.estruturalDebtsValue.toFixed(2)}
+- Trava de Lazer do Casal (Design Emocional): R$ ${strategy.lazerTravaValue.toFixed(2)}
+- Aporte/Reserva de Manutenção: R$ ${strategy.reserveMaintenanceValue.toFixed(2)}
+- Valor Foco Sugerido (Sobra): R$ ${strategy.focusValue.toFixed(2)}
+- Estágio Financeiro Atual: ${stageStr}
+- Reserva Financeira Atual: R$ ${strategy.reservaFinanceiraAtual.toFixed(2)} (Meta: R$ ${strategy.reservaMeta.toFixed(2)})
+- Total em Investimentos: R$ ${strategy.investimentosTotal.toFixed(2)}
+- Alerta Risco de Insolvência: ${strategy.isInsolvencyRisk ? "SIM (Atenção Máxima!)" : "NÃO"}
 
 AÇÕES TÁTICAS DO MOTOR FINANCEIRO PARA ESTE MÊS:
 ${strategy.debtActions.map((d: any) => `- Dívida/Lote '${d.debtTitle}': ${d.recommendation}`).join("\n")}
 ${strategy.cardActions.map((c: any) => `- Cartão '${c.cardName}': ${c.recommendation}`).join("\n")}
 
-INSTRUÇÕES DE COMPORTAMENTO:
+INSTRUÇÕES DE COMPORTAMENTO COM BASE NO ESTÁGIO:
 1. Responda em português de forma calorosa, amigável, concisa e prática. No máximo 2 ou 3 parágrafos curtos.
-2. Se estiverem na 🔴 OPERAÇÃO DE CHOQUE:
-   - O saldo livre é negativo ou insuficiente. Se eles sugerirem gastos supérfluos (delivery, passeios caros, roupas), lembre-os com carinho de priorizar o básico (PIX/Débito) e cortar os supérfluos, sugerindo programas caseiros e baratos.
-   - Reforce a urgência da "Alocação Crítica" (pagar dívidas fixas integralmente) e da "Engenharia Financeira" (parcelar faturas de cartão grandes usando apenas o resíduo de caixa como entrada).
-3. Se estiverem 🟢 SAUDÁVEIS:
-   - Estão com saldo positivo. Recomende aplicar a regra 50/30/20. Sugira usar 30% da renda total para lazer sem culpa e destinar 20% para montar a Reserva de Emergência ou investir.
-4. Nunca recomende novos empréstimos, consórcios ou uso desnecessário de crédito.
-5. Baseie suas orientações no histórico e nos números informados acima, sem inventar valores.
+2. Se houver Risco de Insolvência: ignore a trava de Lazer e recomende cortes severos de custos essenciais para sobrevivência imediata.
+3. Se o estágio for 🔴 VERMELHO (Fase de Resgate):
+   - Priorizar a trava emocional de Lazer (R$ ${strategy.lazerTravaValue.toFixed(2)}) para o casal não desanimar, e orientar focar 100% da sobra (R$ ${strategy.focusValue.toFixed(2)}) em amortizar as dívidas tóxicas.
+4. Se o estágio for 🟡 AMARELO (Fase de Segurança):
+   - Celebrar a falta de dívidas tóxicas. Lazer está em 12% da renda. Orientar direcionar 100% da sobra (R$ ${strategy.focusValue.toFixed(2)}) para construir a Reserva de Emergência até a meta de R$ ${strategy.reservaMeta.toFixed(2)}.
+5. Se o estágio for 🟢 VERDE (Fase de Prosperidade):
+   - Celebrar a solidez financeira. Reserva de manutenção ativa (7%). Recomendar investir o valor foco (R$ ${strategy.focusValue.toFixed(2)}) em ativos financeiros de longo prazo.
+6. Nunca recomende novos empréstimos, consórcios ou uso desnecessário de crédito.
+7. Baseie suas orientações no histórico e nos números informados acima, sem inventar valores.
     `;
 
     let replyText = "";
@@ -254,33 +264,45 @@ export async function getChatHistory(limit = 50) {
 function getFallbackAdvisorResponse(question: string, strategy: any, monthStr: string): string {
   const query = question.toLowerCase();
   
-  if (strategy.isChoqueRequired) {
+  if (strategy.isInsolvencyRisk) {
+    return `Alerta crítico de Risco de Insolvência! Nossa soma de Gastos Essenciais e Parcelas Estruturais consome mais de 100% de nossa renda. Precisamos suspender a trava de lazer e focar em cortes imediatos e severos de despesas básicas para reestruturar nossa vida financeira.`;
+  }
+
+  if (strategy.financialStage === "red") {
     if (query.includes("pizza") || query.includes("delivery") || query.includes("shopee") || query.includes("gastar") || query.includes("comprar")) {
-      return `Alerta da Operação de Choque! O total de compromissos deste mês ultrapassa o nosso Saldo Disponível em ${monthStr}. Pedir delivery ou fazer compras agora vai comprometer nossa Engenharia Financeira. Que tal cozinharmos juntos em casa para economizar e blindar nosso orçamento?`;
+      return `Como estamos na Fase Vermelha de Resgate, garantimos a trava de lazer emocional de R$ ${strategy.lazerTravaValue.toFixed(2)} para respirarmos. No entanto, qualquer gasto extra além desse limite deve ser evitado para que possamos destinar a sobra de R$ ${strategy.focusValue.toFixed(2)} para quitar as dívidas tóxicas!`;
     }
-  } else {
+  } else if (strategy.financialStage === "yellow") {
     if (query.includes("investir") || query.includes("poupar") || query.includes("reserva")) {
-      return `Que iniciativa fantástica! Como estamos na zona Verde (Regra 50/30/20), temos R$ ${strategy.remainingCashResidue.toFixed(2)} livres de resíduo. É o momento perfeito para transferir esse dinheiro para uma conta que renda 100% do CDI ou para o Tesouro Direto!`;
+      return `Excelente iniciativa! Como estamos na Fase Amarela de Segurança, nosso lazer emocional está garantido em R$ ${strategy.lazerTravaValue.toFixed(2)} (12%). A sobra total de R$ ${strategy.focusValue.toFixed(2)} deve ser direcionada integralmente ao nosso Fundo de Reserva de Emergência até atingirmos a meta de R$ ${strategy.reservaMeta.toFixed(2)}.`;
+    }
+  } else if (strategy.financialStage === "green") {
+    if (query.includes("investir") || query.includes("poupar") || query.includes("reserva")) {
+      return `Parabéns, casal! Como estamos na Fase Verde de Prosperidade, nossa reserva está completa. Nosso lazer está garantido em 12% (R$ ${strategy.lazerTravaValue.toFixed(2)}) e direcionamos R$ ${strategy.reserveMaintenanceValue.toFixed(2)} (7%) para continuar encorpando a reserva. O saldo livre de R$ ${strategy.focusValue.toFixed(2)} está totalmente liberado para novos investimentos!`;
     }
   }
 
   if (query.includes("lote") || query.includes("terreno") || query.includes("atraso")) {
-    return `Para dívidas como terrenos e lotes, a nossa prioridade na Alocação Crítica é pagar integralmente a parcela atual. Se houver atrasos, entrem em contato imediato para propor a 'Incorporação de Parcelas' para o final do contrato, travando os juros!`;
+    return `Para dívidas como terrenos e lotes (estruturais), a nossa prioridade é manter as parcelas em dia para proteger o patrimônio. Se houver atrasos, entrem em contato imediato para propor a 'Incorporação de Parcelas' para o final do contrato.`;
   }
 
   if (query.includes("cartao") || query.includes("fatura") || query.includes("neon") || query.includes("nubank")) {
-    return strategy.isChoqueRequired 
-      ? `Ação de Engenharia Financeira: O saldo restante que temos deve ser usado como entrada no parcelamento de faturas grandes que não conseguimos cobrir. Bloqueie os cartões no app para estancar os gastos de imediato.`
-      : `Vocês possuem saldo saudável de R$ ${strategy.remainingCashResidue.toFixed(2)}. Paguem o valor integral das faturas para evitar qualquer juro rotativo e manterem o Score excelente!`;
+    return strategy.financialStage === "red"
+      ? `Como estamos na Fase Vermelha, faturas de cartão são tratadas como dívidas tóxicas prioritárias. Use a sobra planejada de R$ ${strategy.focusValue.toFixed(2)} para quitá-las e bloqueie novos gastos de imediato.`
+      : `Vocês possuem saldo saudável. Paguem o valor integral das faturas para evitar qualquer juro rotativo!`;
   }
 
   if (query.includes("emprestimo") || query.includes("banco")) {
-    return `Ação de Alocação Crítica: Mantenham as parcelas do empréstimo em dia para proteger o patrimônio e evitar juros. Assim que estivermos totalmente no verde, utilizem o excedente mensal para amortizar o contrato de trás para frente!`;
+    return `Mantenham as parcelas do empréstimo em dia para evitar multas. Se for uma dívida tóxica, usem a sobra de R$ ${strategy.focusValue.toFixed(2)} para amortizá-la de trás para frente.`;
   }
 
-  return `Olá! Analisando nosso fluxo para ${monthStr}: Temos R$ ${strategy.totalIncome.toFixed(2)} de receita e um saldo disponível de R$ ${strategy.disposableIncomeForDebts.toFixed(2)}. ${
-    strategy.isChoqueRequired 
-      ? "Devido às faturas altas agendadas, estamos na Operação de Choque. Foquem nos pagamentos via PIX/Débito e nas Ações de Engenharia Financeira recomendadas no Dashboard."
-      : "Situação 100% controlada (Regra 50/30/20)! Mantenham os limites e usem o excedente mensal para a Reserva de Emergência."
+  return `Olá! Analisando nosso fluxo para ${monthStr}: Temos R$ ${strategy.totalIncome.toFixed(2)} de renda familiar. ${
+    strategy.isInsolvencyRisk
+      ? "Atenção: Estamos sob risco crítico de insolvência! Suspenda o lazer e corte despesas básicas."
+      : strategy.financialStage === "red" 
+      ? `Estamos na Fase Vermelha (Resgate). Garantimos R$ ${strategy.lazerTravaValue.toFixed(2)} para lazer emocional. A sobra de R$ ${strategy.focusValue.toFixed(2)} deve ir para quitar as dívidas tóxicas.`
+      : strategy.financialStage === "yellow"
+      ? `Estamos na Fase Amarela (Segurança). Nosso lazer é R$ ${strategy.lazerTravaValue.toFixed(2)}. Direcione a sobra de R$ ${strategy.focusValue.toFixed(2)} para o Fundo de Reserva (Meta: R$ ${strategy.reservaMeta.toFixed(2)}).`
+      : `Estamos na Fase Verde (Prosperidade)! Nosso lazer é R$ ${strategy.lazerTravaValue.toFixed(2)}. Destinamos R$ ${strategy.reserveMaintenanceValue.toFixed(2)} à reserva, e R$ ${strategy.focusValue.toFixed(2)} está livre para novos investimentos!`
   }`;
 }

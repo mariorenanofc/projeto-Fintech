@@ -24,6 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { AudioExplainerButton } from "@/components/ui/audio-explainer";
 import { Progress } from "@/components/ui/progress";
 import { 
   saveOnboardingData, 
@@ -177,7 +178,8 @@ export default function OnboardingPage() {
       currentInstallmentValue: 0, 
       monthlyLateInterestRate: 0, 
       penaltyValue: 0, 
-      installmentsPaid: 0 
+      installmentsPaid: 0,
+      tipoDivida: "toxica"
     }]);
   };
 
@@ -466,8 +468,15 @@ export default function OnboardingPage() {
         {step === 1 && (
           <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md">
             <CardHeader className="p-6 pb-3">
-              <CardTitle className="text-base font-black text-white">1. Receitas do Casal</CardTitle>
-              <CardDescription className="text-[10px] text-zinc-500 mt-0.5">Cadastrem os salários ou ganhos mensais recorrentes de vocês</CardDescription>
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <CardTitle className="text-base font-black text-white">1. Receitas do Casal</CardTitle>
+                  <CardDescription className="text-[10px] text-zinc-500 mt-0.5">Cadastrem os salários ou ganhos mensais recorrentes de vocês</CardDescription>
+                </div>
+                <AudioExplainerButton 
+                  text="Aqui você deve considerar todo o dinheiro que você e a outra pessoa parceira sua ganham. Vocês podem adicionar as receitas separadas por cada um de vocês, como também podem juntar os valores e lançar em conjunto de forma compartilhada." 
+                />
+              </div>
             </CardHeader>
             <CardContent className="p-6 pt-0 space-y-4">
               <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
@@ -545,8 +554,15 @@ export default function OnboardingPage() {
         {step === 2 && (
           <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md">
             <CardHeader className="p-6 pb-3">
-              <CardTitle className="text-base font-black text-white">2. Custo de Vida Essencial</CardTitle>
-              <CardDescription className="text-[10px] text-zinc-500 mt-0.5">Cadastrem os custos fixos obrigatórios de sobrevivência do lar</CardDescription>
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <CardTitle className="text-base font-black text-white">2. Custo de Vida Essencial</CardTitle>
+                  <CardDescription className="text-[10px] text-zinc-500 mt-0.5">Cadastrem os custos fixos obrigatórios de sobrevivência do lar</CardDescription>
+                </div>
+                <AudioExplainerButton 
+                  text="Aqui você vai considerar todas as contas consideradas essenciais que você deve pagar todos os meses de forma recorrente, como por exemplo água, luz, internet, plano telefônico, feira, combustível e aluguel. Então pense bem e, se possível, faça uma lista escrita para depois passar para o sistema com a previsão de quanto em média você gasta por mês em cada um desses essenciais. A ideia é você aprender a trabalhar com dinheiro real através desses essenciais e, a partir daqui, você conseguir sair das suas dívidas, construir uma reserva financeira como fundo de segurança futura e investir seu dinheiro para que ele passe a trabalhar para você. Lembre-se: é importante colocar apenas essenciais. Dívidas de cartões, empréstimos, boletos bancários e consórcios você vai adicionar nas próximas categorias." 
+                />
+              </div>
             </CardHeader>
             <CardContent className="p-6 pt-0 space-y-4">
               <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
@@ -630,8 +646,15 @@ export default function OnboardingPage() {
         {step === 3 && (
           <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md">
             <CardHeader className="p-6 pb-3">
-              <CardTitle className="text-base font-black text-white">3. Cartões de Crédito</CardTitle>
-              <CardDescription className="text-[10px] text-zinc-500 mt-0.5">Cadastrem os cartões ativos de vocês. Serão usados para controle e pagamentos</CardDescription>
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <CardTitle className="text-base font-black text-white">3. Cartões de Crédito</CardTitle>
+                  <CardDescription className="text-[10px] text-zinc-550 mt-0.5">Cadastrem os cartões ativos de vocês. Serão usados para controle e pagamentos</CardDescription>
+                </div>
+                <AudioExplainerButton 
+                  text="Aqui nessa categoria de cartões você vai cadastrar todos os cartões de crédito que você e seu parceiro ou parceira têm. Você deve colocar a instituição do cartão, o limite total, a fatura atual que vai fechar e a fatura do próximo mês. Essa relação vai ser necessária para ter a base inicial do plano de ação caso você esteja no vermelho. Também vai ajudar a estruturar o plano de ação para sair do fluxo de cartão recorrente. A ideia aqui é fazer com que você use o cartão de crédito de maneira inteligente e não de maneira necessitada. Observação: não esqueça de depois ajustar no seu perfil as faturas que não foram inseridas aqui, caso o seu cartão possua mais de 3 faturas em aberto. Lembre-se, nós estamos fazendo a implementação dos dados para que o sistema possa idealizar um plano de ação ideal com base na sua realidade." 
+                />
+              </div>
             </CardHeader>
             <CardContent className="p-6 pt-0 space-y-4">
               <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
@@ -719,8 +742,15 @@ export default function OnboardingPage() {
         {step === 4 && (
           <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md">
             <CardHeader className="p-6 pb-3">
-              <CardTitle className="text-base font-black text-white">4. Consórcios, Financiamentos e Dívidas</CardTitle>
-              <CardDescription className="text-[10px] text-zinc-500 mt-0.5">Cadastrem despesas extensas (como terrenos, automóveis ou parcelamentos locais)</CardDescription>
+              <div className="flex justify-between items-start gap-4">
+                <div>
+                  <CardTitle className="text-base font-black text-white">4. Consórcios, Financiamentos e Dívidas</CardTitle>
+                  <CardDescription className="text-[10px] text-zinc-500 mt-0.5">Cadastrem despesas extensas (como terrenos, automóveis ou parcelamentos locais)</CardDescription>
+                </div>
+                <AudioExplainerButton 
+                  text="Aqui é onde a regra de negócio vai acontecer se você está com dívidas atrasadas, financiamentos ou consórcios. É importante que ao inserir os dados esteja relativamente correto com dados de contrato, como juros por mês e valor de multa em reais. Nesse campo você vai adicionar o título da dívida, o valor total da dívida, a parcela atual dessa dívida, os juros por mês relacionados à porcentagem e o valor da multa relacionado a reais, como também o total de parcelas que foram pagas e o total de parcelas desta dívida. Nessa parte é necessária muita atenção no preenchimento para que o sistema possa lhe dar um cálculo exato ou pelo menos o mais próximo da sua realidade." 
+                />
+              </div>
             </CardHeader>
             <CardContent className="p-6 pt-0 space-y-4">
               <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
@@ -743,6 +773,19 @@ export default function OnboardingPage() {
                           onChange={(e) => handleDebtChange(index, "title", e.target.value)}
                           className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
                         />
+                      </div>
+
+                      <div>
+                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Qual o tipo dessa conta?</label>
+                        <select
+                          value={item.tipoDivida || "toxica"}
+                          onChange={(e) => handleDebtChange(index, "tipoDivida", e.target.value)}
+                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11"
+                          required
+                        >
+                          <option value="toxica">Dívida de Cartão / Empréstimo (Curto Prazo)</option>
+                          <option value="estrutural">Financiamento de Patrimônio / Consórcio (Longo Prazo)</option>
+                        </select>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-3">

@@ -112,9 +112,9 @@ export function AudioExplainerButton({ text, className }: { text: string; classN
 
       {/* Tooltip Dinâmico (Legenda Visual) */}
       {isPlaying && (
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 max-w-[85vw] p-3 bg-zinc-900 border border-yellow-500/30 rounded-xl shadow-xl shadow-black/50 z-50 animate-in fade-in slide-in-from-top-1 pointer-events-none">
-          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-yellow-500/30" />
-          <div className="absolute -top-[7px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-zinc-900" />
+        <div className="absolute top-full right-0 mt-2 w-64 max-w-[85vw] p-3 bg-zinc-900 border border-yellow-500/30 rounded-xl shadow-xl shadow-black/50 z-50 animate-in fade-in slide-in-from-top-1 pointer-events-none">
+          <div className="absolute -top-2 right-2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-yellow-500/30" />
+          <div className="absolute -top-[7px] right-2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[6px] border-b-zinc-900" />
           <p className="text-[10px] text-zinc-300 leading-relaxed text-center font-medium">
             {text}
           </p>

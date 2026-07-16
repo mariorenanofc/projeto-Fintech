@@ -47,6 +47,8 @@ export interface DebtInput {
   installmentsSchedule?: DebtInstallmentItem[]; // Cronograma JSONB
   overdueInstallments?: number; // Parcelas em atraso
   overdueValueAccumulated?: number; // Valor acumulado em atraso
+  tipoDivida?: "toxica" | "estrutural";
+  tipo_divida?: "toxica" | "estrutural";
 }
 
 export interface OnboardingData {
@@ -87,6 +89,17 @@ export interface FinancialStrategyResult {
     title: string;
     description: string;
   }[];
+  financialStage: "red" | "yellow" | "green";
+  reservaFinanceiraAtual: number;
+  reservaMeta: number;
+  investimentosTotal: number;
+  lazerTravaValue: number;
+  estruturalDebtsValue: number;
+  toxicDebtsValue: number;
+  essentialsValue: number;
+  focusValue: number;
+  reserveMaintenanceValue: number;
+  isInsolvencyRisk: boolean;
 }
 
 // Helper para obter o family_group_id do usuário autenticado
@@ -178,7 +191,8 @@ export async function saveOnboardingData(data: OnboardingData) {
         installments_paid: item.installmentsPaid,
         installments_schedule: JSON.stringify(item.installmentsSchedule || []),
         overdue_installments: item.overdueInstallments || 0,
-        overdue_value_accumulated: item.overdueValueAccumulated || 0
+        overdue_value_accumulated: item.overdueValueAccumulated || 0,
+        tipo_divida: item.tipoDivida || 'toxica'
       }));
       const { error } = await supabase.from("debts_and_financings").insert(debtsToInsert);
       if (error) throw new Error(`Erro ao salvar dívidas/financiamentos: ${error.message}`);
@@ -224,11 +238,13 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
 
     // 3. Buscar dados de todas as tabelas em paralelo
     const [
+      profileRes,
       incomesRes,
       expensesRes,
       cardsRes,
       debtsRes
     ] = await Promise.all([
+      supabase.from("profiles").select("reserva_financeira_atual, investimentos_total").eq("id", user.id).single(),
       supabase.from("incomes").select("*").eq("family_group_id", familyGroupId),
       supabase.from("fixed_expenses").select("*").eq("family_group_id", familyGroupId),
       supabase.from("credit_cards").select("*").eq("family_group_id", familyGroupId),
@@ -257,7 +273,18 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
         isChoqueRequired: false,
         cardActions: [],
         debtActions: [],
-        survivalRules: []
+        survivalRules: [],
+        financialStage: "green",
+        reservaFinanceiraAtual: 0,
+        reservaMeta: 0,
+        investimentosTotal: 0,
+        lazerTravaValue: 0,
+        estruturalDebtsValue: 0,
+        toxicDebtsValue: 0,
+        essentialsValue: 0,
+        focusValue: 0,
+        reserveMaintenanceValue: 0,
+        isInsolvencyRisk: false
       };
     }
 
@@ -410,6 +437,66 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
       );
     }
 
+    const reservaFinanceiraAtual = Number(profileRes?.data?.reserva_financeira_atual || 0);
+    const investimentosTotal = Number(profileRes?.data?.investimentos_total || 0);
+    const reservaMeta = totalEssentialExpenses * 3;
+
+    // Classificação V2
+    const hasToxicDebts = dbDebtsMapped.some(d => (d.tipo_divida || d.tipoDivida) === "toxica");
+    const projectedResidue = totalIncome - totalEssentialExpenses - totalDebtInstallments - totalCreditCardInvoices;
+
+    let financialStage: "red" | "yellow" | "green" = "green";
+    if (hasToxicDebts || projectedResidue < 0) {
+      financialStage = "red";
+    } else if (reservaFinanceiraAtual < reservaMeta) {
+      financialStage = "yellow";
+    } else {
+      financialStage = "green";
+    }
+
+    const estruturalDebtsValue = dbDebtsMapped
+      .filter(d => (d.tipo_divida || d.tipoDivida) === "estrutural")
+      .reduce((sum, d) => sum + d.current_installment_value, 0);
+
+    const toxicDebtsValue = dbDebtsMapped
+      .filter(d => (d.tipo_divida || d.tipoDivida) !== "estrutural")
+      .reduce((sum, d) => sum + d.current_installment_value, 0) + totalCreditCardInvoices;
+
+    const essentialsValue = totalEssentialExpenses;
+    const isInsolvencyRisk = (essentialsValue + estruturalDebtsValue) >= totalIncome;
+
+    let lazerTravaValue = 0;
+    let reserveMaintenanceValue = 0;
+    let focusValue = 0;
+
+    if (financialStage === "red") {
+      lazerTravaValue = isInsolvencyRisk ? 0 : totalIncome * 0.06;
+      const remainingAfterEssentials = Math.max(0, totalIncome - essentialsValue - estruturalDebtsValue);
+      if (lazerTravaValue > remainingAfterEssentials) {
+        lazerTravaValue = remainingAfterEssentials;
+      }
+      focusValue = Math.max(0, totalIncome - essentialsValue - lazerTravaValue - estruturalDebtsValue);
+    } else if (financialStage === "yellow") {
+      lazerTravaValue = isInsolvencyRisk ? 0 : totalIncome * 0.12;
+      const remainingAfterEssentials = Math.max(0, totalIncome - essentialsValue - estruturalDebtsValue);
+      if (lazerTravaValue > remainingAfterEssentials) {
+        lazerTravaValue = remainingAfterEssentials;
+      }
+      focusValue = Math.max(0, totalIncome - essentialsValue - lazerTravaValue - estruturalDebtsValue);
+    } else { // green
+      lazerTravaValue = isInsolvencyRisk ? 0 : totalIncome * 0.12;
+      reserveMaintenanceValue = totalIncome * 0.07;
+      const remainingAfterEssentials = Math.max(0, totalIncome - essentialsValue - estruturalDebtsValue);
+      if (lazerTravaValue > remainingAfterEssentials) {
+        lazerTravaValue = remainingAfterEssentials;
+      }
+      const remainingAfterLazer = Math.max(0, remainingAfterEssentials - lazerTravaValue);
+      if (reserveMaintenanceValue > remainingAfterLazer) {
+        reserveMaintenanceValue = remainingAfterLazer;
+      }
+      focusValue = Math.max(0, totalIncome - essentialsValue - lazerTravaValue - estruturalDebtsValue - reserveMaintenanceValue);
+    }
+
     const remainingCashResidue = currentResidue; // O que sobrou após pagar as dívidas e cartões possíveis
 
     return {
@@ -423,7 +510,18 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
       isChoqueRequired,
       cardActions,
       debtActions,
-      survivalRules
+      survivalRules,
+      financialStage,
+      reservaFinanceiraAtual,
+      reservaMeta,
+      investimentosTotal,
+      lazerTravaValue,
+      estruturalDebtsValue,
+      toxicDebtsValue,
+      essentialsValue,
+      focusValue,
+      reserveMaintenanceValue,
+      isInsolvencyRisk
     };
 
   } catch (error: any) {
@@ -439,7 +537,18 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
       isChoqueRequired: false,
       cardActions: [],
       debtActions: [],
-      survivalRules: []
+      survivalRules: [],
+      financialStage: "green",
+      reservaFinanceiraAtual: 0,
+      reservaMeta: 0,
+      investimentosTotal: 0,
+      lazerTravaValue: 0,
+      estruturalDebtsValue: 0,
+      toxicDebtsValue: 0,
+      essentialsValue: 0,
+      focusValue: 0,
+      reserveMaintenanceValue: 0,
+      isInsolvencyRisk: false
     };
   }
 }
@@ -616,7 +725,8 @@ export async function addDebt(item: DebtInput) {
       installments_paid: item.installmentsPaid,
       installments_schedule: item.installmentsSchedule || [],
       overdue_installments: item.overdueInstallments || 0,
-      overdue_value_accumulated: item.overdueValueAccumulated || 0
+      overdue_value_accumulated: item.overdueValueAccumulated || 0,
+      tipo_divida: item.tipoDivida || 'toxica'
     });
     if (error) throw error;
     return { success: true };
@@ -638,7 +748,8 @@ export async function updateDebt(id: string, item: DebtInput) {
       installments_paid: item.installmentsPaid,
       installments_schedule: item.installmentsSchedule || [],
       overdue_installments: item.overdueInstallments || 0,
-      overdue_value_accumulated: item.overdueValueAccumulated || 0
+      overdue_value_accumulated: item.overdueValueAccumulated || 0,
+      tipo_divida: item.tipoDivida || 'toxica'
     }).eq("id", id);
     if (error) throw error;
     return { success: true };
@@ -673,7 +784,7 @@ export async function getProfileFinancialData() {
       cards,
       debts
     ] = await Promise.all([
-      supabase.from("profiles").select("voice_preferences").eq("id", user.id).single(),
+      supabase.from("profiles").select("voice_preferences, reserva_financeira_atual, investimentos_total").eq("id", user.id).single(),
       supabase.from("incomes").select("*").eq("family_group_id", familyGroupId),
       supabase.from("fixed_expenses").select("*").eq("family_group_id", familyGroupId),
       supabase.from("credit_cards").select("*").eq("family_group_id", familyGroupId),
@@ -683,13 +794,15 @@ export async function getProfileFinancialData() {
     return {
       success: true,
       voicePreferences: profile.data?.voice_preferences || null,
+      reservaFinanceiraAtual: profile.data?.reserva_financeira_atual || 0,
+      investimentosTotal: profile.data?.investimentos_total || 0,
       incomes: incomes.data || [],
       fixedExpenses: expenses.data || [],
       creditCards: cards.data || [],
       debts: debts.data || []
     };
   } catch (error: any) {
-    return { success: false, error: error.message, incomes: [], fixedExpenses: [], creditCards: [], debts: [], voicePreferences: null };
+    return { success: false, error: error.message, incomes: [], fixedExpenses: [], creditCards: [], debts: [], voicePreferences: null, reservaFinanceiraAtual: 0, investimentosTotal: 0 };
   }
 }
 
@@ -785,5 +898,30 @@ export async function getLinkedPartner() {
 
   } catch (error: any) {
     return { success: false, error: error.message, partners: [] };
+  }
+}
+
+/**
+ * Atualiza os valores de reserva financeira atual e investimentos totais do perfil do usuário
+ */
+export async function updateProfileAssets(reserva: number, investimentos: number) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Não autenticado");
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        reserva_financeira_atual: reserva,
+        investimentos_total: investimentos
+      })
+      .eq("id", user.id);
+
+    if (error) throw error;
+    return { success: true };
+  } catch (error: any) {
+    console.error("Erro ao salvar patrimônio:", error);
+    return { success: false, error: error.message };
   }
 }

@@ -279,7 +279,7 @@ export default function TransactionsPage() {
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const realEssentials = transactions
-    .filter(t => t.type === "expense" && !["Cartão", "Lote/Terreno", "Empréstimo"].includes(t.category))
+    .filter(t => t.type === "expense" && !["Cartão", "Lote/Terreno", "Empréstimo", "Aporte na Reserva", "Investimento"].includes(t.category))
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const realCommitments = transactions
@@ -291,7 +291,7 @@ export default function TransactionsPage() {
   // Categorias de transações recomendadas
   const categories = [
     "Moradia", "Alimentação", "Transporte", "Lazer", "Saúde", 
-    "Educação", "Cartão", "Lote/Terreno", "Empréstimo", "Outros"
+    "Educação", "Cartão", "Lote/Terreno", "Empréstimo", "Aporte na Reserva", "Investimento", "Outros"
   ];
 
   return (

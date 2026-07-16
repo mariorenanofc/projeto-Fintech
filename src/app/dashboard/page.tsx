@@ -20,7 +20,8 @@ import {
   LogOut,
   MoreHorizontal,
   CalendarPlus,
-  Undo2
+  Undo2,
+  Trophy
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -86,6 +87,8 @@ export default function DashboardPage() {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [billToConfirm, setBillToConfirm] = useState<Bill | null>(null);
   const [actualAmountPaid, setActualAmountPaid] = useState<number>(0);
+  const [celebrationOpen, setCelebrationOpen] = useState(false);
+  const [celebrationStage, setCelebrationStage] = useState<"yellow" | "green">("yellow");
 
   // Garante a montagem inicial
   useEffect(() => {
@@ -141,14 +144,24 @@ export default function DashboardPage() {
       const strat = await generateFinancialStrategy(monthStr);
       setStrategy(strat);
 
-      // Define status de finanças com base no motor de choque
+      // Define status de finanças com base no motor de transição de estágios
       if (strat.hasStrategy) {
-        if (strat.isChoqueRequired) {
-          setFinanceStatus("red");
-        } else if (strat.remainingCashResidue < 300) {
-          setFinanceStatus("yellow");
-        } else {
-          setFinanceStatus("green");
+        setFinanceStatus(strat.financialStage);
+        
+        // Gamificação / Detecção de Subida de Fase
+        if (mounted) {
+          const prevStage = localStorage.getItem("casal_financial_stage");
+          if (prevStage && prevStage !== strat.financialStage) {
+            const stagesOrder = { red: 1, yellow: 2, green: 3 };
+            const currentRank = stagesOrder[strat.financialStage];
+            const prevRank = stagesOrder[prevStage as "red" | "yellow" | "green"] || 1;
+            
+            if (currentRank > prevRank) {
+              setCelebrationStage(strat.financialStage as "yellow" | "green");
+              setCelebrationOpen(true);
+            }
+          }
+          localStorage.setItem("casal_financial_stage", strat.financialStage);
         }
       }
     } catch (error) {
@@ -395,7 +408,7 @@ export default function DashboardPage() {
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const realEssentials = transactions
-    .filter(t => t.type === "expense" && !["Cartão", "Lote/Terreno", "Empréstimo"].includes(t.category))
+    .filter(t => t.type === "expense" && !["Cartão", "Lote/Terreno", "Empréstimo", "Aporte na Reserva", "Investimento"].includes(t.category))
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const realCommitments = transactions
@@ -404,13 +417,20 @@ export default function DashboardPage() {
 
   const realDisposable = realIncome - realEssentials - realCommitments;
 
+  // Reserva Livre real (o valor alocado para lazer/desejos do casal)
+  const reservaLivreCasal = strategy?.hasStrategy
+    ? (realDisposable > 0 
+        ? Math.min(strategy.lazerTravaValue, realDisposable) 
+        : 0)
+    : 0;
+
   // Valores consolidados reais
   const totalCommitment = strategy?.hasStrategy
     ? strategy.totalEssentialExpenses + strategy.totalDebtInstallments + strategy.totalCreditCardInvoices
     : 0;
 
-  const tetoDiario = strategy?.hasStrategy && strategy.remainingCashResidue > 0
-    ? Math.round((strategy.remainingCashResidue / 30) * 100) / 100
+  const tetoDiario = strategy?.hasStrategy && reservaLivreCasal > 0
+    ? Math.round((reservaLivreCasal / 30) * 100) / 100
     : 0;
 
   const forecast = getNextMonthForecast();
@@ -536,55 +556,50 @@ export default function DashboardPage() {
                       financeStatus === "yellow" ? "text-yellow-400" : "text-rose-400"
                     }`}>
                       {financeStatus === "green" ? "Caminho Livre! ✨" : 
-                       financeStatus === "yellow" ? "Atenção Redobrada ⚠️" : "Ajuste de Rota! 🛡️"}
+                       financeStatus === "yellow" ? "Fase de Segurança ⚠️" : "Ajuste de Rota! 🛡️"}
                     </span>
                   </div>
 
                   {/* Texto explicativo polido e dinâmico */}
                   <div className="text-center max-w-sm mt-1 px-3 min-h-[80px] flex flex-col justify-center">
                     <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                      {strategy?.isChoqueRequired ? (
-                        <span className="text-rose-400 font-bold block mb-1">
-                          Atenção, casal! Nossas faturas estão exigindo mais do que nosso caixa livre. É hora de ativar a Operação de Choque para blindar nossas economias. Vamos juntos superar essa fase! 💪
-                        </span>
-                      ) : null}
-                      {financeStatus === "green" && "Sintonia perfeita, casal! Vocês estão cuidando super bem do orçamento hoje. Caminho livre para gastos conscientes!"}
-                      {financeStatus === "yellow" && "Atenção e carinho com o bolso hoje! Estamos perto do nosso limite diário. Que tal adiar aquela compra não urgente para amanhã?"}
-                      {financeStatus === "red" && !strategy?.isChoqueRequired && "Recalculando rota! Passamos do nosso teto diário hoje. Vamos segurar novos gastos não essenciais para proteger nosso final do mês?"}
+                      {financeStatus === "red" && "Cuidado, casal! Estamos no vermelho. O Conselheiro IA traçou um plano de resgate para ajudar a colocar as contas em ordem e blindar nosso bolso! 🛡️"}
+                      {financeStatus === "yellow" && "Parabéns, casal! Nossas contas estão sob controle. O foco agora é construir nosso fundo de segurança financeira para emergências! ⚠️"}
+                      {financeStatus === "green" && "Sintonia perfeita, casal! Temos uma reserva financeira sólida. Caminho livre e seguro para realizar novos investimentos e prosperar! ✨"}
                     </p>
                   </div>
                   
                   {/* Métrica de Economia Real do Casal */}
-                  {(economyTotal !== 0) && (
+                  {(realDisposable !== 0) && (
                     <div className={`w-full max-w-sm mt-2 p-3 rounded-xl border flex items-center justify-between transition-all duration-300 ${
-                      economyTotal > 0 
+                      realDisposable > 0 
                         ? "bg-emerald-500/10 border-emerald-500/20" 
                         : "bg-rose-500/10 border-rose-500/20"
                     }`}>
                       <div className="flex items-center gap-2">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                          economyTotal > 0 ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
+                          realDisposable > 0 ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
                         }`}>
-                          {economyTotal > 0 ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
+                          {realDisposable > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                         </div>
                         <div className="flex flex-col">
                           <span className={`text-[10px] uppercase font-black tracking-widest ${
-                            economyTotal > 0 ? "text-emerald-500" : "text-rose-500"
+                            realDisposable > 0 ? "text-emerald-500" : "text-rose-500"
                           }`}>
-                            {economyTotal > 0 ? "Economia no Mês" : "Despesa Extra"}
+                            {realDisposable > 0 ? "Economia no Mês" : "Despesa Extra"}
                           </span>
                           <span className={`text-[10px] font-semibold ${
-                            economyTotal > 0 ? "text-emerald-400/80" : "text-rose-400/80"
+                            realDisposable > 0 ? "text-emerald-400/80" : "text-rose-400/80"
                           }`}>
-                            {economyTotal > 0 ? "Poupamos mais do que o previsto!" : "Gastamos além do previsto."}
+                            {realDisposable > 0 ? "Poupamos mais do que o previsto!" : "Gastamos além do previsto."}
                           </span>
                         </div>
                       </div>
                       <div className="text-right">
                         <span className={`text-sm font-black ${
-                          economyTotal > 0 ? "text-emerald-400" : "text-rose-400"
+                          realDisposable > 0 ? "text-emerald-400" : "text-rose-400"
                         }`}>
-                          R$ {Math.abs(economyTotal).toFixed(2)}
+                          R$ {Math.abs(realDisposable).toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -594,8 +609,8 @@ export default function DashboardPage() {
                   <div className="w-full flex gap-3 mt-4 pt-3 border-t border-white/5 text-xs">
                     <div className="flex-1 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5 flex flex-col">
                       <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold">Reserva Livre do Casal</span>
-                      <span className={`text-sm font-black mt-0.5 ${strategy?.remainingCashResidue && strategy.remainingCashResidue > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                        R$ {strategy?.hasStrategy ? strategy.remainingCashResidue.toFixed(2) : "0,00"}
+                      <span className={`text-sm font-black mt-0.5 ${reservaLivreCasal > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        R$ {strategy?.hasStrategy ? reservaLivreCasal.toFixed(2) : "0,00"}
                       </span>
                     </div>
                     <div className="flex-1 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5 flex flex-col">
@@ -630,7 +645,7 @@ export default function DashboardPage() {
             </Link>
           </div>
 
-          {/* Conselheiro de Choque Dinâmico */}
+          {/* Conselheiro de Choque Dinâmico / Recomendações da Nossa IA */}
           {strategy?.hasStrategy ? (
             <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
               <CardHeader className="p-5 sm:p-6 pb-2">
@@ -643,9 +658,57 @@ export default function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-5 sm:p-6 pt-3 space-y-4">
-                {strategy.isChoqueRequired ? (
+                {/* Risco de Insolvência Alerta Crítico */}
+                {strategy.isInsolvencyRisk && (
+                  <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl space-y-1.5 text-rose-400">
+                    <span className="text-[9px] uppercase font-black tracking-widest flex items-center gap-1.5 text-rose-400">
+                      <AlertTriangle className="w-4 h-4 text-rose-500 animate-pulse" />
+                      Risco de Insolvência Detectado!
+                    </span>
+                    <p className="text-[9px] leading-relaxed font-semibold text-zinc-355">
+                      A soma dos Gastos Essenciais e das Parcelas Estruturais consome mais de 100% da renda de vocês. A trava de Lazer foi suspensa (0%). É urgente revisar e cortar despesas básicas de imediato!
+                    </p>
+                  </div>
+                )}
+
+                {/* Plano de Distribuição Matemática V2 */}
+                <div className="bg-zinc-950/40 p-3.5 rounded-xl border border-white/5 space-y-2.5">
+                  <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">
+                    Distribuição Sugerida do Orçamento:
+                  </span>
+                  <div className="grid grid-cols-2 gap-2 text-center text-[10px] font-semibold text-zinc-300">
+                    <div className="bg-zinc-950/60 p-2 rounded-lg border border-white/5">
+                      <span className="text-[8px] text-zinc-500 block uppercase font-bold">Essenciais</span>
+                      <span className="text-zinc-200 block font-black mt-1">R$ {strategy.essentialsValue.toFixed(0)}</span>
+                    </div>
+                    {strategy.estruturalDebtsValue > 0 && (
+                      <div className="bg-zinc-950/60 p-2 rounded-lg border border-white/5">
+                        <span className="text-[8px] text-zinc-500 block uppercase font-bold">Estruturais</span>
+                        <span className="text-zinc-200 block font-black mt-1">R$ {strategy.estruturalDebtsValue.toFixed(0)}</span>
+                      </div>
+                    )}
+                    <div className="bg-zinc-950/60 p-2 rounded-lg border border-white/5">
+                      <span className="text-[8px] text-zinc-500 block uppercase font-bold">Lazer ({strategy.financialStage === "red" ? "6%" : "12%"})</span>
+                      <span className="text-yellow-500 block font-black mt-1">R$ {strategy.lazerTravaValue.toFixed(0)}</span>
+                    </div>
+                    {strategy.reserveMaintenanceValue > 0 && (
+                      <div className="bg-zinc-950/60 p-2 rounded-lg border border-white/5">
+                        <span className="text-[8px] text-zinc-500 block uppercase font-bold">Reserva (7%)</span>
+                        <span className="text-emerald-400 block font-black mt-1">R$ {strategy.reserveMaintenanceValue.toFixed(0)}</span>
+                      </div>
+                    )}
+                    <div className="bg-zinc-950/60 p-2 rounded-lg border border-yellow-500/20 col-span-2">
+                      <span className="text-[8px] text-yellow-500 block uppercase font-bold">
+                        {strategy.financialStage === "red" ? "Foco: Quitar Dívidas" : strategy.financialStage === "yellow" ? "Foco: Reserva" : "Foco: Investir"}
+                      </span>
+                      <span className="text-yellow-400 block font-black mt-1">R$ {strategy.focusValue.toFixed(0)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {strategy.financialStage === "red" && (
                   <div className="space-y-3">
-                    <span className="text-[9px] text-rose-400 uppercase tracking-widest font-black block">Passo a Passo para Cuidar do Bolso:</span>
+                    <span className="text-[9px] text-rose-400 uppercase tracking-widest font-black block">Plano de Resgate (Fase Vermelha):</span>
                     
                     {strategy.cardActions.map((act, i) => (
                       <div key={i} className="bg-rose-500/5 border border-rose-500/10 p-3 rounded-xl space-y-1">
@@ -661,12 +724,76 @@ export default function DashboardPage() {
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-xl text-center">
-                    <span className="text-xs font-bold text-emerald-400 block mb-1">Caminho Lindo! 🌸</span>
-                    <p className="text-[10px] text-zinc-450 leading-relaxed font-semibold">Tudo em ordem por aqui, casal! O caixa está no azul e sob controle. Continuem nessa sintonia incrível cuidando do planejamento!</p>
-                  </div>
                 )}
+
+                {strategy.financialStage === "yellow" && (() => {
+                  const percent = strategy.reservaMeta > 0 
+                    ? Math.round(Math.min(100, (strategy.reservaFinanceiraAtual / strategy.reservaMeta) * 100)) 
+                    : 0;
+                  return (
+                    <div className="space-y-4">
+                      <div className="bg-yellow-500/5 border border-yellow-500/10 p-4 rounded-xl">
+                        <span className="text-[9px] text-yellow-400 uppercase tracking-widest font-black block mb-2">Fase de Segurança (Fundo de Reserva):</span>
+                        <div className="flex justify-between items-end mb-1">
+                          <span className="text-[10px] text-zinc-300 font-bold">Progresso da Reserva</span>
+                          <span className="text-[11px] text-yellow-400 font-black">{percent}%</span>
+                        </div>
+                        <div className="w-full bg-zinc-950 border border-white/5 h-2 rounded-full overflow-hidden mb-3">
+                          <div 
+                            className="bg-yellow-500 h-full rounded-full transition-all duration-1000"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-[10px] text-zinc-400 pt-1">
+                          <div>
+                            <span className="text-zinc-550 block text-[8px] uppercase font-bold">Reserva Atual</span>
+                            <span className="font-bold text-zinc-200">R$ {strategy.reservaFinanceiraAtual.toFixed(2)}</span>
+                          </div>
+                          <div>
+                            <span className="text-zinc-550 block text-[8px] uppercase font-bold">Meta (3x Essenciais)</span>
+                            <span className="font-bold text-yellow-400">R$ {strategy.reservaMeta.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-zinc-405 leading-relaxed font-semibold text-center italic bg-zinc-950/20 p-3 rounded-lg border border-white/5">
+                        💡 Dica: Direcionem as sobras mensais para atingir a meta da reserva e liberar a trilha verde de investimentos!
+                      </p>
+                    </div>
+                  );
+                })()}
+
+                {strategy.financialStage === "green" && (() => {
+                  const essentialsIdeal = strategy.totalIncome * 0.50;
+                  const lazerIdeal = strategy.totalIncome * 0.30;
+                  const investIdeal = strategy.totalIncome * 0.20;
+                  return (
+                    <div className="space-y-4">
+                      <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-xl space-y-3">
+                        <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-black block">Fase de Prosperidade (Alocação 50/30/20):</span>
+                        
+                        <div className="grid grid-cols-3 gap-2 pt-1">
+                          <div className="bg-zinc-950/40 p-2.5 rounded-lg border border-white/5 text-center">
+                            <span className="text-[8px] text-zinc-500 uppercase tracking-wider block font-bold">Essenciais (50%)</span>
+                            <span className="text-[10px] text-zinc-300 font-bold block mt-1">R$ {essentialsIdeal.toFixed(0)}</span>
+                            <span className="text-[8px] text-zinc-550 block mt-0.5">Atual: R$ {strategy.totalEssentialExpenses.toFixed(0)}</span>
+                          </div>
+                          <div className="bg-zinc-950/40 p-2.5 rounded-lg border border-white/5 text-center">
+                            <span className="text-[8px] text-zinc-500 uppercase tracking-wider block font-bold">Desejos (30%)</span>
+                            <span className="text-[10px] text-yellow-500 font-bold block mt-1">R$ {lazerIdeal.toFixed(0)}</span>
+                          </div>
+                          <div className="bg-zinc-950/40 p-2.5 rounded-lg border border-white/5 text-center">
+                            <span className="text-[8px] text-zinc-500 uppercase tracking-wider block font-bold">Investir (20%)</span>
+                            <span className="text-[10px] text-emerald-400 font-bold block mt-1">R$ {investIdeal.toFixed(0)}</span>
+                            <span className="text-[8px] text-zinc-550 block mt-0.5">Total: R$ {strategy.investimentosTotal.toFixed(0)}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-zinc-405 leading-relaxed font-semibold text-center italic bg-zinc-950/20 p-3 rounded-lg border border-white/5">
+                        🌸 Vocês têm o Caminho Livre! Foquem em diversificar investimentos e realizar sonhos de longo prazo.
+                      </p>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           ) : null}
@@ -674,11 +801,11 @@ export default function DashboardPage() {
         </div>
 
         {/* COLUNA DIREITA (tablet:col-span-7): Resumo do Fluxo & Calendário */}
-        <div className="flex flex-col gap-6 tablet:col-span-7 h-full">
+        <div className="flex flex-col gap-6 tablet:col-span-7 h-full flex-grow">
           
           {/* Resumo de Fluxo & Previsão Futura */}
-          <section className="relative">
-            <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md relative overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
+          <section className="relative flex-grow flex flex-col h-full">
+            <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md relative overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5 flex-grow flex flex-col h-full">
               <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-2xl pointer-events-none" />
               
               <CardHeader className="p-6 sm:p-8 pb-2 sm:pb-3">
@@ -689,7 +816,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="p-6 sm:p-8 pt-4 sm:pt-6 space-y-6">
+              <CardContent className="p-6 sm:p-8 tablet:p-10 pt-4 sm:pt-6 space-y-8 tablet:space-y-10 flex-grow flex flex-col justify-between">
                 {loadingRealData || !strategy ? (
                   <div className="space-y-4 animate-pulse py-4">
                     {/* Nota do Planejamento skeleton */}
@@ -697,11 +824,11 @@ export default function DashboardPage() {
                     {/* Grid comparative cards skeleton */}
                     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                       {[...Array(4)].map((_, i) => (
-                        <div key={i} className="h-[82px] bg-zinc-950/40 rounded-xl" />
+                        <div key={i} className="h-[110px] tablet:h-[145px] bg-zinc-950/40 rounded-2xl" />
                       ))}
                     </div>
                     {/* Diagnosis text skeleton */}
-                    <div className="w-full h-14 bg-zinc-950/40 rounded-xl" />
+                    <div className="w-full h-24 tablet:h-32 bg-zinc-950/40 rounded-2xl" />
                   </div>
                 ) : strategy.hasStrategy ? (
                   <>
@@ -714,21 +841,21 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Linha do Fluxo do Mês Selecionado */}
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
                       {/* Receitas */}
-                      <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
+                      <div className="bg-zinc-950/40 p-4 tablet:p-5 rounded-2xl border border-white/5 flex flex-col justify-between min-h-[120px] tablet:min-h-[145px]">
                         <div>
-                          <span className="text-[8px] text-zinc-500 uppercase font-black block">Receitas</span>
-                          <span className="text-sm font-black text-emerald-400 mt-1 block">
+                          <span className="text-[10px] tablet:text-xs text-zinc-550 uppercase font-black tracking-wider block">Receitas</span>
+                          <span className="text-base tablet:text-2xl font-black text-emerald-400 mt-1.5 block">
                             R$ {realIncome.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
-                        <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                        <div className="mt-3 pt-2.5 border-t border-white/5 flex flex-col gap-1 text-[11px] tablet:text-xs text-zinc-405">
                           <div className="flex justify-between">
                             <span>Previsto:</span>
                             <span className="font-bold text-zinc-300">R$ {prevIncome.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                           </div>
-                          <div className="flex justify-between text-[8px] text-zinc-500">
+                          <div className="flex justify-between text-[10px] tablet:text-[11px] text-zinc-500">
                             <span>Falta receber:</span>
                             <span className="font-semibold text-zinc-400">R$ {Math.max(0, prevIncome - realIncome).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                           </div>
@@ -736,19 +863,19 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Essenciais */}
-                      <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
+                      <div className="bg-zinc-950/40 p-4 tablet:p-5 rounded-2xl border border-white/5 flex flex-col justify-between min-h-[120px] tablet:min-h-[145px]">
                         <div>
-                          <span className="text-[8px] text-zinc-500 uppercase font-black block">Essenciais</span>
-                          <span className="text-sm font-black text-zinc-200 mt-1 block">
+                          <span className="text-[10px] tablet:text-xs text-zinc-555 uppercase font-black tracking-wider block">Essenciais</span>
+                          <span className="text-base tablet:text-2xl font-black text-zinc-200 mt-1.5 block">
                             R$ {realEssentials.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
-                        <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                        <div className="mt-3 pt-2.5 border-t border-white/5 flex flex-col gap-1 text-[11px] tablet:text-xs text-zinc-405">
                           <div className="flex justify-between">
                             <span>Limite:</span>
                             <span className="font-bold text-zinc-300">R$ {prevEssentials.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                           </div>
-                          <div className="flex justify-between text-[8px] text-zinc-500">
+                          <div className="flex justify-between text-[10px] tablet:text-[11px] text-zinc-500">
                             <span>Disponível:</span>
                             <span className="font-semibold text-emerald-400">R$ {Math.max(0, prevEssentials - realEssentials).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                           </div>
@@ -756,19 +883,19 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Compromissos */}
-                      <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
+                      <div className="bg-zinc-950/40 p-4 tablet:p-5 rounded-2xl border border-white/5 flex flex-col justify-between min-h-[120px] tablet:min-h-[145px]">
                         <div>
-                          <span className="text-[8px] text-zinc-500 uppercase font-black block">Compromissos</span>
-                          <span className="text-sm font-black text-rose-400 mt-1 block">
+                          <span className="text-[10px] tablet:text-xs text-zinc-550 uppercase font-black tracking-wider block">Compromissos</span>
+                          <span className="text-base tablet:text-2xl font-black text-rose-400 mt-1.5 block">
                             R$ {realCommitments.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
-                        <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                        <div className="mt-3 pt-2.5 border-t border-white/5 flex flex-col gap-1 text-[11px] tablet:text-xs text-zinc-405">
                           <div className="flex justify-between">
                             <span>Previsão:</span>
                             <span className="font-bold text-zinc-300">R$ {prevCommitments.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                           </div>
-                          <div className="flex justify-between text-[8px] text-zinc-500">
+                          <div className="flex justify-between text-[10px] tablet:text-[11px] text-zinc-500">
                             <span>Falta pagar:</span>
                             <span className="font-semibold text-rose-400">R$ {Math.max(0, prevCommitments - realCommitments).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                           </div>
@@ -776,19 +903,19 @@ export default function DashboardPage() {
                       </div>
 
                       {/* Saldo Disponível */}
-                      <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
+                      <div className="bg-zinc-950/40 p-4 tablet:p-5 rounded-2xl border border-white/5 flex flex-col justify-between min-h-[120px] tablet:min-h-[145px]">
                         <div>
-                          <span className="text-[8px] text-zinc-500 uppercase font-black block">Saldo Disponível</span>
-                          <span className={`text-sm font-black mt-1 block ${realDisposable >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                          <span className="text-[10px] tablet:text-xs text-zinc-550 uppercase font-black tracking-wider block">Saldo Disponível</span>
+                          <span className={`text-base tablet:text-2xl font-black mt-1.5 block ${realDisposable >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
                             R$ {realDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </span>
                         </div>
-                        <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                        <div className="mt-3 pt-2.5 border-t border-white/5 flex flex-col gap-1 text-[11px] tablet:text-xs text-zinc-405">
                           <div className="flex justify-between">
                             <span>Previsto:</span>
                             <span className="font-bold text-zinc-300">R$ {prevDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                           </div>
-                          <div className="flex justify-between text-[8px] text-zinc-500">
+                          <div className="flex justify-between text-[10px] tablet:text-[11px] text-zinc-500">
                             <span>Diferença:</span>
                             <span className={`font-semibold ${realDisposable >= prevDisposable ? 'text-emerald-400' : 'text-rose-500'}`}>
                               R$ {(realDisposable - prevDisposable).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
@@ -798,25 +925,68 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    {/* Descrição resumida da situação */}
-                    <div className="bg-zinc-950/40 p-3.5 rounded-xl border border-white/5 flex gap-2.5 items-start">
-                      <Info className="w-4.5 h-4.5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-zinc-300 font-black uppercase tracking-wider block">Diagnóstico do Período</span>
+                    {/* Descrição resumida da situação / Diagnóstico */}
+                    <div className="bg-zinc-950/40 p-5 tablet:p-6 rounded-2xl border border-white/5 flex gap-3.5 items-start flex-grow w-full">
+                      <Info className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                      <div className="space-y-3 flex-grow flex flex-col justify-between h-full w-full">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs tablet:text-sm text-zinc-200 font-extrabold uppercase tracking-wider block">Diagnóstico do Período</span>
                           <AudioExplainerButton 
-                            text={`Veja só, sua receita inserida é no valor de ${strategy.totalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, com base nos seus registros seus gastos essenciais chegam a ${(strategy.totalIncome - strategy.disposableIncomeForDebts).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Esse valor é descontado obrigatoriamente. Então, o valor de ${strategy.disposableIncomeForDebts.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} é o que ficou disponível para fazer a divisão e pagar as outras contas pendentes como Empréstimos e Cartões.`} 
+                            text={(() => {
+                              const fund = realDisposable * 0.30;
+                              const inv = (realDisposable - fund) * 0.20;
+                              const remaining = realDisposable - fund - inv;
+                              if (financeStatus === "red") {
+                                return `Veja só, casal. Atualmente identificamos que estamos na Fase Vermelha de Resgate. Nossa receita familiar é de ${strategy.totalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} e os gastos essenciais chegam a ${strategy.totalEssentialExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Sobrou um saldo de R$ ${realDisposable.toFixed(0)} para cobrir cartões e parcelamentos. Por estarmos com dívidas sob pressão ou com saldo negativo, o conselheiro acionou o plano de resgate para priorizar os pagamentos essenciais da Alocação Crítica.`;
+                              } else if (financeStatus === "yellow") {
+                                return `Parabéns, casal! Estamos na Fase Amarela de Segurança. As contas estão equilibradas e sob controle, sem dívidas em atraso. Com o saldo disponível de ${realDisposable.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, nossa sugestão é destanalor trinta por cento, equivalente a ${fund.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, para o nosso Fundo de Reserva de Emergência, e vinte por cento do restante, equivalente a ${inv.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, para novos investimentos. Isso nos assegura uma reserva livre de ${remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para aproveitarmos com tranquilidade no dia a dia.`;
+                              } else {
+                                return `Sintonia nota dez! Vocês alcançaram a Fase Verde de Prosperidade. Nosso fundo de segurança está completo e sem dívidas pendentes. Do saldo disponível de ${realDisposable.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, recomendamos seguir a regra cinquenta, trinta, vinte: direcionar trinta por cento, equivalente a ${fund.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, para poupança, vinte por cento do restante, equivalente a ${inv.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, em investimentos para fazer o dinheiro trabalhar por nós, restando uma reserva livre de ${remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para gastarmos como bem entendermos e realizarmos nossos sonhos sem peso na consciência!`;
+                              }
+                            })()} 
                           />
                         </div>
-                        <p className="text-[10px] text-zinc-405 leading-relaxed font-semibold">
-                          {strategy.isChoqueRequired ? (
-                            `Recalculando rota, casal! As contas deste período estão superando a renda em R$ ${Math.abs(strategy.disposableIncomeForDebts - (strategy.totalDebtInstallments + strategy.totalCreditCardInvoices)).toFixed(2)}. Vamos acionar o Plano de Choque abaixo! Juntos, vocês conseguem colocar a casa em ordem! 💪`
-                          ) : strategy.remainingCashResidue < 300 ? (
-                            `Atenção redobrada, casal! Temos uma margem livre estreita de R$ ${strategy.remainingCashResidue.toFixed(2)}. Vamos evitar novas comprinhas supérfluas por agora para manter nosso caixa longe do rotativo! ⚠️`
-                          ) : (
-                            `Sintonia nota 10! Nosso orçamento está em perfeito equilíbrio com R$ ${strategy.remainingCashResidue.toFixed(2)} livres. Perfeito para guardar para nossos sonhos ou adiantar parcelas de contratos antigos! 🌱`
-                          )}
-                        </p>
+                        <div className="text-[11px] tablet:text-xs text-zinc-355 leading-relaxed font-semibold flex-grow flex flex-col justify-between">
+                          {financeStatus === "red" ? (
+                            <p className="bg-rose-500/5 border border-rose-500/10 p-4 rounded-xl text-rose-400 mt-1 leading-relaxed w-full">
+                              Atenção, casal! Estamos na Fase Vermelha de Resgate. Nosso caixa livre está pressionado pelas faturas e parcelas. Sigam o plano abaixo para priorizar a Alocação Crítica e reorganizar as contas! 🛡️
+                            </p>
+                          ) : (() => {
+                            const fund = realDisposable * 0.30;
+                            const inv = (realDisposable - fund) * 0.20;
+                            const remaining = realDisposable - fund - inv;
+                            return (
+                              <div className="space-y-4 mt-1 flex-grow flex flex-col justify-between w-full">
+                                <p className="text-zinc-300">
+                                  {financeStatus === "green" 
+                                    ? `Sintonia nota 10! Vocês estão na Fase Verde de Prosperidade. Com o saldo disponível de R$ ${realDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} livres, podemos fazer nosso dinheiro render:` 
+                                    : `Sintonia nota 10! Vocês estão na Fase Amarela de Segurança. Com o saldo disponível de R$ ${realDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} livres, sugerimos focar em construir a nossa reserva:`
+                                  }
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mt-2 flex-grow">
+                                  <div className="bg-zinc-900/60 p-4 rounded-xl border border-white/5 flex flex-col justify-between hover:border-yellow-500/20 transition-all duration-300">
+                                    <span className="text-[9px] tablet:text-[10px] text-zinc-550 font-bold uppercase tracking-wider block">Fundo Reserva (30%)</span>
+                                    <span className="text-sm tablet:text-base font-black text-yellow-500 mt-2 block">
+                                      R$ {fund.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                  </div>
+                                  <div className="bg-zinc-900/60 p-4 rounded-xl border border-white/5 flex flex-col justify-between hover:border-yellow-500/20 transition-all duration-300">
+                                    <span className="text-[9px] tablet:text-[10px] text-zinc-550 font-bold uppercase tracking-wider block">Investimento (20% do rest.)</span>
+                                    <span className="text-sm tablet:text-base font-black text-yellow-400 mt-2 block">
+                                      R$ {inv.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                  </div>
+                                  <div className="bg-zinc-900/60 p-4 rounded-xl border border-yellow-500/10 flex flex-col justify-between hover:border-yellow-500/20 transition-all duration-300">
+                                    <span className="text-[9px] tablet:text-[10px] text-yellow-500/60 font-bold uppercase tracking-wider block">Reserva Livre Real</span>
+                                    <span className="text-sm tablet:text-base font-black text-emerald-400 mt-2 block">
+                                      R$ {remaining.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
 
@@ -910,11 +1080,11 @@ export default function DashboardPage() {
                     })()}
 
                     {/* Previsão do Mês que Vem (Próximo Mês) */}
-                    <div className="border-t border-white/5 pt-4 space-y-3">
+                    <div className="border-t border-white/5 pt-5 tablet:pt-6 space-y-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">Como será nosso próximo mês ({getReadableMonthLabel(getNextMonthStr(selectedMonthStr))})?</span>
+                        <span className="text-[11px] tablet:text-xs text-zinc-400 font-bold uppercase tracking-wider">Como será nosso próximo mês ({getReadableMonthLabel(getNextMonthStr(selectedMonthStr))})?</span>
                         <Badge 
-                          className={`font-black text-[9px] uppercase tracking-wider border-none px-2.5 py-0.5 ${
+                          className={`font-black text-[10px] uppercase tracking-wider border-none px-3 py-1 ${
                             forecast.nextResidue > strategy.remainingCashResidue
                               ? "bg-emerald-500/10 text-emerald-400"
                               : forecast.nextResidue < 0
@@ -926,20 +1096,20 @@ export default function DashboardPage() {
                         </Badge>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
-                          <span className="text-[9px] text-zinc-500 font-bold uppercase">Contas já Programadas</span>
-                          <span className="text-sm font-black text-zinc-300 mt-1">R$ {forecast.nextCommitments.toFixed(2)}</span>
+                      <div className="grid grid-cols-2 gap-4 text-xs">
+                        <div className="bg-zinc-950/40 p-4 tablet:p-5 rounded-2xl border border-white/5 flex flex-col justify-between min-h-[90px] tablet:min-h-[105px]">
+                          <span className="text-[10px] tablet:text-xs text-zinc-550 font-bold uppercase">Contas já Programadas</span>
+                          <span className="text-sm tablet:text-lg font-black text-zinc-300 mt-1">R$ {forecast.nextCommitments.toFixed(2)}</span>
                         </div>
-                        <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
-                          <span className="text-[9px] text-zinc-500 font-bold uppercase">Nossa Estimativa de Caixa</span>
-                          <span className={`text-sm font-black mt-1 ${forecast.nextResidue >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <div className="bg-zinc-950/40 p-4 tablet:p-5 rounded-2xl border border-white/5 flex flex-col justify-between min-h-[90px] tablet:min-h-[105px]">
+                          <span className="text-[10px] tablet:text-xs text-zinc-550 font-bold uppercase">Nossa Estimativa de Caixa</span>
+                          <span className={`text-sm tablet:text-lg font-black mt-1 ${forecast.nextResidue >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                             R$ {forecast.nextResidue.toFixed(2)}
                           </span>
                         </div>
                       </div>
 
-                      <p className="text-[10px] text-zinc-550 leading-relaxed font-semibold text-center italic mt-1">
+                      <p className="text-[11px] tablet:text-xs text-zinc-405 leading-relaxed font-semibold text-center italic mt-1 bg-zinc-950/20 p-3.5 rounded-xl border border-white/5">
                         {forecast.difference > 0 ? (
                           `Boas notícias à vista! Nossos compromissos previstos para o próximo mês caem de R$ ${totalCommitment.toFixed(2)} para R$ ${forecast.nextCommitments.toFixed(2)}, trazendo um alívio de R$ ${forecast.difference.toFixed(2)} no caixa para respirarmos melhor!`
                         ) : forecast.difference < 0 ? (
@@ -1161,6 +1331,45 @@ export default function DashboardPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Conquista / Subida de Estágio Financeiro V2 */}
+      {celebrationOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/80 backdrop-blur-md transition-opacity duration-300">
+          <div className="bg-zinc-900/90 border border-yellow-500/30 rounded-3xl p-6 max-w-sm w-full mx-4 shadow-[0_10px_50px_rgba(234,179,8,0.2)] text-center relative overflow-hidden backdrop-blur-xl animate-in fade-in zoom-in duration-300">
+            <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-400" />
+            <div className="w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mx-auto mb-4 mt-2">
+              <Trophy className="w-8 h-8 text-yellow-500 animate-bounce" />
+            </div>
+            
+            <h3 className="text-lg font-black text-white uppercase tracking-wider">Subida de Nível! 🏆</h3>
+            <p className="text-zinc-400 text-xs mt-2 leading-relaxed font-semibold">
+              Parabéns, casal! O sistema detectou que vocês subiram de fase financeira! Vocês saíram do estágio anterior e agora estão na:
+            </p>
+            
+            <div className="mt-4 p-3 rounded-2xl bg-zinc-950/50 border border-white/5 inline-flex items-center gap-2">
+              <span className="text-xl">
+                {celebrationStage === "green" ? "🟢" : "🟡"}
+              </span>
+              <span className={`text-xs font-black uppercase tracking-widest ${celebrationStage === "green" ? "text-emerald-400" : "text-yellow-500"}`}>
+                {celebrationStage === "green" ? "Fase Verde de Prosperidade" : "Fase Amarela de Segurança"}
+              </span>
+            </div>
+            
+            <p className="text-[10px] text-zinc-500 mt-4 leading-relaxed font-medium">
+              {celebrationStage === "green" 
+                ? "Sua reserva está completa e sem dívidas tóxicas. Caminho livre para a regra 50/30/20 e novos investimentos!" 
+                : "Parabéns por eliminarem as dívidas de curto prazo! Agora o foco total é construir o fundo de emergência."}
+            </p>
+            
+            <Button 
+              onClick={() => setCelebrationOpen(false)}
+              className="mt-6 w-full bg-gradient-to-r from-yellow-500 to-yellow-400 text-zinc-950 font-black h-11 rounded-xl text-xs border-none shadow-[0_4px_15px_rgba(234,179,8,0.2)] hover:from-yellow-400 hover:to-yellow-500 transition-all duration-300"
+            >
+              Sensacional! 🚀
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

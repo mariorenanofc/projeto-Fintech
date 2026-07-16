@@ -27,7 +27,7 @@ import {
   addCreditCard, updateCreditCard, deleteCreditCard,
   addDebt, updateDebt, deleteDebt,
   linkPartnerByEmail, getLinkedPartner,
-  updateVoicePreferences,
+  updateVoicePreferences, updateProfileAssets,
   IncomeInput, FixedExpenseInput, CreditCardInput, DebtInput
 } from "@/actions/onboarding";
 import { createClient } from "@/lib/supabase/client";
@@ -57,6 +57,11 @@ export default function ProfilePage() {
   const [voiceRate, setVoiceRate] = useState<number>(1.0);
   const [savingVoice, setSavingVoice] = useState(false);
 
+  // Reserva financeira e Investimentos
+  const [reservaFinanceira, setReservaFinanceira] = useState(0);
+  const [investimentosTotal, setInvestimentosTotal] = useState(0);
+  const [savingAssets, setSavingAssets] = useState(false);
+
   // Form templates para novos itens
   const [incomeForm, setIncomeForm] = useState<IncomeInput>({ title: "", amount: 0, owner: "Parceiro A" });
   const [expenseForm, setExpenseForm] = useState<FixedExpenseInput>({ category: "Customizada", title: "", amount: 0 });
@@ -64,7 +69,7 @@ export default function ProfilePage() {
   const [debtForm, setDebtForm] = useState<DebtInput>({ 
     title: "", acquisitionValue: 0, totalInstallments: 12, currentInstallmentValue: 0,
     monthlyLateInterestRate: 0, penaltyValue: 0, installmentsPaid: 0, installmentsSchedule: [],
-    overdueInstallments: 0, overdueValueAccumulated: 0
+    overdueInstallments: 0, overdueValueAccumulated: 0, tipoDivida: "toxica"
   });
 
   // Schedule sub-editors
@@ -74,6 +79,20 @@ export default function ProfilePage() {
   // Confirmar exclusão dialog
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; type: "income" | "expense" | "card" | "debt"; title: string } | null>(null);
+
+  const parseSchedule = (schedule: any): any[] => {
+    if (!schedule) return [];
+    if (Array.isArray(schedule)) return schedule;
+    if (typeof schedule === "string") {
+      try {
+        const parsed = JSON.parse(schedule);
+        if (Array.isArray(parsed)) return parsed;
+      } catch (e) {
+        console.error("Erro ao parsear cronograma:", e);
+      }
+    }
+    return [];
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -116,6 +135,19 @@ export default function ProfilePage() {
     }
   };
 
+  const handleSaveAssets = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingAssets(true);
+    const res = await updateProfileAssets(reservaFinanceira, investimentosTotal);
+    setSavingAssets(false);
+    if (res.success) {
+      toast.success("Patrimônio e reservas salvos com sucesso!");
+      await fetchData();
+    } else {
+      toast.error("Erro ao salvar patrimônio: " + res.error);
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     
@@ -126,6 +158,8 @@ export default function ProfilePage() {
       setFixedExpenses(res.fixedExpenses);
       setCreditCards(res.creditCards);
       setDebts(res.debts);
+      setReservaFinanceira(Number(res.reservaFinanceiraAtual || 0));
+      setInvestimentosTotal(Number(res.investimentosTotal || 0));
       
       // Sincroniza preferências de voz do DB para o localStorage
       if (res.voicePreferences) {
@@ -297,7 +331,7 @@ export default function ProfilePage() {
       totalLimit: item.total_limit, 
       currentInvoice: item.current_invoice, 
       nextInvoice: item.next_invoice,
-      invoicesSchedule: item.invoices_schedule || []
+      invoicesSchedule: parseSchedule(item.invoices_schedule)
     });
   };
 
@@ -305,7 +339,7 @@ export default function ProfilePage() {
 
   const addCardScheduleItem = () => {
     if (!tempScheduleMonth || tempScheduleAmount <= 0) return;
-    const sched = [...(cardForm.invoicesSchedule || [])];
+    const sched = [...parseSchedule(cardForm.invoicesSchedule)];
     const filtered = sched.filter(item => item.month !== tempScheduleMonth);
     filtered.push({ month: tempScheduleMonth, amount: tempScheduleAmount });
     filtered.sort((a, b) => a.month.localeCompare(b.month));
@@ -315,7 +349,7 @@ export default function ProfilePage() {
   };
 
   const removeCardScheduleItem = (month: string) => {
-    const sched = [...(cardForm.invoicesSchedule || [])];
+    const sched = [...parseSchedule(cardForm.invoicesSchedule)];
     const filtered = sched.filter(item => item.month !== month);
     setCardForm({ ...cardForm, invoicesSchedule: filtered });
   };
@@ -333,7 +367,7 @@ export default function ProfilePage() {
         setDebtForm({ 
           title: "", acquisitionValue: 0, totalInstallments: 12, currentInstallmentValue: 0,
           monthlyLateInterestRate: 0, penaltyValue: 0, installmentsPaid: 0, installmentsSchedule: [],
-          overdueInstallments: 0, overdueValueAccumulated: 0
+          overdueInstallments: 0, overdueValueAccumulated: 0, tipoDivida: "toxica"
         });
         await fetchData();
       } else toast.error(res.error);
@@ -343,7 +377,7 @@ export default function ProfilePage() {
         setDebtForm({ 
           title: "", acquisitionValue: 0, totalInstallments: 12, currentInstallmentValue: 0,
           monthlyLateInterestRate: 0, penaltyValue: 0, installmentsPaid: 0, installmentsSchedule: [],
-          overdueInstallments: 0, overdueValueAccumulated: 0
+          overdueInstallments: 0, overdueValueAccumulated: 0, tipoDivida: "toxica"
         });
         await fetchData();
       } else toast.error(res.error);
@@ -360,9 +394,10 @@ export default function ProfilePage() {
       monthlyLateInterestRate: item.monthly_late_interest_rate,
       penaltyValue: item.penalty_value,
       installmentsPaid: item.installments_paid,
-      installmentsSchedule: item.installments_schedule || [],
+      installmentsSchedule: parseSchedule(item.installments_schedule),
       overdueInstallments: item.overdue_installments || 0,
-      overdueValueAccumulated: item.overdue_value_accumulated || 0
+      overdueValueAccumulated: item.overdue_value_accumulated || 0,
+      tipoDivida: item.tipo_divida || item.tipoDivida || "toxica"
     });
   };
 
@@ -370,7 +405,7 @@ export default function ProfilePage() {
 
   const addDebtScheduleItem = () => {
     if (!tempScheduleMonth || tempScheduleAmount <= 0) return;
-    const sched = [...(debtForm.installmentsSchedule || [])];
+    const sched = [...parseSchedule(debtForm.installmentsSchedule)];
     const filtered = sched.filter(item => item.month !== tempScheduleMonth);
     filtered.push({ month: tempScheduleMonth, amount: tempScheduleAmount });
     filtered.sort((a, b) => a.month.localeCompare(b.month));
@@ -380,7 +415,7 @@ export default function ProfilePage() {
   };
 
   const removeDebtScheduleItem = (month: string) => {
-    const sched = [...(debtForm.installmentsSchedule || [])];
+    const sched = [...parseSchedule(debtForm.installmentsSchedule)];
     const filtered = sched.filter(item => item.month !== month);
     setDebtForm({ ...debtForm, installmentsSchedule: filtered });
   };
@@ -513,6 +548,60 @@ export default function ProfilePage() {
               </div>
             </form>
           )}
+            </CardContent>
+          </Card>
+
+          {/* CARD: Patrimônio & Reservas */}
+          <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden">
+            <CardHeader className="p-6 pb-2.5">
+              <CardTitle className="text-xs font-black uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
+                <Coins className="w-4 h-4 text-yellow-500" />
+                Patrimônio & Reservas
+              </CardTitle>
+              <CardDescription className="text-[10px] text-zinc-500 mt-0.5">
+                Defina seus saldos guardados para reserva de emergência e investimentos
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 pt-0">
+              <form onSubmit={handleSaveAssets} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block">
+                      Reserva Financeira Atual (R$)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="0,00"
+                      value={reservaFinanceira || ""}
+                      onChange={(e) => setReservaFinanceira(Number(e.target.value))}
+                      className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block">
+                      Investimentos Totais (R$)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="0,00"
+                      value={investimentosTotal || ""}
+                      onChange={(e) => setInvestimentosTotal(Number(e.target.value))}
+                      className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end pt-2">
+                  <Button
+                    type="submit"
+                    disabled={savingAssets}
+                    className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black h-11 px-6 rounded-xl text-xs flex items-center gap-1.5 border-none transition-all"
+                  >
+                    {savingAssets ? "Salvando..." : "Salvar Alterações"}
+                  </Button>
+                </div>
+              </form>
             </CardContent>
           </Card>
 
@@ -790,9 +879,9 @@ export default function ProfilePage() {
                       </div>
 
                       {/* Lista de faturas agendadas */}
-                      {cardForm.invoicesSchedule && cardForm.invoicesSchedule.length > 0 && (
+                      {parseSchedule(cardForm.invoicesSchedule).length > 0 && (
                         <div className="space-y-1.5 max-h-[120px] overflow-y-auto mt-2 pr-1">
-                          {cardForm.invoicesSchedule.map((sch, i) => (
+                          {parseSchedule(cardForm.invoicesSchedule).map((sch, i) => (
                             <div key={i} className="flex justify-between items-center bg-zinc-900/40 px-2.5 py-1.5 rounded-lg border border-white/5">
                               <span className="text-[10px] font-bold text-yellow-400">{sch.month}</span>
                               <span className="text-[10px] font-black text-zinc-300">R$ {sch.amount.toFixed(2)}</span>
@@ -831,6 +920,18 @@ export default function ProfilePage() {
                         className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
                         required
                       />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Qual o tipo dessa conta?</label>
+                      <select
+                        value={debtForm.tipoDivida || "toxica"}
+                        onChange={e => setDebtForm({ ...debtForm, tipoDivida: e.target.value as any })}
+                        className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11"
+                        required
+                      >
+                        <option value="toxica">Dívida de Cartão / Empréstimo (Curto Prazo)</option>
+                        <option value="estrutural">Financiamento de Patrimônio / Consórcio (Longo Prazo)</option>
+                      </select>
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
@@ -960,9 +1061,9 @@ export default function ProfilePage() {
                       </div>
 
                       {/* Lista de parcelas variáveis agendadas */}
-                      {debtForm.installmentsSchedule && debtForm.installmentsSchedule.length > 0 && (
+                      {parseSchedule(debtForm.installmentsSchedule).length > 0 && (
                         <div className="space-y-1.5 max-h-[120px] overflow-y-auto mt-2 pr-1">
-                          {debtForm.installmentsSchedule.map((sch, i) => (
+                          {parseSchedule(debtForm.installmentsSchedule).map((sch, i) => (
                             <div key={i} className="flex justify-between items-center bg-zinc-900/40 px-2.5 py-1.5 rounded-lg border border-white/5">
                               <span className="text-[10px] font-bold text-yellow-400">{sch.month}</span>
                               <span className="text-[10px] font-black text-zinc-300">R$ {sch.amount.toFixed(2)}</span>
@@ -980,7 +1081,7 @@ export default function ProfilePage() {
                         <Save className="w-4 h-4 mr-1.5" /> Salvar
                       </Button>
                       {editId && (
-                        <Button type="button" onClick={() => { setEditId(null); setDebtForm({ title: "", acquisitionValue: 0, totalInstallments: 12, currentInstallmentValue: 0, monthlyLateInterestRate: 0, penaltyValue: 0, installmentsPaid: 0, installmentsSchedule: [], overdueInstallments: 0, overdueValueAccumulated: 0 }); }} className="bg-zinc-900 text-zinc-300 border border-white/5 font-bold h-11 rounded-xl text-xs px-4">
+                        <Button type="button" onClick={() => { setEditId(null); setDebtForm({ title: "", acquisitionValue: 0, totalInstallments: 12, currentInstallmentValue: 0, monthlyLateInterestRate: 0, penaltyValue: 0, installmentsPaid: 0, installmentsSchedule: [], overdueInstallments: 0, overdueValueAccumulated: 0, tipoDivida: "toxica" }); }} className="bg-zinc-900 text-zinc-300 border border-white/5 font-bold h-11 rounded-xl text-xs px-4">
                           Cancelar
                         </Button>
                       )}
@@ -1075,11 +1176,11 @@ export default function ProfilePage() {
                         <span className="font-bold text-zinc-350">R$ {Number(item.next_invoice || 0).toFixed(2)}</span>
                       </div>
                     </div>
-                    {item.invoices_schedule && item.invoices_schedule.length > 0 && (
+                    {parseSchedule(item.invoices_schedule).length > 0 && (
                       <div className="bg-zinc-900/30 p-2.5 rounded-lg border border-white/5">
                         <span className="text-[8px] text-zinc-500 uppercase tracking-wider block mb-1">Futuros Fechamentos Agendados:</span>
                         <div className="grid grid-cols-3 gap-1">
-                          {item.invoices_schedule.map((sch: any, i: number) => (
+                          {parseSchedule(item.invoices_schedule).map((sch: any, i: number) => (
                             <div key={i} className="bg-zinc-950/60 p-1 rounded border border-white/5 text-center">
                               <span className="text-[8px] text-yellow-500 block font-bold">{sch.month}</span>
                               <span className="text-[9px] text-zinc-300 block font-bold">R$ {Number(sch.amount).toFixed(0)}</span>
@@ -1126,11 +1227,11 @@ export default function ProfilePage() {
                         </span>
                       </div>
                     )}
-                    {item.installments_schedule && item.installments_schedule.length > 0 && (
+                    {parseSchedule(item.installments_schedule).length > 0 && (
                       <div className="bg-zinc-900/30 p-2.5 rounded-lg border border-white/5">
                         <span className="text-[8px] text-zinc-550 uppercase tracking-wider block mb-1">Parcelas Variáveis Agendadas:</span>
                         <div className="grid grid-cols-3 gap-1">
-                          {item.installments_schedule.map((sch: any, i: number) => (
+                          {parseSchedule(item.installments_schedule).map((sch: any, i: number) => (
                             <div key={i} className="bg-zinc-950/60 p-1 rounded border border-white/5 text-center">
                               <span className="text-[8px] text-yellow-500 block font-bold">{sch.month}</span>
                               <span className="text-[9px] text-zinc-300 block font-bold">R$ {Number(sch.amount).toFixed(0)}</span>
