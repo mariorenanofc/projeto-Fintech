@@ -667,11 +667,13 @@ export async function getProfileFinancialData() {
     const familyGroupId = await getFamilyGroupId(supabase, user.id);
 
     const [
+      profile,
       incomes,
       expenses,
       cards,
       debts
     ] = await Promise.all([
+      supabase.from("profiles").select("voice_preferences").eq("id", user.id).single(),
       supabase.from("incomes").select("*").eq("family_group_id", familyGroupId),
       supabase.from("fixed_expenses").select("*").eq("family_group_id", familyGroupId),
       supabase.from("credit_cards").select("*").eq("family_group_id", familyGroupId),
@@ -680,13 +682,38 @@ export async function getProfileFinancialData() {
 
     return {
       success: true,
+      voicePreferences: profile.data?.voice_preferences || null,
       incomes: incomes.data || [],
       fixedExpenses: expenses.data || [],
       creditCards: cards.data || [],
       debts: debts.data || []
     };
   } catch (error: any) {
-    return { success: false, error: error.message, incomes: [], fixedExpenses: [], creditCards: [], debts: [] };
+    return { success: false, error: error.message, incomes: [], fixedExpenses: [], creditCards: [], debts: [], voicePreferences: null };
+  }
+}
+
+export async function updateVoicePreferences(uri: string, rate: number) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("Não autenticado");
+
+    const preferences = { uri, rate };
+    
+    const { error } = await supabase
+      .from("profiles")
+      .update({ voice_preferences: preferences })
+      .eq("id", user.id);
+
+    if (error) {
+       console.error("Erro ao salvar voice_preferences:", error);
+       return { success: false, error: "Falha ao salvar preferências." };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
   }
 }
 

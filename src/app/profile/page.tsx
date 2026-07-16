@@ -25,6 +25,7 @@ import {
   addCreditCard, updateCreditCard, deleteCreditCard,
   addDebt, updateDebt, deleteDebt,
   linkPartnerByEmail, getLinkedPartner,
+  updateVoicePreferences,
   IncomeInput, FixedExpenseInput, CreditCardInput, DebtInput
 } from "@/actions/onboarding";
 import { createClient } from "@/lib/supabase/client";
@@ -51,6 +52,8 @@ export default function ProfilePage() {
   // Estados de Voz
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [selectedVoiceURI, setSelectedVoiceURI] = useState<string>("");
+  const [voiceRate, setVoiceRate] = useState<number>(1.0);
+  const [savingVoice, setSavingVoice] = useState(false);
 
   // Form templates para novos itens
   const [incomeForm, setIncomeForm] = useState<IncomeInput>({ title: "", amount: 0, owner: "Parceiro A" });
@@ -75,13 +78,6 @@ export default function ProfilePage() {
         const availableVoices = window.speechSynthesis.getVoices();
         const ptVoices = availableVoices.filter(v => v.lang.startsWith("pt-"));
         setVoices(ptVoices);
-        const savedVoice = localStorage.getItem("preferredVoiceURI");
-        if (savedVoice) {
-          setSelectedVoiceURI(savedVoice);
-        } else if (ptVoices.length > 0) {
-          const defaultVoice = ptVoices.find(v => v.name.includes("Google") || v.name.includes("Microsoft Maria")) || ptVoices[0];
-          setSelectedVoiceURI(defaultVoice.voiceURI);
-        }
       };
       
       loadVoices();
@@ -91,9 +87,15 @@ export default function ProfilePage() {
     }
   }, []);
 
-  const handleVoiceChange = (uri: string) => {
+  const handleVoiceChange = async (uri: string, rate: number = voiceRate) => {
     setSelectedVoiceURI(uri);
+    setVoiceRate(rate);
     localStorage.setItem("preferredVoiceURI", uri);
+    localStorage.setItem("preferredVoiceRate", rate.toString());
+    
+    setSavingVoice(true);
+    await updateVoicePreferences(uri, rate);
+    setSavingVoice(false);
   };
 
   const testVoice = () => {
@@ -101,6 +103,7 @@ export default function ProfilePage() {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance("Olá! Eu serei a sua conselheira financeira IA.");
       utterance.lang = "pt-BR";
+      utterance.rate = voiceRate;
       const voiceToUse = voices.find(v => v.voiceURI === selectedVoiceURI);
       if (voiceToUse) utterance.voice = voiceToUse;
       window.speechSynthesis.speak(utterance);
@@ -117,6 +120,20 @@ export default function ProfilePage() {
       setFixedExpenses(res.fixedExpenses);
       setCreditCards(res.creditCards);
       setDebts(res.debts);
+      
+      // Sincroniza preferências de voz do DB para o localStorage
+      if (res.voicePreferences) {
+        setSelectedVoiceURI(res.voicePreferences.uri);
+        setVoiceRate(res.voicePreferences.rate || 1.0);
+        localStorage.setItem("preferredVoiceURI", res.voicePreferences.uri);
+        localStorage.setItem("preferredVoiceRate", res.voicePreferences.rate?.toString() || "1.0");
+      } else {
+        // Fallback local se DB estiver vazio
+        const savedVoice = localStorage.getItem("preferredVoiceURI");
+        const savedRate = localStorage.getItem("preferredVoiceRate");
+        if (savedVoice) setSelectedVoiceURI(savedVoice);
+        if (savedRate) setVoiceRate(parseFloat(savedRate));
+      }
     } else {
       alert("Erro ao buscar dados: " + res.error);
     }
@@ -499,31 +516,64 @@ export default function ProfilePage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 pt-0 space-y-4">
-              <div className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 space-y-3">
-                <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block">
-                  Vozes Disponíveis (Português)
-                </label>
-                {voices.length > 0 ? (
-                  <div className="flex gap-2">
-                    <select
-                      value={selectedVoiceURI}
-                      onChange={(e) => handleVoiceChange(e.target.value)}
-                      className="bg-zinc-950/85 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 flex-1 text-xs"
-                    >
-                      {voices.map(v => (
-                        <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>
-                      ))}
-                    </select>
-                    <Button 
-                      onClick={testVoice}
-                      type="button"
-                      className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-black h-11 px-4 rounded-xl text-xs flex items-center gap-1.5"
-                    >
-                      Testar
-                    </Button>
+              <div className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 space-y-4">
+                
+                {/* Seleção de Voz */}
+                <div className="space-y-2">
+                  <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block">
+                    Vozes Disponíveis (Português)
+                  </label>
+                  {voices.length > 0 ? (
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedVoiceURI}
+                        onChange={(e) => handleVoiceChange(e.target.value, voiceRate)}
+                        className="bg-zinc-950/85 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 flex-1 text-xs"
+                      >
+                        {voices.map(v => (
+                          <option key={v.voiceURI} value={v.voiceURI}>{v.name}</option>
+                        ))}
+                      </select>
+                      <Button 
+                        onClick={testVoice}
+                        type="button"
+                        className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-black h-11 px-4 rounded-xl text-xs flex items-center gap-1.5"
+                      >
+                        Testar
+                      </Button>
+                    </div>
+                  ) : (
+                    <p className="text-[10px] text-zinc-500">Nenhuma voz em português encontrada neste dispositivo.</p>
+                  )}
+                </div>
+
+                {/* Controle de Velocidade */}
+                <div className="space-y-2 pt-2 border-t border-white/5">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block">
+                      Velocidade da Leitura
+                    </label>
+                    <span className="text-xs font-black text-yellow-500">{voiceRate}x</span>
                   </div>
-                ) : (
-                  <p className="text-[10px] text-zinc-500">Nenhuma voz em português encontrada neste dispositivo.</p>
+                  <input 
+                    type="range" 
+                    min="0.75" 
+                    max="1.5" 
+                    step="0.25" 
+                    value={voiceRate}
+                    onChange={(e) => handleVoiceChange(selectedVoiceURI, parseFloat(e.target.value))}
+                    className="w-full accent-yellow-500 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[9px] text-zinc-500 font-bold px-1">
+                    <span>Lento</span>
+                    <span>Rápido</span>
+                  </div>
+                </div>
+
+                {savingVoice && (
+                  <p className="text-[9px] text-emerald-500/70 font-semibold text-right animate-pulse">
+                    Sincronizando com a nuvem...
+                  </p>
                 )}
               </div>
             </CardContent>
