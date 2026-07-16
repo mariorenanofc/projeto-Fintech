@@ -79,6 +79,7 @@ export default function DashboardPage() {
   // Dados brutos carregados do banco (para previsões)
   const [rawCards, setRawCards] = useState<any[]>([]);
   const [rawDebts, setRawDebts] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
 
   // Novos estados para a inteligência de pagamentos e economia
   const [economyTotal, setEconomyTotal] = useState(0);
@@ -122,6 +123,9 @@ export default function DashboardPage() {
         setRawDebts(rawRes.debts);
         const realBills = buildRealBills(rawRes.fixedExpenses, rawRes.debts, rawRes.creditCards, monthStr, txRes.data || []);
         setBills(realBills);
+        if (txRes.success) {
+          setTransactions(txRes.data || []);
+        }
 
         // Calcula economia total do mês
         let econ = 0;
@@ -380,6 +384,26 @@ export default function DashboardPage() {
 
   // O bloco de loading foi removido para permitir o SSR do Dashboard (melhora drástica no LCP)
 
+  // Valores consolidados para comparação Previsto vs Realizado
+  const prevIncome = strategy?.totalIncome || 0;
+  const prevEssentials = strategy?.totalEssentialExpenses || 0;
+  const prevCommitments = (strategy?.totalDebtInstallments || 0) + (strategy?.totalCreditCardInvoices || 0);
+  const prevDisposable = strategy?.disposableIncomeForDebts || 0;
+
+  const realIncome = transactions
+    .filter(t => t.type === "income")
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const realEssentials = transactions
+    .filter(t => t.type === "expense" && !["Cartão", "Lote/Terreno", "Empréstimo"].includes(t.category))
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const realCommitments = transactions
+    .filter(t => t.type === "expense" && ["Cartão", "Lote/Terreno", "Empréstimo"].includes(t.category))
+    .reduce((sum, t) => sum + Number(t.amount), 0);
+
+  const realDisposable = realIncome - realEssentials - realCommitments;
+
   // Valores consolidados reais
   const totalCommitment = strategy?.hasStrategy
     ? strategy.totalEssentialExpenses + strategy.totalDebtInstallments + strategy.totalCreditCardInvoices
@@ -461,116 +485,134 @@ export default function DashboardPage() {
           
           {/* Card do Semáforo */}
           <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
-            <CardHeader className="p-6 sm:p-8 pb-2 sm:pb-3 flex flex-row items-center justify-between space-y-0">
+            <CardHeader className="p-5 sm:p-6 pb-2 flex flex-row items-center justify-between space-y-0">
               <div>
                 <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-500">Nosso Ritmo Diário 💛</CardTitle>
                 <CardDescription className="text-[10px] text-zinc-550 mt-0.5">Como estamos cuidando do nosso dinheiro hoje</CardDescription>
               </div>
             </CardHeader>
             
-            <CardContent className="p-6 sm:p-8 pt-0 flex flex-col items-center">
-              {/* Lente circular com Glow neon correspondente */}
-              <div className="relative flex flex-col items-center justify-center mt-4 mb-6 w-full">
-                {/* Glow de fundo */}
-                <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full blur-[60px] opacity-20 transition-all duration-700 pointer-events-none ${
-                  financeStatus === "green" ? "bg-emerald-500" : 
-                  financeStatus === "yellow" ? "bg-yellow-400" : "bg-rose-500"
-                }`} />
+            <CardContent className="p-5 sm:p-6 pt-3 flex flex-col items-center space-y-4">
+              {loadingRealData ? (
+                <div className="w-full flex flex-col items-center py-6 space-y-6 animate-pulse">
+                  {/* Círculo do Semáforo */}
+                  <div className="w-28 h-28 rounded-full bg-zinc-950/40 border border-white/5" />
+                  {/* Status text */}
+                  <div className="w-32 h-4 bg-zinc-950/40 rounded-lg" />
+                  {/* Explanatory text */}
+                  <div className="w-full h-12 bg-zinc-950/40 rounded-xl" />
+                  {/* Info valores */}
+                  <div className="w-full flex gap-3 mt-4 pt-4 border-t border-white/5">
+                    <div className="flex-1 h-14 bg-zinc-950/40 rounded-xl" />
+                    <div className="flex-1 h-14 bg-zinc-950/40 rounded-xl" />
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {/* Lente circular com Glow neon correspondente */}
+                  <div className="relative flex flex-col items-center justify-center mt-2 mb-4 w-full">
+                    {/* Glow de fundo */}
+                    <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 rounded-full blur-[60px] opacity-20 transition-all duration-700 pointer-events-none ${
+                      financeStatus === "green" ? "bg-emerald-500" : 
+                      financeStatus === "yellow" ? "bg-yellow-400" : "bg-rose-500"
+                    }`} />
 
-                {/* Círculo do Ícone */}
-                <div className={`w-28 h-28 rounded-full border flex items-center justify-center transition-all duration-500 relative overflow-hidden bg-zinc-950/80 z-10 ${
-                  financeStatus === "green" ? "border-emerald-500/30 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.2)]" : 
-                  financeStatus === "yellow" ? "border-yellow-400/30 text-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.2)]" : 
-                  "border-rose-500/30 text-rose-400 shadow-[0_0_30px_rgba(244,63,94,0.2)]"
-                }`}>
-                  <div className="absolute inset-0.5 rounded-full bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-50 pointer-events-none" />
+                    {/* Círculo do Ícone */}
+                    <div className={`w-28 h-28 rounded-full border flex items-center justify-center transition-all duration-500 relative overflow-hidden bg-zinc-950/80 z-10 ${
+                      financeStatus === "green" ? "border-emerald-500/30 text-emerald-400 shadow-[0_0_30px_rgba(16,185,129,0.2)]" : 
+                      financeStatus === "yellow" ? "border-yellow-400/30 text-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.2)]" : 
+                      "border-rose-500/30 text-rose-400 shadow-[0_0_30px_rgba(244,63,94,0.2)]"
+                    }`}>
+                      <div className="absolute inset-0.5 rounded-full bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-50 pointer-events-none" />
+                      
+                      {financeStatus === "green" && <CheckCircle2 className="w-12 h-12 text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />}
+                      {financeStatus === "yellow" && <AlertTriangle className="w-12 h-12 text-yellow-400 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]" />}
+                      {financeStatus === "red" && <XCircle className="w-12 h-12 text-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.5)]" />}
+                    </div>
+                    
+                    {/* Título de Status fora do Círculo para não vazar */}
+                    <span className={`text-xs font-black uppercase tracking-widest mt-6 z-10 ${
+                      financeStatus === "green" ? "text-emerald-400" : 
+                      financeStatus === "yellow" ? "text-yellow-400" : "text-rose-400"
+                    }`}>
+                      {financeStatus === "green" ? "Caminho Livre! ✨" : 
+                       financeStatus === "yellow" ? "Atenção Redobrada ⚠️" : "Ajuste de Rota! 🛡️"}
+                    </span>
+                  </div>
+
+                  {/* Texto explicativo polido e dinâmico */}
+                  <div className="text-center max-w-sm mt-1 px-3 min-h-[80px] flex flex-col justify-center">
+                    <p className="text-xs text-zinc-400 leading-relaxed font-medium">
+                      {strategy?.isChoqueRequired ? (
+                        <span className="text-rose-400 font-bold block mb-1">
+                          Atenção, casal! Nossas faturas estão exigindo mais do que nosso caixa livre. É hora de ativar a Operação de Choque para blindar nossas economias. Vamos juntos superar essa fase! 💪
+                        </span>
+                      ) : null}
+                      {financeStatus === "green" && "Sintonia perfeita, casal! Vocês estão cuidando super bem do orçamento hoje. Caminho livre para gastos conscientes!"}
+                      {financeStatus === "yellow" && "Atenção e carinho com o bolso hoje! Estamos perto do nosso limite diário. Que tal adiar aquela compra não urgente para amanhã?"}
+                      {financeStatus === "red" && !strategy?.isChoqueRequired && "Recalculando rota! Passamos do nosso teto diário hoje. Vamos segurar novos gastos não essenciais para proteger nosso final do mês?"}
+                    </p>
+                  </div>
                   
-                  {financeStatus === "green" && <CheckCircle2 className="w-12 h-12 text-emerald-400 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]" />}
-                  {financeStatus === "yellow" && <AlertTriangle className="w-12 h-12 text-yellow-400 drop-shadow-[0_0_10px_rgba(234,179,8,0.5)]" />}
-                  {financeStatus === "red" && <XCircle className="w-12 h-12 text-rose-500 drop-shadow-[0_0_10px_rgba(244,63,94,0.5)]" />}
-                </div>
-                
-                {/* Título de Status fora do Círculo para não vazar */}
-                <span className={`text-xs font-black uppercase tracking-widest mt-6 z-10 ${
-                  financeStatus === "green" ? "text-emerald-400" : 
-                  financeStatus === "yellow" ? "text-yellow-400" : "text-rose-400"
-                }`}>
-                  {financeStatus === "green" ? "Caminho Livre! ✨" : 
-                   financeStatus === "yellow" ? "Atenção Redobrada ⚠️" : "Ajuste de Rota! 🛡️"}
-                </span>
-              </div>
+                  {/* Métrica de Economia Real do Casal */}
+                  {(economyTotal !== 0) && (
+                    <div className={`w-full max-w-sm mt-2 p-3 rounded-xl border flex items-center justify-between transition-all duration-300 ${
+                      economyTotal > 0 
+                        ? "bg-emerald-500/10 border-emerald-500/20" 
+                        : "bg-rose-500/10 border-rose-500/20"
+                    }`}>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          economyTotal > 0 ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
+                        }`}>
+                          {economyTotal > 0 ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className={`text-[10px] uppercase font-black tracking-widest ${
+                            economyTotal > 0 ? "text-emerald-500" : "text-rose-500"
+                          }`}>
+                            {economyTotal > 0 ? "Economia no Mês" : "Despesa Extra"}
+                          </span>
+                          <span className={`text-[10px] font-semibold ${
+                            economyTotal > 0 ? "text-emerald-400/80" : "text-rose-400/80"
+                          }`}>
+                            {economyTotal > 0 ? "Poupamos mais do que o previsto!" : "Gastamos além do previsto."}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-sm font-black ${
+                          economyTotal > 0 ? "text-emerald-400" : "text-rose-400"
+                        }`}>
+                          R$ {Math.abs(economyTotal).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
-              {/* Texto explicativo polido e dinâmico */}
-              <div className="text-center max-w-sm mt-1 px-3 min-h-[80px] flex flex-col justify-center">
-                <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                  {strategy?.isChoqueRequired ? (
-                    <span className="text-rose-400 font-bold block mb-1">
-                      Atenção, casal! Nossas faturas estão exigindo mais do que nosso caixa livre. É hora de ativar a Operação de Choque para blindar nossas economias. Vamos juntos superar essa fase! 💪
-                    </span>
-                  ) : null}
-                  {financeStatus === "green" && "Sintonia perfeita, casal! Vocês estão cuidando super bem do orçamento hoje. Caminho livre para gastos conscientes!"}
-                  {financeStatus === "yellow" && "Atenção e carinho com o bolso hoje! Estamos perto do nosso limite diário. Que tal adiar aquela compra não urgente para amanhã?"}
-                  {financeStatus === "red" && !strategy?.isChoqueRequired && "Recalculando rota! Passamos do nosso teto diário hoje. Vamos segurar novos gastos não essenciais para proteger nosso final do mês?"}
-                </p>
-              </div>
-              
-              {/* Métrica de Economia Real do Casal */}
-              {(economyTotal !== 0) && (
-                <div className={`w-full max-w-sm mt-2 p-3 rounded-xl border flex items-center justify-between transition-all duration-300 ${
-                  economyTotal > 0 
-                    ? "bg-emerald-500/10 border-emerald-500/20" 
-                    : "bg-rose-500/10 border-rose-500/20"
-                }`}>
-                  <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      economyTotal > 0 ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"
-                    }`}>
-                      {economyTotal > 0 ? <TrendingDown className="w-4 h-4" /> : <TrendingUp className="w-4 h-4" />}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className={`text-[10px] uppercase font-black tracking-widest ${
-                        economyTotal > 0 ? "text-emerald-500" : "text-rose-500"
-                      }`}>
-                        {economyTotal > 0 ? "Economia no Mês" : "Despesa Extra"}
+                  {/* Info de valores compactos reais do casal */}
+                  <div className="w-full flex gap-3 mt-4 pt-3 border-t border-white/5 text-xs">
+                    <div className="flex-1 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5 flex flex-col">
+                      <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold">Reserva Livre do Casal</span>
+                      <span className={`text-sm font-black mt-0.5 ${strategy?.remainingCashResidue && strategy.remainingCashResidue > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        R$ {strategy?.hasStrategy ? strategy.remainingCashResidue.toFixed(2) : "0,00"}
                       </span>
-                      <span className={`text-[10px] font-semibold ${
-                        economyTotal > 0 ? "text-emerald-400/80" : "text-rose-400/80"
-                      }`}>
-                        {economyTotal > 0 ? "Poupamos mais do que o previsto!" : "Gastamos além do previsto."}
+                    </div>
+                    <div className="flex-1 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5 flex flex-col">
+                      <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold">Nosso Teto Diário</span>
+                      <span className="text-sm font-black text-yellow-500 mt-0.5">
+                        R$ {tetoDiario.toFixed(2)}
                       </span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <span className={`text-sm font-black ${
-                      economyTotal > 0 ? "text-emerald-400" : "text-rose-400"
-                    }`}>
-                      R$ {Math.abs(economyTotal).toFixed(2)}
-                    </span>
-                  </div>
-                </div>
+                </>
               )}
-
-              {/* Info de valores compactos reais do casal */}
-              <div className="w-full flex gap-3 mt-6 pt-4 border-t border-white/5 text-xs">
-                <div className="flex-1 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5 flex flex-col">
-                  <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold">Reserva Livre do Casal</span>
-                  <span className={`text-sm font-black mt-0.5 ${strategy?.remainingCashResidue && strategy.remainingCashResidue > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    R$ {strategy?.hasStrategy ? strategy.remainingCashResidue.toFixed(2) : "0,00"}
-                  </span>
-                </div>
-                <div className="flex-1 bg-zinc-950/40 p-2.5 rounded-xl border border-white/5 flex flex-col">
-                  <span className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold">Nosso Teto Diário</span>
-                  <span className="text-sm font-black text-yellow-500 mt-0.5">
-                    R$ {tetoDiario.toFixed(2)}
-                  </span>
-                </div>
-              </div>
             </CardContent>
           </Card>
           
           {/* Botões alinhados com o Card */}
           <div className="grid grid-cols-2 gap-3 w-full">
-            <Link href="/chat" className="flex-1">
+            <Link href="/chat" className="w-full block">
               <Button 
                 className="w-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 font-black shadow-[0_4px_15px_rgba(234,179,8,0.2)] flex items-center justify-center gap-1.5 h-11 rounded-xl text-xs border-none transition-all duration-300 hover:scale-[1.02]"
               >
@@ -578,7 +620,7 @@ export default function DashboardPage() {
                 Conselheiro IA 🤖
               </Button>
             </Link>
-            <Link href="/profile" className="flex-1">
+            <Link href="/profile" className="w-full block">
               <Button 
                 variant="outline" 
                 className="w-full border-white/5 hover:bg-zinc-900/50 hover:border-zinc-800 text-zinc-300 font-bold h-11 rounded-xl text-xs transition-all duration-300 hover:scale-[1.02]"
@@ -591,7 +633,7 @@ export default function DashboardPage() {
           {/* Conselheiro de Choque Dinâmico */}
           {strategy?.hasStrategy ? (
             <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
-              <CardHeader className="p-6 sm:p-8 pb-2">
+              <CardHeader className="p-5 sm:p-6 pb-2">
                 <CardTitle className="text-xs font-black uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
                   <Info className="w-4 h-4" />
                   Recomendações da Nossa IA 💡
@@ -600,7 +642,7 @@ export default function DashboardPage() {
                   Ideias personalizadas para apoiar a jornada de vocês
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-6 sm:p-8 pt-0 space-y-4">
+              <CardContent className="p-5 sm:p-6 pt-3 space-y-4">
                 {strategy.isChoqueRequired ? (
                   <div className="space-y-3">
                     <span className="text-[9px] text-rose-400 uppercase tracking-widest font-black block">Passo a Passo para Cuidar do Bolso:</span>
@@ -645,36 +687,114 @@ export default function DashboardPage() {
                     <TrendingUp className="w-3.5 h-3.5" />
                     <span>Nosso Fluxo & Sonhos ✨</span>
                   </div>
-                  <Badge className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 font-black px-2.5 py-0.5 text-[9px] uppercase tracking-wider">
-                    {getReadableMonthLabel(selectedMonthStr)}
-                  </Badge>
                 </div>
-                <CardTitle className="text-base font-extrabold text-zinc-100 mt-1">Raio-X das Nossas Finanças</CardTitle>
-                <CardDescription className="text-[10px] text-zinc-550 mt-0.5">Acompanhem o dinheiro deste mês e vejam como está o planejamento para o próximo</CardDescription>
               </CardHeader>
-
-              <CardContent className="p-6 sm:p-8 pt-0 space-y-6">
-                {strategy?.hasStrategy ? (
+              <CardContent className="p-6 sm:p-8 pt-4 sm:pt-6 space-y-6">
+                {loadingRealData || !strategy ? (
+                  <div className="space-y-4 animate-pulse py-4">
+                    {/* Nota do Planejamento skeleton */}
+                    <div className="w-full h-12 bg-zinc-950/40 rounded-xl" />
+                    {/* Grid comparative cards skeleton */}
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {[...Array(4)].map((_, i) => (
+                        <div key={i} className="h-[82px] bg-zinc-950/40 rounded-xl" />
+                      ))}
+                    </div>
+                    {/* Diagnosis text skeleton */}
+                    <div className="w-full h-14 bg-zinc-950/40 rounded-xl" />
+                  </div>
+                ) : strategy.hasStrategy ? (
                   <>
+                    {/* Nota do Planejamento baseada no feedback do usuário */}
+                    <div className="bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-xl flex items-start gap-2.5 mb-2">
+                      <Info className="w-4.5 h-4.5 text-yellow-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-[10px] text-zinc-400 leading-relaxed font-semibold">
+                        <span className="text-yellow-500 font-bold">Nota de Planejamento:</span> Estes valores representam o seu orçamento previsto. Lance todas as movimentações reais na aba de transações para obter a análise exata do seu fluxo de caixa conjugal!
+                      </p>
+                    </div>
+
                     {/* Linha do Fluxo do Mês Selecionado */}
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                      <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-white/5">
-                        <span className="text-[8px] text-zinc-500 uppercase font-bold block">Receitas</span>
-                        <span className="text-xs font-bold text-emerald-400 block mt-0.5">R$ {strategy.totalIncome.toFixed(0)}</span>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {/* Receitas */}
+                      <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
+                        <div>
+                          <span className="text-[8px] text-zinc-500 uppercase font-black block">Receitas</span>
+                          <span className="text-sm font-black text-emerald-400 mt-1 block">
+                            R$ {realIncome.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </span>
+                        </div>
+                        <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                          <div className="flex justify-between">
+                            <span>Previsto:</span>
+                            <span className="font-bold text-zinc-300">R$ {prevIncome.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                          </div>
+                          <div className="flex justify-between text-[8px] text-zinc-500">
+                            <span>Falta receber:</span>
+                            <span className="font-semibold text-zinc-400">R$ {Math.max(0, prevIncome - realIncome).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-white/5">
-                        <span className="text-[8px] text-zinc-500 uppercase font-bold block">Essenciais</span>
-                        <span className="text-xs font-bold text-zinc-350 block mt-0.5">R$ {strategy.totalEssentialExpenses.toFixed(0)}</span>
+
+                      {/* Essenciais */}
+                      <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
+                        <div>
+                          <span className="text-[8px] text-zinc-500 uppercase font-black block">Essenciais</span>
+                          <span className="text-sm font-black text-zinc-200 mt-1 block">
+                            R$ {realEssentials.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </span>
+                        </div>
+                        <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                          <div className="flex justify-between">
+                            <span>Limite:</span>
+                            <span className="font-bold text-zinc-300">R$ {prevEssentials.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                          </div>
+                          <div className="flex justify-between text-[8px] text-zinc-500">
+                            <span>Disponível:</span>
+                            <span className="font-semibold text-emerald-400">R$ {Math.max(0, prevEssentials - realEssentials).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-white/5">
-                        <span className="text-[8px] text-zinc-500 uppercase font-bold block">Compromissos</span>
-                        <span className="text-xs font-bold text-rose-400 block mt-0.5">R$ {(strategy.totalDebtInstallments + strategy.totalCreditCardInvoices).toFixed(0)}</span>
+
+                      {/* Compromissos */}
+                      <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
+                        <div>
+                          <span className="text-[8px] text-zinc-500 uppercase font-black block">Compromissos</span>
+                          <span className="text-sm font-black text-rose-400 mt-1 block">
+                            R$ {realCommitments.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </span>
+                        </div>
+                        <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                          <div className="flex justify-between">
+                            <span>Previsão:</span>
+                            <span className="font-bold text-zinc-300">R$ {prevCommitments.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                          </div>
+                          <div className="flex justify-between text-[8px] text-zinc-500">
+                            <span>Falta pagar:</span>
+                            <span className="font-semibold text-rose-400">R$ {Math.max(0, prevCommitments - realCommitments).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="bg-zinc-950/40 p-2.5 rounded-xl border border-white/5">
-                        <span className="text-[8px] text-zinc-500 uppercase font-bold block">Saldo Disponível</span>
-                        <span className={`text-xs font-black block mt-0.5 ${strategy.disposableIncomeForDebts >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
-                          R$ {strategy.disposableIncomeForDebts.toFixed(0)}
-                        </span>
+
+                      {/* Saldo Disponível */}
+                      <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 flex flex-col justify-between">
+                        <div>
+                          <span className="text-[8px] text-zinc-500 uppercase font-black block">Saldo Disponível</span>
+                          <span className={`text-sm font-black mt-1 block ${realDisposable >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                            R$ {realDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                          </span>
+                        </div>
+                        <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                          <div className="flex justify-between">
+                            <span>Previsto:</span>
+                            <span className="font-bold text-zinc-300">R$ {prevDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                          </div>
+                          <div className="flex justify-between text-[8px] text-zinc-500">
+                            <span>Diferença:</span>
+                            <span className={`font-semibold ${realDisposable >= prevDisposable ? 'text-emerald-400' : 'text-rose-500'}`}>
+                              R$ {(realDisposable - prevDisposable).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -688,7 +808,7 @@ export default function DashboardPage() {
                             text={`Veja só, sua receita inserida é no valor de ${strategy.totalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, com base nos seus registros seus gastos essenciais chegam a ${(strategy.totalIncome - strategy.disposableIncomeForDebts).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Esse valor é descontado obrigatoriamente. Então, o valor de ${strategy.disposableIncomeForDebts.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} é o que ficou disponível para fazer a divisão e pagar as outras contas pendentes como Empréstimos e Cartões.`} 
                           />
                         </div>
-                        <p className="text-[10px] text-zinc-400 leading-relaxed font-semibold">
+                        <p className="text-[10px] text-zinc-405 leading-relaxed font-semibold">
                           {strategy.isChoqueRequired ? (
                             `Recalculando rota, casal! As contas deste período estão superando a renda em R$ ${Math.abs(strategy.disposableIncomeForDebts - (strategy.totalDebtInstallments + strategy.totalCreditCardInvoices)).toFixed(2)}. Vamos acionar o Plano de Choque abaixo! Juntos, vocês conseguem colocar a casa em ordem! 💪`
                           ) : strategy.remainingCashResidue < 300 ? (
@@ -702,7 +822,6 @@ export default function DashboardPage() {
 
                     {/* Alocação Crítica e Engenharia (Aparece apenas em Choque) */}
                     {strategy.isChoqueRequired && (() => {
-                      // Calcula os totais diretamente na UI
                       const totalAlocacaoCritica = strategy.debtActions.reduce((acc, a) => acc + a.installmentValue, 0) + 
                         strategy.cardActions.filter(c => c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0).reduce((acc, c) => acc + c.currentInvoice, 0);
                       const totalResiduoPosAlocacao = Math.max(0, strategy.disposableIncomeForDebts - totalAlocacaoCritica);
@@ -720,7 +839,7 @@ export default function DashboardPage() {
                                 className="ml-1"
                               />
                             </div>
-                            <p className="text-[10px] text-zinc-500 mb-3">As seguintes contas devem ser pagas integralmente assim que o salário for recebido para evitar penalidades e proteger o patrimônio.</p>
+                            <p className="text-[10px] text-zinc-550 mb-3">As seguintes contas devem ser pagas integralmente assim que o salário for recebido para evitar penalidades e proteger o patrimônio.</p>
                             
                             <div className="bg-zinc-950/50 rounded-xl border border-white/5 overflow-hidden">
                               {strategy.debtActions.map((action, i) => (
@@ -732,7 +851,6 @@ export default function DashboardPage() {
                                   <span className="text-xs font-black text-rose-400 whitespace-nowrap">R$ {action.installmentValue.toFixed(2)}</span>
                                 </div>
                               ))}
-                              {/* Filtra cartões que foram sugeridos para pagamento integral */}
                               {strategy.cardActions.filter(c => c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0).map((action, i) => (
                                 <div key={`c-${i}`} className="flex justify-between items-center p-3 border-b border-white/5 last:border-none">
                                   <div className="flex flex-col">
@@ -749,7 +867,6 @@ export default function DashboardPage() {
                             </div>
                           </div>
 
-                          {/* Cartões para Engenharia */}
                           {strategy.cardActions.filter(c => c.suggestedProportionalPayment < c.currentInvoice && c.currentInvoice > 0).length > 0 && (
                             <div>
                               <div className="flex items-center gap-2 mb-2 mt-4">
@@ -762,7 +879,7 @@ export default function DashboardPage() {
                                   className="ml-1"
                                 />
                               </div>
-                              <p className="text-[10px] text-zinc-500 mb-3">
+                              <p className="text-[10px] text-zinc-550 mb-3">
                                 Faturas que ultrapassam o saldo restante. Exigem ação ativa de renegociação (parcelamento da fatura) usando o resíduo (se houver) como entrada.
                               </p>
                               
@@ -779,7 +896,6 @@ export default function DashboardPage() {
                                   </div>
                                 ))}
                                 
-                                {/* Alerta importante sobre Valores Mínimos Bancários */}
                                 <div className="p-3 bg-yellow-500/10 border-t border-yellow-500/20 flex gap-2">
                                   <Info className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0 mt-0.5" />
                                   <span className="text-[9px] text-yellow-500 font-medium leading-relaxed">
@@ -843,10 +959,12 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </section>
+        </div>
+      </div>
 
-          {/* SEÇÃO DE CALENDÁRIO & CONTAS INTEGRADA */}
-          <section className="flex-1 flex flex-col">
-            <Card className="flex-1 flex flex-col bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
+      {/* SEÇÃO DE CALENDÁRIO & CONTAS INTEGRADA */}
+      <section className="w-full mt-6">
+            <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
               <CardHeader className="p-6 sm:p-8 pb-2 sm:pb-3 border-b border-white/5">
                 <div className="flex items-center gap-2">
                   <CalendarIcon className="w-4 h-4 text-yellow-500" />
@@ -856,10 +974,10 @@ export default function DashboardPage() {
               </CardHeader>
               
               <CardContent className="flex-1 p-6 sm:p-8 pt-4 sm:pt-6">
-                <div className="flex flex-col gap-8 lg:gap-12 lg:flex-row lg:items-stretch w-full mt-2 h-full">
+                <div className="flex flex-col gap-8 lg:gap-16 lg:flex-row lg:items-stretch w-full mt-2 h-full">
                   
                   {/* Calendário com Tradução PT-BR (locale={ptBR}) */}
-                  <div className="lg:w-[55%] min-w-fit bg-zinc-950/50 p-6 sm:p-8 rounded-xl border border-white/5 flex flex-col justify-center items-center shadow-inner min-h-[360px]">
+                  <div className="w-full lg:w-[58%] min-w-[320px] bg-zinc-950/50 p-4 sm:p-6 rounded-xl border border-white/5 flex flex-col justify-center items-center shadow-inner min-h-[360px]">
                     {mounted ? (
                       <Calendar
                         mode="single"
@@ -883,7 +1001,7 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Lista de Contas */}
-                  <div className="lg:w-[45%] bg-zinc-950/50 p-6 sm:p-8 rounded-xl border border-white/5 flex flex-col min-h-[360px]">
+                  <div className="w-full lg:w-[42%] flex-1 bg-zinc-950/50 p-4 sm:p-6 rounded-xl border border-white/5 flex flex-col min-h-[360px]">
                     <div className="flex justify-between items-center pb-2 border-b border-white/5 mb-4">
                       <h4 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
                         Nosso plano para este dia:
@@ -979,10 +1097,6 @@ export default function DashboardPage() {
               </CardContent>
             </Card>
           </section>
-
-        </div>
-
-      </div>
 
       {/* Footer / Barra de Navegação PWA Minimalista */}
       <footer className="mt-10 pt-5 border-t border-white/5 flex justify-around text-zinc-600 text-xs">

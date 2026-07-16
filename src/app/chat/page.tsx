@@ -30,19 +30,15 @@ interface Message {
 export default function ChatPage() {
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [tokenBalance, setTokenBalance] = useState<number>(50000);
+  const [tokenBalance, setTokenBalance] = useState<number | null>(null);
   
   // Seletor de mês ativo do chat
   const [selectedMonth, setSelectedMonth] = useState(() => {
     return new Date().toISOString().substring(0, 7);
   });
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "model",
-      content: "Olá! Sou o seu Conselheiro IA. Estou conectado à estratégia de Operação de Choque do seu casal. Como posso ajudar vocês hoje? Podem me perguntar sobre gastos pontuais, renegociação de lote/financiamento ou amortização de empréstimos."
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(true);
   const [inputMessage, setInputMessage] = useState("");
   const [outOfTokensAlert, setOutOfTokensAlert] = useState(false);
 
@@ -65,18 +61,29 @@ export default function ChatPage() {
       if (res.balance <= 0) {
         setOutOfTokensAlert(true);
       }
+    } else {
+      setTokenBalance(0);
     }
   };
 
   const fetchHistory = async () => {
+    setLoadingHistory(true);
     const res = await getChatHistory(50);
+    const welcomeMessage = {
+      role: "model" as const,
+      content: "Olá! Sou o seu Conselheiro IA. Estou conectado à estratégia de Operação de Choque do seu casal. Como posso ajudar vocês hoje? Podem me perguntar sobre gastos pontuais, renegociação de lote/financiamento ou amortização de empréstimos."
+    };
+
     if (res.success && res.messages.length > 0) {
       // Adiciona o histórico mantendo a mensagem de boas vindas no topo
-      setMessages(prev => [
-        prev[0], // Boas vindas
+      setMessages([
+        welcomeMessage,
         ...res.messages.map((m: any) => ({ role: m.role, content: m.content }))
       ]);
+    } else {
+      setMessages([welcomeMessage]);
     }
+    setLoadingHistory(false);
   };
 
   const scrollToBottom = () => {
@@ -86,7 +93,7 @@ export default function ChatPage() {
   const handleSendMessage = async (text: string) => {
     if (!text.trim() || loading) return;
 
-    if (tokenBalance <= 0) {
+    if (tokenBalance !== null && tokenBalance <= 0) {
       setOutOfTokensAlert(true);
       return;
     }
@@ -161,10 +168,14 @@ export default function ChatPage() {
             className="bg-zinc-900 border border-white/5 rounded-xl text-zinc-200 text-xs px-2.5 py-1.5 focus:outline-none [color-scheme:dark] font-bold"
             title="Mês de Contexto da IA"
           />
-          <Badge variant="outline" className="border-yellow-500/20 text-yellow-400 bg-yellow-950/10 px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold">
-            <Coins className="w-3.5 h-3.5 text-yellow-500" />
-            {tokenBalance.toLocaleString()} XP
-          </Badge>
+          {tokenBalance !== null ? (
+            <Badge variant="outline" className="border-yellow-500/20 text-yellow-400 bg-yellow-950/10 px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold">
+              <Coins className="w-3.5 h-3.5 text-yellow-500" />
+              {tokenBalance.toLocaleString()} XP
+            </Badge>
+          ) : (
+            <div className="w-20 h-7 bg-zinc-900 animate-pulse rounded-xl" />
+          )}
         </div>
       </header>
 
@@ -191,13 +202,29 @@ export default function ChatPage() {
       {/* Janela de Conversa Scrollable */}
       <Card className="flex-1 bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden flex flex-col max-md:min-h-0 md:min-h-[350px]">
         <CardContent className="p-4 flex-1 overflow-y-auto space-y-4 md:max-h-[500px]">
-          {messages.map((msg, i) => (
-            <div 
-              key={i} 
-              className={`flex items-start gap-2.5 max-w-[85%] ${
-                msg.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
-              }`}
-            >
+          {loadingHistory ? (
+            <div className="space-y-4 animate-pulse">
+              <div className="flex gap-2.5 max-w-[70%]">
+                <div className="w-8 h-8 rounded-full bg-zinc-800" />
+                <div className="h-10 bg-zinc-800 rounded-2xl w-full" />
+              </div>
+              <div className="flex gap-2.5 max-w-[70%] ml-auto flex-row-reverse">
+                <div className="w-8 h-8 rounded-full bg-zinc-800" />
+                <div className="h-12 bg-zinc-800 rounded-2xl w-full" />
+              </div>
+              <div className="flex gap-2.5 max-w-[60%]">
+                <div className="w-8 h-8 rounded-full bg-zinc-800" />
+                <div className="h-8 bg-zinc-800 rounded-2xl w-full" />
+              </div>
+            </div>
+          ) : (
+            messages.map((msg, i) => (
+              <div 
+                key={i} 
+                className={`flex items-start gap-2.5 max-w-[85%] ${
+                  msg.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
+                }`}
+              >
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                 msg.role === "user" ? "bg-zinc-800 text-zinc-350" : "bg-yellow-500 text-zinc-950 shadow-md shadow-yellow-500/10"
               }`}>
@@ -225,7 +252,7 @@ export default function ChatPage() {
                 )}
               </div>
             </div>
-          ))}
+          )))}
 
           {/* Loader de Resposta */}
           {loading && (
