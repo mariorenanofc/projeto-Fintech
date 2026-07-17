@@ -1,9 +1,10 @@
 import React from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Info, ShieldCheck, RefreshCcw } from "lucide-react";
+import { TrendingUp, TrendingDown, Info, ShieldCheck, RefreshCcw, Target, CheckCircle2 } from "lucide-react";
 import { AudioExplainerButton } from "@/components/ui/audio-explainer";
-import { FinancialStrategyResult } from "@/actions/onboarding";
+import { FinancialStrategyResult, GoalInput } from "@/actions/onboarding";
 
 interface FlowSummaryProps {
   loadingRealData: boolean;
@@ -21,6 +22,7 @@ interface FlowSummaryProps {
   rawDebts: any[];
   selectedMonthStr: string;
   getReadableMonthLabel: (monthStr: string) => string;
+  goals: GoalInput[];
 }
 
 export function FlowSummary({
@@ -39,6 +41,7 @@ export function FlowSummary({
   rawDebts,
   selectedMonthStr,
   getReadableMonthLabel,
+  goals,
 }: FlowSummaryProps) {
   
   const getNextMonthStr = (monthStr: string): string => {
@@ -270,7 +273,78 @@ export function FlowSummary({
               </div>
             </div>
 
-            {/* Alocação Crítica e Engenharia (Aparece apenas em Choque) */}
+            {/* Painel de Metas & Sonhos (Aparece apenas quando não está na Fase Vermelha/Resgate) */}
+            {financeStatus !== "red" && (
+              <div className="border-t border-white/5 pt-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-yellow-500" />
+                    <span>Nossas Metas &amp; Sonhos do Casal</span>
+                  </span>
+                  <Link
+                    href="/profile"
+                    className="text-[9px] text-yellow-500 hover:text-yellow-400 font-bold uppercase tracking-wider transition-colors"
+                  >
+                    {goals.length === 0 ? "+ Adicionar" : "Gerenciar"}
+                  </Link>
+                </div>
+
+                {goals.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-6 text-center space-y-2">
+                    <Target className="w-8 h-8 text-zinc-700" />
+                    <p className="text-xs text-zinc-600 font-semibold">Nenhuma meta cadastrada ainda.</p>
+                    <Link
+                      href="/profile"
+                      className="text-[10px] text-yellow-500 hover:text-yellow-400 font-black underline underline-offset-2 transition-colors"
+                    >
+                      Cadastre o primeiro sonho do casal →
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full">
+                    {goals.map((goal, idx) => {
+                      const pct = goal.targetAmount > 0
+                        ? Math.min(100, Math.round((goal.currentAmount / goal.targetAmount) * 100))
+                        : 0;
+                      const done = pct >= 100;
+                      return (
+                        <div
+                          key={goal.id || idx}
+                          className="bg-zinc-950/60 p-3.5 rounded-xl border border-white/5 space-y-2 hover:border-yellow-500/20 transition-all duration-300"
+                        >
+                          <div className="flex justify-between items-start gap-1">
+                            <span className="text-[10px] text-zinc-200 font-bold leading-tight">{goal.title}</span>
+                            {done
+                              ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                              : <span className="text-[9px] text-yellow-500 font-black flex-shrink-0">{pct}%</span>
+                            }
+                          </div>
+                          <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${done ? "bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.4)]" : "bg-yellow-500"}`}
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-[8px] text-zinc-500 font-medium">
+                            <span>R$ {goal.currentAmount.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}</span>
+                            <span>{done ? "Conquistada! ✨" : `de R$ ${goal.targetAmount.toLocaleString("pt-BR", { minimumFractionDigits: 0 })}`}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {goals.length > 0 && (
+                  <p className="text-[9px] text-zinc-500 leading-relaxed font-semibold italic text-center">
+                    💡 Cada conquista orçamentária aproxima vocês desses sonhos!
+                  </p>
+                )}
+
+              </div>
+            )}
+
+            {/* Aloca\u00e7\u00e3o Cr\u00edtica e Engenharia (Aparece apenas em Choque) */}
             {strategy.isChoqueRequired && (() => {
               const totalAlocacaoCritica = strategy.debtActions.reduce((acc, a) => acc + a.installmentValue, 0) + 
                 strategy.cardActions.filter(c => c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0).reduce((acc, c) => acc + c.currentInvoice, 0);

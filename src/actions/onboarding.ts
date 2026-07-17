@@ -993,3 +993,90 @@ export async function deleteUserAccount() {
   }
 }
 
+// =====================================================================
+// METAS & SONHOS DO CASAL (goals)
+// =====================================================================
+
+export interface GoalInput {
+  id?: string;
+  title: string;
+  targetAmount: number;
+  currentAmount: number;
+}
+
+export async function getGoals(): Promise<{ success: boolean; data?: GoalInput[]; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Não autenticado" };
+    const familyGroupId = await getFamilyGroupId(supabase, user.id);
+
+    const { data, error } = await supabase
+      .from("goals")
+      .select("id, title, target_amount, current_amount")
+      .eq("family_group_id", familyGroupId)
+      .order("created_at", { ascending: true });
+
+    if (error) throw error;
+
+    const goals: GoalInput[] = (data || []).map((g: any) => ({
+      id: g.id,
+      title: g.title,
+      targetAmount: Number(g.target_amount),
+      currentAmount: Number(g.current_amount),
+    }));
+
+    return { success: true, data: goals };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function addGoal(item: GoalInput): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Não autenticado" };
+    const familyGroupId = await getFamilyGroupId(supabase, user.id);
+
+    const { error } = await supabase.from("goals").insert({
+      family_group_id: familyGroupId,
+      profile_id: user.id,
+      title: item.title,
+      target_amount: item.targetAmount,
+      current_amount: item.currentAmount,
+    });
+
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function updateGoal(id: string, item: Partial<GoalInput>): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const updates: any = { updated_at: new Date().toISOString() };
+    if (item.title !== undefined) updates.title = item.title;
+    if (item.targetAmount !== undefined) updates.target_amount = item.targetAmount;
+    if (item.currentAmount !== undefined) updates.current_amount = item.currentAmount;
+
+    const { error } = await supabase.from("goals").update(updates).eq("id", id);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function deleteGoal(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.from("goals").delete().eq("id", id);
+    if (error) throw error;
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}

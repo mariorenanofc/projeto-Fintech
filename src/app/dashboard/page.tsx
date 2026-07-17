@@ -8,7 +8,9 @@ import { createClient } from "@/lib/supabase/client";
 import { 
   getProfileFinancialData, 
   generateFinancialStrategy, 
-  FinancialStrategyResult 
+  FinancialStrategyResult,
+  getGoals,
+  GoalInput
 } from "@/actions/onboarding";
 import { createCalendarEvent } from "@/actions/calendar";
 import { getTransactions, addTransaction, deleteTransaction } from "@/actions/transactions";
@@ -52,6 +54,7 @@ export default function DashboardPage() {
   const [rawCards, setRawCards] = useState<any[]>([]);
   const [rawDebts, setRawDebts] = useState<any[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
+  const [goals, setGoals] = useState<GoalInput[]>([]);
 
   // Novos estados para a inteligência de pagamentos e economia
   const [economyTotal, setEconomyTotal] = useState(0);
@@ -140,6 +143,12 @@ export default function DashboardPage() {
       // 3. Busca a estratégia/diagnóstico para o mês selecionado
       const strat = await generateFinancialStrategy(monthStr);
       setStrategy(strat);
+
+      // 4. Busca metas e sonhos do casal
+      const goalsRes = await getGoals();
+      if (goalsRes.success && goalsRes.data) {
+        setGoals(goalsRes.data);
+      }
 
       // Define status de finanças com base no motor de transição de estágios
       if (strat.hasStrategy) {
@@ -469,6 +478,7 @@ export default function DashboardPage() {
             rawDebts={rawDebts}
             selectedMonthStr={selectedMonthStr}
             getReadableMonthLabel={getReadableMonthLabel}
+            goals={goals}
           />
         </div>
       </div>

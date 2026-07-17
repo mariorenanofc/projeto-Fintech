@@ -13,7 +13,10 @@ import {
   AlertTriangle,
   Heart,
   Sparkles,
-  LogOut
+  LogOut,
+  Target,
+  Plus,
+  CheckCircle2
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,7 +32,8 @@ import {
   linkPartnerByEmail, getLinkedPartner,
   updateVoicePreferences, updateProfileAssets,
   deleteUserAccount,
-  IncomeInput, FixedExpenseInput, CreditCardInput, DebtInput
+  getGoals, addGoal, updateGoal, deleteGoal,
+  IncomeInput, FixedExpenseInput, CreditCardInput, DebtInput, GoalInput
 } from "@/actions/onboarding";
 import { createClient } from "@/lib/supabase/client";
 
@@ -47,9 +51,10 @@ export default function ProfilePage() {
   const [fixedExpenses, setFixedExpenses] = useState<any[]>([]);
   const [creditCards, setCreditCards] = useState<any[]>([]);
   const [debts, setDebts] = useState<any[]>([]);
+  const [goals, setGoals] = useState<GoalInput[]>([]);
 
   // Estados de edição / criação
-  const [activeTab, setActiveTab] = useState<"account" | "incomes" | "expenses" | "cards" | "debts">("account");
+  const [activeTab, setActiveTab] = useState<"account" | "incomes" | "expenses" | "cards" | "debts" | "goals">("account");
   const [editId, setEditId] = useState<string | null>(null);
 
   // Estados de Voz
@@ -72,6 +77,7 @@ export default function ProfilePage() {
     monthlyLateInterestRate: 0, penaltyValue: 0, installmentsPaid: 0, installmentsSchedule: [],
     overdueInstallments: 0, overdueValueAccumulated: 0, tipoDivida: "toxica"
   });
+  const [goalForm, setGoalForm] = useState<GoalInput>({ title: "", targetAmount: 0, currentAmount: 0 });
 
   // Schedule sub-editors
   const [tempScheduleMonth, setTempScheduleMonth] = useState("");
@@ -79,7 +85,7 @@ export default function ProfilePage() {
 
   // Confirmar exclusão dialog
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: "income" | "expense" | "card" | "debt"; title: string } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: "income" | "expense" | "card" | "debt" | "goal"; title: string } | null>(null);
   
   // Exclusão definitiva de conta LGPD
   const [deleteAccountConfirmOpen, setDeleteAccountConfirmOpen] = useState(false);
@@ -191,6 +197,12 @@ export default function ProfilePage() {
       setPartner(null);
     }
 
+    // 3. Busca metas e sonhos do casal
+    const goalsRes = await getGoals();
+    if (goalsRes.success && goalsRes.data) {
+      setGoals(goalsRes.data);
+    }
+
     setLoading(false);
   };
 
@@ -263,7 +275,7 @@ export default function ProfilePage() {
     setIncomeForm({ title: item.title, amount: item.amount, owner: item.owner });
   };
 
-  const confirmDelete = (id: string, type: "income" | "expense" | "card" | "debt", title: string) => {
+  const confirmDelete = (id: string, type: "income" | "expense" | "card" | "debt" | "goal", title: string) => {
     setItemToDelete({ id, type, title });
     setDeleteConfirmOpen(true);
   };
@@ -282,6 +294,8 @@ export default function ProfilePage() {
       res = await deleteCreditCard(itemToDelete.id);
     } else if (itemToDelete.type === "debt") {
       res = await deleteDebt(itemToDelete.id);
+    } else if (itemToDelete.type === "goal") {
+      res = await deleteGoal(itemToDelete.id);
     }
 
     if (res?.success) {
@@ -293,6 +307,38 @@ export default function ProfilePage() {
     
     setItemToDelete(null);
     setLoading(false);
+  };
+
+  // --- Operações CRUD Metas & Sonhos ---
+  const handleSaveGoal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!goalForm.title || goalForm.targetAmount <= 0) {
+      toast.error("Preencha o título e o valor-alvo da meta.");
+      return;
+    }
+    setLoading(true);
+    if (editId) {
+      const res = await updateGoal(editId, goalForm);
+      if (res.success) {
+        setEditId(null);
+        setGoalForm({ title: "", targetAmount: 0, currentAmount: 0 });
+        await fetchData();
+        toast.success("Meta atualizada!");
+      } else toast.error(res.error);
+    } else {
+      const res = await addGoal(goalForm);
+      if (res.success) {
+        setGoalForm({ title: "", targetAmount: 0, currentAmount: 0 });
+        await fetchData();
+        toast.success("Meta adicionada!");
+      } else toast.error(res.error);
+    }
+    setLoading(false);
+  };
+
+  const handleEditGoal = (item: GoalInput) => {
+    setEditId(item.id!);
+    setGoalForm({ title: item.title, targetAmount: item.targetAmount, currentAmount: item.currentAmount });
   };
 
   // --- Operações CRUD Despesas ---
@@ -471,13 +517,30 @@ export default function ProfilePage() {
       </header>
 
       {/* Tabs */}
-      <div className="grid grid-cols-5 gap-1.5 mb-6">
+      <div className="grid grid-cols-3 gap-1.5 mb-3">
         {[
           { id: "account", label: "Conta" },
           { id: "incomes", label: "Receitas" },
           { id: "expenses", label: "Despesas" },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => { setActiveTab(tab.id as any); setEditId(null); }}
+            className={`py-2 px-1 text-center rounded-xl text-[10px] font-bold uppercase tracking-wider border transition-all ${
+              activeTab === tab.id
+                ? "bg-yellow-500 border-yellow-500 text-zinc-950 shadow-md shadow-yellow-500/10"
+                : "bg-zinc-900/30 border-white/5 text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-1.5 mb-6">
+        {[
           { id: "cards", label: "Cartões" },
-          { id: "debts", label: "Dívidas" }
+          { id: "debts", label: "Dívidas" },
+          { id: "goals", label: "🎯 Metas" },
         ].map(tab => (
           <button
             key={tab.id}
@@ -972,6 +1035,59 @@ export default function ProfilePage() {
                 )}
 
                 {/* FORM DÍVIDAS */}
+                {activeTab === "goals" && (
+                  <form onSubmit={handleSaveGoal} className="space-y-4">
+                    <div>
+                      <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold block mb-1">Título da Meta / Sonho</label>
+                      <input
+                        type="text"
+                        placeholder="Ex: Viagem para Europa ✈️"
+                        value={goalForm.title}
+                        onChange={e => setGoalForm({ ...goalForm, title: e.target.value })}
+                        className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 p-3 w-full text-xs focus:border-yellow-500/40 focus:outline-none transition-colors placeholder:text-zinc-600"
+                        required
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold block mb-1">Valor-Alvo (R$)</label>
+                        <input
+                          type="number"
+                          placeholder="10.000,00"
+                          min="1"
+                          step="0.01"
+                          value={goalForm.targetAmount || ""}
+                          onChange={e => setGoalForm({ ...goalForm, targetAmount: Number(e.target.value) })}
+                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 p-3 w-full text-xs focus:border-yellow-500/40 focus:outline-none transition-colors"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold block mb-1">Valor Atual (R$)</label>
+                        <input
+                          type="number"
+                          placeholder="0,00"
+                          min="0"
+                          step="0.01"
+                          value={goalForm.currentAmount || ""}
+                          onChange={e => setGoalForm({ ...goalForm, currentAmount: Number(e.target.value) })}
+                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 p-3 w-full text-xs focus:border-yellow-500/40 focus:outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
+                      <Button type="submit" className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black h-11 rounded-xl text-xs">
+                        <Save className="w-4 h-4 mr-1.5" /> {editId ? "Atualizar Meta" : "Salvar Meta"}
+                      </Button>
+                      {editId && (
+                        <Button type="button" onClick={() => { setEditId(null); setGoalForm({ title: "", targetAmount: 0, currentAmount: 0 }); }} className="bg-zinc-900 text-zinc-300 border border-white/5 font-bold h-11 rounded-xl text-xs px-4">
+                          Cancelar
+                        </Button>
+                      )}
+                    </div>
+                  </form>
+                )}
+
                 {activeTab === "debts" && (
                   <form onSubmit={handleSaveDebt} className="space-y-4">
                     <div>
@@ -1309,6 +1425,60 @@ export default function ProfilePage() {
                     )}
                   </div>
                 ))}
+
+                {/* LISTAGEM DE METAS */}
+                {activeTab === "goals" && (
+                  <>
+                    {goals.length === 0 ? (
+                      <div className="text-center py-10 text-zinc-600">
+                        <Target className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-xs font-semibold">Nenhuma meta cadastrada ainda.</p>
+                        <p className="text-[10px] mt-1">Adicione o primeiro sonho do casal!</p>
+                      </div>
+                    ) : (
+                      goals.map((item, idx) => {
+                        const pct = item.targetAmount > 0 ? Math.min(100, Math.round((item.currentAmount / item.targetAmount) * 100)) : 0;
+                        const done = pct >= 100;
+                        return (
+                          <div key={item.id || idx} className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 space-y-3">
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1 pr-3">
+                                <div className="flex items-center gap-2">
+                                  {done ? <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" /> : <Target className="w-4 h-4 text-yellow-500 flex-shrink-0" />}
+                                  <h4 className="text-xs font-black text-zinc-200">{item.title}</h4>
+                                </div>
+                                <div className="flex gap-3 items-center mt-1.5 text-[10px]">
+                                  <span className="text-emerald-400 font-bold">R$ {item.currentAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                                  <span className="text-zinc-600">de</span>
+                                  <span className="text-zinc-400 font-bold">R$ {item.targetAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                                  <span className={`font-black ml-auto ${done ? "text-emerald-400" : "text-yellow-400"}`}>{pct}%</span>
+                                </div>
+                              </div>
+                              <div className="flex gap-1.5">
+                                <button onClick={() => handleEditGoal(item)} className="p-1.5 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
+                                  <Edit2 className="w-3.5 h-3.5" />
+                                </button>
+                                <button onClick={() => confirmDelete(item.id!, "goal", item.title)} className="p-1.5 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                            {/* Barra de progresso */}
+                            <div className="w-full bg-zinc-900 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className={`h-1.5 rounded-full transition-all duration-500 ${done ? "bg-emerald-400" : "bg-yellow-500"}`}
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                            {done && (
+                              <p className="text-[9px] text-emerald-400 font-black uppercase tracking-widest text-center">✨ Meta Conquistada!</p>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </>
+                )}
               </>
             )}
           </CardContent>
