@@ -206,9 +206,9 @@ export function FlowSummary({
             </div>
 
             {/* Descrição resumida da situação / Diagnóstico */}
-            <div className="bg-zinc-950/40 p-5 rounded-2xl border border-white/5 flex gap-3.5 items-start flex-grow w-full">
+            <div className="bg-zinc-950/40 p-5 rounded-2xl border border-white/5 flex gap-3.5 items-start w-full">
               <Info className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
-              <div className="space-y-3 flex-grow flex flex-col justify-between h-full w-full">
+              <div className="space-y-3 flex-grow w-full">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-zinc-200 font-extrabold uppercase tracking-wider block">Diagnóstico do Período</span>
                   <AudioExplainerButton 
@@ -219,14 +219,14 @@ export function FlowSummary({
                       if (financeStatus === "red") {
                         return `Veja só, casal. Atualmente identificamos que estamos na Fase Vermelha de Resgate. Nossa receita familiar é de ${strategy.totalIncome.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} e os gastos essenciais chegam a ${strategy.totalEssentialExpenses.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Sobrou um saldo de R$ ${realDisposable.toFixed(0)} para cobrir cartões e parcelamentos. Por estarmos com dívidas sob pressão ou com saldo negativo, o conselheiro acionou o plano de resgate para priorizar os pagamentos essenciais da Alocação Crítica.`;
                       } else if (financeStatus === "yellow") {
-                        return `Parabéns, casal! Estamos na Fase Amarela de Segurança. As contas estão equilibradas e sob controle, sem dívidas em atraso. Com o saldo disponível de ${realDisposable.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, nossa sugestão é destinar trinta por cento, equivalente a ${fund.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, para o nosso Fundo de Reserva de Emergência, e vinte por cento do restante, equivalente a ${inv.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, para novos investimentos. Isso nos assegura uma reserva livre de ${remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para aproveitarmos com tranquilidade no dia a dia.`;
+                        return `Parabéns, casal! Estamos na Fase Amarela de Segurança. As contas estão equilibradas e sob controle, sem dívidas em atraso. Com o saldo disponível de ${realDisposable.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, nossa sugestão é destiar trinta por cento, equivalente a ${fund.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, para o nosso Fundo de Reserva de Emergência, e vinte por cento do restante, equivalente a ${inv.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, para novos investimentos. Isso nos assegura uma reserva livre de ${remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para aproveitarmos com tranquilidade no dia a dia.`;
                       } else {
                         return `Sintonia nota dez! Vocês alcançaram a Fase Verde de Prosperidade. Nosso fundo de segurança está completo e sem dívidas pendentes. Do saldo disponível de ${realDisposable.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, recomendamos seguir a regra cinquenta, trinta, vinte: direcionar trinta por cento, equivalente a ${fund.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, para poupança, vinte por cento do restante, equivalente a ${inv.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}, em investimentos para fazer o dinheiro trabalhar por nós, restando uma reserva livre de ${remaining.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} para gastarmos como bem entendermos e realizarmos nossos sonhos sem peso na consciência!`;
                       }
                     })()} 
                   />
                 </div>
-                <div className="text-[11px] text-zinc-355 leading-relaxed font-semibold flex-grow flex flex-col justify-between w-full">
+                <div className="text-[11px] text-zinc-355 leading-relaxed font-semibold w-full">
                   {financeStatus === "red" ? (
                     <p className="bg-rose-500/5 border border-rose-500/10 p-4 rounded-xl text-rose-400 mt-1 leading-relaxed w-full">
                       Atenção, casal! Estamos na Fase Vermelha de Resgate. Nosso caixa livre está pressionado pelas faturas e parcelas. Sigam o plano abaixo para priorizar a Alocação Crítica e reorganizar as contas! 🛡️
@@ -236,29 +236,29 @@ export function FlowSummary({
                     const inv = (realDisposable - fund) * 0.20;
                     const remaining = realDisposable - fund - inv;
                     return (
-                      <div className="space-y-4 mt-1 flex-grow flex flex-col justify-between w-full">
+                      <div className="space-y-4 mt-1 w-full">
                         <p className="text-zinc-300">
                           {financeStatus === "green" 
                             ? `Sintonia nota 10! Vocês estão na Fase Verde de Prosperidade. Com o saldo disponível de R$ ${realDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} livres, podemos fazer nosso dinheiro render:` 
                             : `Sintonia nota 10! Vocês estão na Fase Amarela de Segurança. Com o saldo disponível de R$ ${realDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} livres, sugerimos focar em construir a nossa reserva:`
                           }
                         </p>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mt-2 flex-grow">
-                          <div className="bg-zinc-900/60 p-4 rounded-xl border border-white/5 flex flex-col justify-between hover:border-yellow-500/20 transition-all duration-300">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 w-full mt-2">
+                          <div className="bg-zinc-900/60 p-4 rounded-xl border border-white/5 flex flex-col justify-center h-20 hover:border-yellow-500/20 transition-all duration-300">
                             <span className="text-[9px] text-zinc-550 font-bold uppercase tracking-wider block">Fundo Reserva (30%)</span>
-                            <span className="text-sm font-black text-yellow-500 mt-2 block">
+                            <span className="text-sm font-black text-yellow-500 mt-1.5 block">
                               R$ {fund.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>
-                          <div className="bg-zinc-900/60 p-4 rounded-xl border border-white/5 flex flex-col justify-between hover:border-yellow-500/20 transition-all duration-300">
+                          <div className="bg-zinc-900/60 p-4 rounded-xl border border-white/5 flex flex-col justify-center h-20 hover:border-yellow-500/20 transition-all duration-300">
                             <span className="text-[9px] text-zinc-550 font-bold uppercase tracking-wider block">Investimento (20% do rest.)</span>
-                            <span className="text-sm font-black text-yellow-400 mt-2 block">
+                            <span className="text-sm font-black text-yellow-400 mt-1.5 block">
                               R$ {inv.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>
-                          <div className="bg-zinc-900/60 p-4 rounded-xl border border-yellow-500/10 flex flex-col justify-between hover:border-yellow-500/20 transition-all duration-300">
+                          <div className="bg-zinc-900/60 p-4 rounded-xl border border-yellow-500/10 flex flex-col justify-center h-20 hover:border-yellow-500/20 transition-all duration-300">
                             <span className="text-[9px] text-yellow-500/60 font-bold uppercase tracking-wider block">Reserva Livre Real</span>
-                            <span className="text-sm font-black text-emerald-400 mt-2 block">
+                            <span className="text-sm font-black text-emerald-400 mt-1.5 block">
                               R$ {remaining.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </span>
                           </div>

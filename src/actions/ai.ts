@@ -85,6 +85,29 @@ export async function askFinancialAdvisor(question: string, history: ChatMessage
       };
     }
 
+    // 3.1. Verificar quota individual diária de tokens do parceiro (Controle de Gasto Individual)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayStartStr = todayStart.toISOString();
+
+    const { data: logs, error: logsError } = await supabase
+      .from("ai_calls_log")
+      .select("prompt_tokens, completion_tokens")
+      .eq("profile_id", user.id)
+      .gte("created_at", todayStartStr);
+
+    if (!logsError && logs) {
+      const todayTotal = logs.reduce((sum, log) => sum + (log.prompt_tokens || 0) + (log.completion_tokens || 0), 0);
+      const DAILY_LIMIT = 20000; // 20.000 tokens diários por parceiro
+      if (todayTotal >= DAILY_LIMIT) {
+        return { 
+          success: false, 
+          error: "Você atingiu seu limite diário de uso da IA (20.000 tokens). Para evitar que um parceiro consuma todo o saldo do casal, limitamos o uso diário individual.", 
+          status: 403 
+        };
+      }
+    }
+
     // 4. Buscar a estratégia financeira real do mês selecionado ou atual
     const monthStr = selectedMonthStr || new Date().toISOString().substring(0, 7);
     const strategy = await generateFinancialStrategy(monthStr);
@@ -130,6 +153,7 @@ INSTRUÇÕES DE COMPORTAMENTO COM BASE NO ESTÁGIO:
    - Celebrar a solidez financeira. Reserva de manutenção ativa (7%). Recomendar investir o valor foco (R$ ${strategy.focusValue.toFixed(2)}) em ativos financeiros de longo prazo.
 6. Nunca recomende novos empréstimos, consórcios ou uso desnecessário de crédito.
 7. Baseie suas orientações no histórico e nos números informados acima, sem inventar valores.
+8. Engenharia de Cartões: Se sugerir parcelar a fatura, alerte de forma clara que os bancos normalmente exigem uma entrada de 10% a 15% do valor da fatura. Se a sobra orçamentária recomendada para a entrada for menor do que 10%, avise que a entrada pode não ser aceita diretamente e instrua o casal a entrar em contato com o banco para renegociação total ou consolidação. Caso queiram simular o custo do rotativo, peça as taxas de juros mensais dos cartões deles para calcular e demonstrar o impacto do parcelamento sobre a dívida orçada.
     `;
 
     let replyText = "";

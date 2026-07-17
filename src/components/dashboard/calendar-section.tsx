@@ -87,8 +87,24 @@ export function CalendarSection({
                         className="flex flex-col bg-zinc-950/40 p-4 rounded-xl border border-white/5 hover:border-zinc-800 transition-all duration-300"
                       >
                         <div className="mb-3">
+                          <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                            <Badge className="bg-zinc-900 text-zinc-400 border border-white/5 text-[7px] uppercase font-bold py-0">{bill.category}</Badge>
+                            {bill.status === "paid" && (
+                              <>
+                                {bill.isIndividual ? (
+                                  <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-[7px] uppercase font-bold py-0">Pessoal</Badge>
+                                ) : (
+                                  <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[7px] uppercase font-bold py-0">Conjunto</Badge>
+                                )}
+                                {bill.paidBy && (
+                                  <span className="text-[8px] text-zinc-500 font-semibold">
+                                    por {bill.paidBy}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </div>
                           <h5 className="text-xs font-bold text-zinc-200 block">{bill.title}</h5>
-                          <span className="text-[9px] text-zinc-550 font-semibold">{bill.category}</span>
                         </div>
                         
                         <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-3">

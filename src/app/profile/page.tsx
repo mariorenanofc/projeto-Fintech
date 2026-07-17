@@ -28,6 +28,7 @@ import {
   addDebt, updateDebt, deleteDebt,
   linkPartnerByEmail, getLinkedPartner,
   updateVoicePreferences, updateProfileAssets,
+  deleteUserAccount,
   IncomeInput, FixedExpenseInput, CreditCardInput, DebtInput
 } from "@/actions/onboarding";
 import { createClient } from "@/lib/supabase/client";
@@ -64,7 +65,7 @@ export default function ProfilePage() {
 
   // Form templates para novos itens
   const [incomeForm, setIncomeForm] = useState<IncomeInput>({ title: "", amount: 0, owner: "Parceiro A" });
-  const [expenseForm, setExpenseForm] = useState<FixedExpenseInput>({ category: "Customizada", title: "", amount: 0 });
+  const [expenseForm, setExpenseForm] = useState<FixedExpenseInput>({ category: "Customizada", title: "", amount: 0, dueDay: 15 });
   const [cardForm, setCardForm] = useState<CreditCardInput>({ name: "", totalLimit: 0, currentInvoice: 0, nextInvoice: 0, invoicesSchedule: [] });
   const [debtForm, setDebtForm] = useState<DebtInput>({ 
     title: "", acquisitionValue: 0, totalInstallments: 12, currentInstallmentValue: 0,
@@ -79,6 +80,10 @@ export default function ProfilePage() {
   // Confirmar exclusão dialog
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ id: string; type: "income" | "expense" | "card" | "debt"; title: string } | null>(null);
+  
+  // Exclusão definitiva de conta LGPD
+  const [deleteAccountConfirmOpen, setDeleteAccountConfirmOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   const parseSchedule = (schedule: any): any[] => {
     if (!schedule) return [];
@@ -214,6 +219,23 @@ export default function ProfilePage() {
     window.location.href = "/";
   };
 
+  // --- Operações de Exclusão de Conta (LGPD) ---
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    const res = await deleteUserAccount();
+    setDeletingAccount(false);
+    setDeleteAccountConfirmOpen(false);
+    if (res.success) {
+      toast.success("Todos os seus dados foram definitivamente removidos!");
+      // Fazer logout imediato
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      window.location.href = "/";
+    } else {
+      toast.error("Erro ao excluir dados: " + res.error);
+    }
+  };
+
   // --- Operações CRUD Receitas ---
   const handleSaveIncome = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -283,13 +305,13 @@ export default function ProfilePage() {
       const res = await updateFixedExpense(editId, expenseForm);
       if (res.success) {
         setEditId(null);
-        setExpenseForm({ category: "Customizada", title: "", amount: 0 });
+        setExpenseForm({ category: "Customizada", title: "", amount: 0, dueDay: 15 });
         await fetchData();
       } else toast.error(res.error);
     } else {
       const res = await addFixedExpense(expenseForm);
       if (res.success) {
-        setExpenseForm({ category: "Customizada", title: "", amount: 0 });
+        setExpenseForm({ category: "Customizada", title: "", amount: 0, dueDay: 15 });
         await fetchData();
       } else toast.error(res.error);
     }
@@ -297,7 +319,7 @@ export default function ProfilePage() {
 
   const handleEditExpense = (item: any) => {
     setEditId(item.id);
-    setExpenseForm({ category: item.category, title: item.title, amount: item.amount });
+    setExpenseForm({ category: item.category, title: item.title, amount: item.amount, dueDay: item.dueDay || 15 });
   };
 
   // Exclusão gerenciada pelo modal centralizado
@@ -421,7 +443,7 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col min-h-screen px-4 py-6 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-4xl lg:px-8 lg:py-10">
+    <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col min-h-screen px-4 py-6 pb-24 sm:pb-10 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-4xl lg:px-8 lg:py-10">
       
       {/* Header do Perfil */}
       <header className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
@@ -679,6 +701,33 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* CARD: LGPD / Exclusão de Dados (Hard Delete) */}
+          <Card className="bg-zinc-900/40 border-rose-500/20 shadow-xl backdrop-blur-md overflow-hidden">
+            <CardHeader className="p-6 pb-2.5">
+              <CardTitle className="text-xs font-black uppercase tracking-wider text-rose-500 flex items-center gap-1.5">
+                <Trash2 className="w-4 h-4 text-rose-500" />
+                Excluir Conta e Dados (LGPD)
+              </CardTitle>
+              <CardDescription className="text-[10px] text-zinc-500 mt-0.5">
+                Exclua definitivamente todos os registros financeiros e de perfil de vocês do nosso banco de dados.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 pt-0 space-y-4">
+              <div className="bg-rose-500/5 border border-rose-500/10 p-4 rounded-xl space-y-3">
+                <p className="text-[10px] text-rose-400 font-bold leading-relaxed">
+                  Aviso Importante: Esta ação apagará de forma irreversível todas as transações, receitas, cartões de crédito, dívidas e logs cadastrados por este casal.
+                </p>
+                <Button
+                  onClick={() => setDeleteAccountConfirmOpen(true)}
+                  type="button"
+                  className="bg-rose-600 hover:bg-rose-500 text-white font-black h-11 px-4 rounded-xl text-xs flex items-center gap-1.5 border-none shadow-[0_4px_15px_rgba(244,63,94,0.15)] transition-all w-full justify-center"
+                >
+                  Excluir Permanentemente Nossos Dados
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       ) : (
         <div className="flex-1 flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
@@ -777,23 +826,38 @@ export default function ProfilePage() {
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Valor Mensal (R$)</label>
-                      <input
-                        type="number"
-                        placeholder="0.00"
-                        value={expenseForm.amount || ""}
-                        onChange={e => setExpenseForm({ ...expenseForm, amount: Number(e.target.value) })}
-                        className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
-                        required
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Valor Mensal (R$)</label>
+                        <input
+                          type="number"
+                          placeholder="0.00"
+                          value={expenseForm.amount || ""}
+                          onChange={e => setExpenseForm({ ...expenseForm, amount: Number(e.target.value) })}
+                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Dia do Vencimento</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          placeholder="15"
+                          value={expenseForm.dueDay || 15}
+                          onChange={e => setExpenseForm({ ...expenseForm, dueDay: Math.max(1, Math.min(31, Number(e.target.value))) })}
+                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                          required
+                        />
+                      </div>
                     </div>
                     <div className="flex gap-2 pt-2">
                       <Button type="submit" className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black h-11 rounded-xl text-xs">
                         <Save className="w-4 h-4 mr-1.5" /> Salvar
                       </Button>
                       {editId && (
-                        <Button type="button" onClick={() => { setEditId(null); setExpenseForm({ category: "Customizada", title: "", amount: 0 }); }} className="bg-zinc-900 text-zinc-300 border border-white/5 font-bold h-11 rounded-xl text-xs px-4">
+                        <Button type="button" onClick={() => { setEditId(null); setExpenseForm({ category: "Customizada", title: "", amount: 0, dueDay: 15 }); }} className="bg-zinc-900 text-zinc-300 border border-white/5 font-bold h-11 rounded-xl text-xs px-4">
                           Cancelar
                         </Button>
                       )}
@@ -1132,11 +1196,14 @@ export default function ProfilePage() {
                 {activeTab === "expenses" && fixedExpenses.map((item, idx) => (
                   <div key={idx} className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 flex justify-between items-center">
                     <div>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <Badge className="bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-[8px] uppercase font-bold py-0">{item.category}</Badge>
                         <h4 className="text-xs font-black text-zinc-200">{item.title}</h4>
                       </div>
-                      <span className="text-[10px] text-zinc-400 font-bold block mt-1">R$ {Number(item.amount).toFixed(2)}</span>
+                      <div className="flex gap-2 items-center mt-1.5 flex-wrap">
+                        <span className="text-[10px] text-zinc-350 font-bold">R$ {Number(item.amount).toFixed(2)}</span>
+                        <span className="text-[9px] text-zinc-550 font-semibold uppercase tracking-wider">&bull; Vence Dia {item.dueDay || 15}</span>
+                      </div>
                     </div>
                     <div className="flex gap-2">
                       <button onClick={() => handleEditExpense(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
@@ -1251,7 +1318,7 @@ export default function ProfilePage() {
       )}
 
       {/* Footer / Barra de Navegação PWA Minimalista */}
-      <footer className="mt-10 pt-5 border-t border-white/5 flex justify-around text-zinc-600 text-xs">
+      <footer className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-t border-white/5 py-3 flex justify-around text-zinc-600 text-xs sm:relative sm:bottom-auto sm:left-auto sm:right-auto sm:z-auto sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:border-white/5 sm:py-0 sm:mt-10 sm:pt-5">
         <Link href="/dashboard" className="flex flex-col items-center gap-1 hover:text-zinc-400 transition-colors">
           <Coins className="w-5 h-5" />
           <span className="text-[9px] tracking-wider uppercase font-semibold">Dashboard</span>
@@ -1289,6 +1356,37 @@ export default function ProfilePage() {
         </DialogContent>
       </Dialog>
       
+      {/* Modal de Confirmação Exclusão de Conta LGPD */}
+      <Dialog open={deleteAccountConfirmOpen} onOpenChange={(open) => !open && setDeleteAccountConfirmOpen(false)}>
+        <DialogContent className="bg-zinc-950 border border-white/10 shadow-2xl sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-100 flex items-center gap-2 text-lg">
+              <AlertTriangle className="w-5 h-5 text-rose-500" />
+              Confirmar Exclusão de Conta
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs mt-2 leading-relaxed">
+              Você está prestes a excluir **todos os dados financeiros e de perfil** do casal. Esta ação é definitiva, apagará permanentemente todos os lançamentos de vocês e não pode ser desfeita de forma alguma. Tem certeza que deseja prosseguir?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setDeleteAccountConfirmOpen(false)}
+              className="flex-1 bg-zinc-900 text-zinc-300 border-white/10 hover:bg-zinc-800 hover:text-white h-11 rounded-xl font-bold"
+            >
+              Cancelar
+            </Button>
+            <Button 
+              onClick={handleDeleteAccount}
+              disabled={deletingAccount}
+              className="flex-1 bg-rose-500 hover:bg-rose-600 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)] h-11 rounded-xl font-bold border-none"
+            >
+              {deletingAccount ? "Excluindo..." : "Sim, Excluir Tudo"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 }

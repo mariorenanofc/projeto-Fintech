@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { createClient } from "@/lib/supabase/client";
 import { 
   getTransactions, 
   addTransaction, 
@@ -32,6 +33,7 @@ import {
   TransactionInput 
 } from "@/actions/transactions";
 import { getProfileFinancialData, generateFinancialStrategy } from "@/actions/onboarding";
+
 
 export default function TransactionsPage() {
   const [mounted, setMounted] = useState(false);
@@ -59,6 +61,7 @@ export default function TransactionsPage() {
   // Estados de Edição / Cadastro
   const [editId, setEditId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [formOwnership, setFormOwnership] = useState<"shared" | "individual">("shared");
   const [form, setForm] = useState<TransactionInput>({
     type: "expense",
     amount: 0,
@@ -75,6 +78,31 @@ export default function TransactionsPage() {
     if (mounted && selectedMonth) {
       fetchData(selectedMonth);
     }
+  }, [selectedMonth, mounted]);
+
+  // Canal do Supabase Realtime para sincronização automática entre o casal
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const supabase = createClient();
+    const channel = supabase
+      .channel("realtime-transactions-page")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "transactions",
+        },
+        () => {
+          fetchData(selectedMonth);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [selectedMonth, mounted]);
 
   const fetchData = async (monthStr: string) => {
@@ -183,7 +211,7 @@ export default function TransactionsPage() {
   };
 
   const handleConfirmForecast = (item: any) => {
-    // 1. Preenche o formulário
+    setFormOwnership("shared");
     setForm({
       type: item.type,
       amount: item.amount,
@@ -192,13 +220,11 @@ export default function TransactionsPage() {
       date: new Date().toISOString().substring(0, 10)
     });
 
-    // 2. Destaca o formulário temporariamente
     setHighlightForm(true);
     setTimeout(() => {
       setHighlightForm(false);
     }, 2000);
 
-    // 3. Foca no input do valor e faz a rolagem até o formulário
     setTimeout(() => {
       if (amountInputRef.current) {
         amountInputRef.current.focus();
@@ -214,16 +240,25 @@ export default function TransactionsPage() {
     e.preventDefault();
     if (!form.description || form.amount <= 0 || !form.date) return;
 
+    const finalDescription = formOwnership === "individual" 
+      ? `[Individual] ${form.description.replace(/^\[Individual\]\s*/, "")}` 
+      : form.description.replace(/^\[Individual\]\s*/, "");
+
+    const payload = {
+      ...form,
+      description: finalDescription
+    };
+
     setLoading(true);
     if (editId) {
-      const res = await updateTransaction(editId, form);
+      const res = await updateTransaction(editId, payload);
       if (res.success) {
         setEditId(null);
         resetForm();
         await fetchData(selectedMonth);
       } else toast.error(res.error);
     } else {
-      const res = await addTransaction(form);
+      const res = await addTransaction(payload);
       if (res.success) {
         resetForm();
         await fetchData(selectedMonth);
@@ -233,10 +268,12 @@ export default function TransactionsPage() {
 
   const handleEdit = (item: any) => {
     setEditId(item.id);
+    const isIndividual = item.description.startsWith("[Individual]");
+    setFormOwnership(isIndividual ? "individual" : "shared");
     setForm({
       type: item.type,
       amount: Number(item.amount),
-      description: item.description,
+      description: item.description.replace(/^\[Individual\]\s*/, ""),
       category: item.category,
       date: item.date
     });
@@ -257,6 +294,7 @@ export default function TransactionsPage() {
   };
 
   const resetForm = () => {
+    setFormOwnership("shared");
     setForm({
       type: "expense",
       amount: 0,
@@ -275,18 +313,27 @@ export default function TransactionsPage() {
   const prevDisposable = strategy?.disposableIncomeForDebts || 0;
 
   const realIncome = transactions
-    .filter(t => t.type === "income")
+    .filter(t => t.type === "income" && !t.description.startsWith("[Individual]"))
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const realEssentials = transactions
-    .filter(t => t.type === "expense" && !["Cartão", "Lote/Terreno", "Empréstimo", "Aporte na Reserva", "Investimento"].includes(t.category))
+    .filter(t => t.type === "expense" && !t.description.startsWith("[Individual]") && !["Cartão", "Lote/Terreno", "Empréstimo", "Aporte na Reserva", "Investimento"].includes(t.category))
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const realCommitments = transactions
-    .filter(t => t.type === "expense" && ["Cartão", "Lote/Terreno", "Empréstimo"].includes(t.category))
+    .filter(t => t.type === "expense" && !t.description.startsWith("[Individual]") && ["Cartão", "Lote/Terreno", "Empréstimo"].includes(t.category))
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const realDisposable = realIncome - realEssentials - realCommitments;
+
+  // Totalizar despesas individuais por cônjuge
+  const individualExpensesByUser: { [name: string]: number } = {};
+  transactions.forEach(t => {
+    if (t.type === "expense" && t.description.startsWith("[Individual]")) {
+      const name = t.profiles?.full_name || "Parceiro";
+      individualExpensesByUser[name] = (individualExpensesByUser[name] || 0) + Number(t.amount);
+    }
+  });
 
   // Categorias de transações recomendadas
   const categories = [
@@ -295,7 +342,7 @@ export default function TransactionsPage() {
   ];
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col min-h-screen px-4 py-6 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-4xl lg:px-8 lg:py-10">
+    <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col min-h-screen px-4 py-6 pb-24 sm:pb-10 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-4xl lg:px-8 lg:py-10">
       
       {/* Header do Histórico */}
       <header className="flex justify-between items-center mb-8 pb-4 border-b border-white/5">
@@ -453,6 +500,20 @@ export default function TransactionsPage() {
                       </select>
                     </div>
                     <div>
+                      <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Destinação</label>
+                      <select
+                        value={formOwnership}
+                        onChange={e => setFormOwnership(e.target.value as any)}
+                        className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11"
+                      >
+                        <option value="shared">Conjunto (Compartilhado)</option>
+                        <option value="individual">Individual (Pessoal)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
                       <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Valor (R$)</label>
                       <input
                         ref={amountInputRef}
@@ -461,7 +522,17 @@ export default function TransactionsPage() {
                         placeholder="0.00"
                         value={form.amount || ""}
                         onChange={e => setForm({ ...form, amount: Number(e.target.value) })}
-                        className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                        className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Data</label>
+                      <input
+                        type="date"
+                        value={form.date}
+                        onChange={e => setForm({ ...form, date: e.target.value })}
+                        className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-250 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 [color-scheme:dark]"
                         required
                       />
                     </div>
@@ -474,13 +545,13 @@ export default function TransactionsPage() {
                       placeholder="Ex: Feira de verduras, PIX recebido"
                       value={form.description}
                       onChange={e => setForm({ ...form, description: e.target.value })}
-                      className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                      className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11"
                       required
                     />
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
+                    <div className="col-span-2">
                       <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Categoria</label>
                       <select
                         value={form.category}
@@ -492,17 +563,8 @@ export default function TransactionsPage() {
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Data</label>
-                      <input
-                        type="date"
-                        value={form.date}
-                        onChange={e => setForm({ ...form, date: e.target.value })}
-                        className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-250 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs [color-scheme:dark]"
-                        required
-                      />
-                    </div>
                   </div>
+
 
                   <div className="flex gap-2 pt-2">
                     <Button type="submit" className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black h-11 rounded-xl text-xs">
@@ -601,6 +663,29 @@ export default function TransactionsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Gastos Pessoais Individuais do Casal */}
+          {Object.keys(individualExpensesByUser).length > 0 && (
+            <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md">
+              <CardHeader className="p-6 pb-2">
+                <CardTitle className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <DollarSign className="w-4 h-4 text-yellow-500" />
+                  Gastos Pessoais (Individuais)
+                </CardTitle>
+                <CardDescription className="text-[10px] text-zinc-500 mt-0.5">
+                  Valores pessoais que não afetam o caixa compartilhado do casal
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6 pt-0 space-y-2">
+                {Object.entries(individualExpensesByUser).map(([name, val]) => (
+                  <div key={name} className="flex justify-between items-center bg-zinc-950/40 p-3 rounded-xl border border-white/5 text-xs font-semibold">
+                    <span className="text-zinc-300">{name}</span>
+                    <span className="text-yellow-500 font-black">R$ {val.toFixed(2)}</span>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* COLUNA DIREITA: Listagem de Transações */}
@@ -614,15 +699,27 @@ export default function TransactionsPage() {
           </CardHeader>
           <CardContent className="p-6 pt-0 space-y-3 max-h-[480px] overflow-y-auto pr-2">
             {loading ? (
-              <p className="text-xs text-zinc-550 uppercase tracking-widest font-semibold animate-pulse text-center py-8">Carregando...</p>
+              <p className="text-xs text-zinc-555 uppercase tracking-widest font-semibold animate-pulse text-center py-8">Carregando...</p>
             ) : transactions.length > 0 ? (
               transactions.map((item, idx) => (
                 <div key={idx} className="bg-zinc-950/40 p-4.5 rounded-xl border border-white/5 flex justify-between items-center">
                   <div>
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 flex-wrap">
                       <Badge className="bg-zinc-900 text-zinc-400 border border-white/5 text-[8px] uppercase font-bold py-0">{item.category}</Badge>
-                      <h4 className="text-xs font-black text-zinc-200">{item.description}</h4>
+                      {item.description.startsWith("[Individual]") ? (
+                        <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-[8px] uppercase font-bold py-0">Pessoal</Badge>
+                      ) : (
+                        <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] uppercase font-bold py-0">Conjunto</Badge>
+                      )}
+                      {item.profiles?.full_name && (
+                        <span className="text-[9px] text-zinc-500 font-semibold">
+                          por {item.profiles.full_name.split(" ")[0]}
+                        </span>
+                      )}
                     </div>
+                    <h4 className="text-xs font-black text-zinc-200 mt-2">
+                      {item.description.replace(/^\[Individual\]\s*/, "")}
+                    </h4>
                     <span className="text-[9px] text-zinc-550 font-semibold block mt-1">
                       {new Date(item.date + "T00:00:00").toLocaleDateString('pt-BR')}
                     </span>
@@ -684,8 +781,8 @@ export default function TransactionsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Footer PWA */}
-      <footer className="mt-8 pt-5 border-t border-white/5 flex justify-around text-zinc-600 text-xs">
+      {/* Footer / Barra de Navegação PWA Minimalista */}
+      <footer className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-t border-white/5 py-3 flex justify-around text-zinc-600 text-xs sm:relative sm:bottom-auto sm:left-auto sm:right-auto sm:z-auto sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:border-white/5 sm:py-0 sm:mt-10 sm:pt-5">
         <Link href="/dashboard" className="flex flex-col items-center gap-1 hover:text-zinc-400 transition-colors">
           <Coins className="w-5 h-5" />
           <span className="text-[9px] tracking-wider uppercase font-semibold">Dashboard</span>

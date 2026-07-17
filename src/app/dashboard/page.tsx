@@ -74,6 +74,32 @@ export default function DashboardPage() {
     }
   }, [selectedMonthStr, mounted]);
 
+  // Canal do Supabase Realtime para sincronização automática no Dashboard
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const supabase = createClient();
+    const channel = supabase
+      .channel("realtime-dashboard")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "transactions",
+        },
+        () => {
+          loadDashboardData(selectedMonthStr);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedMonthStr, mounted]);
+
+
   const loadDashboardData = async (monthStr: string) => {
     try {
       setLoadingRealData(true);
@@ -150,22 +176,31 @@ export default function DashboardPage() {
     // 1. Mapeia Despesas Fixas para dias padrão do calendário
     expenses.forEach((exp, idx) => {
       let dueDay = 15;
-      const cat = exp.category;
-      if (cat === "Água") dueDay = 10;
-      else if (cat === "Luz") dueDay = 12;
-      else if (cat === "Internet") dueDay = 15;
-      else if (cat === "Telefonia") dueDay = 18;
-      else if (cat === "Feira/Mercado") dueDay = 5;
-      else if (cat === "Combustível") dueDay = 8;
-      else dueDay = 25;
+      const titleStr = exp.title || "";
+      const match = titleStr.match(/\[due:(\d+)\]/);
+      
+      if (match) {
+        dueDay = parseInt(match[1]);
+      } else {
+        const cat = exp.category;
+        if (cat === "Água") dueDay = 10;
+        else if (cat === "Luz") dueDay = 12;
+        else if (cat === "Internet") dueDay = 15;
+        else if (cat === "Telefonia") dueDay = 18;
+        else if (cat === "Feira/Mercado") dueDay = 5;
+        else if (cat === "Combustível") dueDay = 8;
+        else dueDay = 25;
+      }
+
+      const cleanTitle = titleStr.replace(/\s*\[due:\d+\]/, "");
 
       generatedBills.push({
         id: `exp-${exp.id || idx}`,
-        title: exp.title,
+        title: cleanTitle,
         amount: Number(exp.amount),
         dueDate: `${currentYearMonth}${String(dueDay).padStart(2, '0')}`,
         status: "pending",
-        category: cat
+        category: exp.category
       });
     });
 
@@ -207,11 +242,16 @@ export default function DashboardPage() {
 
     // Cruza com transações pagas
     return generatedBills.map(bill => {
-      const tx = transactions.find(t => t.description === bill.title && t.category === bill.category);
+      const tx = transactions.find(t => {
+        const desc = t.description.replace(/^\[Individual\]\s*/, "");
+        return desc === bill.title && t.category === bill.category;
+      });
       if (tx) {
         bill.status = "paid";
         bill.transactionId = tx.id;
         bill.paidAmount = Number(tx.amount);
+        bill.paidBy = tx.profiles?.full_name ? tx.profiles.full_name.split(" ")[0] : undefined;
+        bill.isIndividual = tx.description.startsWith("[Individual]");
       }
       return bill;
     });
@@ -327,15 +367,15 @@ export default function DashboardPage() {
   const prevDisposable = strategy?.disposableIncomeForDebts || 0;
 
   const realIncome = transactions
-    .filter(t => t.type === "income")
+    .filter(t => t.type === "income" && !t.description.startsWith("[Individual]"))
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const realEssentials = transactions
-    .filter(t => t.type === "expense" && !["Cartão", "Lote/Terreno", "Empréstimo", "Aporte na Reserva", "Investimento"].includes(t.category))
+    .filter(t => t.type === "expense" && !t.description.startsWith("[Individual]") && !["Cartão", "Lote/Terreno", "Empréstimo", "Aporte na Reserva", "Investimento"].includes(t.category))
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const realCommitments = transactions
-    .filter(t => t.type === "expense" && ["Cartão", "Lote/Terreno", "Empréstimo"].includes(t.category))
+    .filter(t => t.type === "expense" && !t.description.startsWith("[Individual]") && ["Cartão", "Lote/Terreno", "Empréstimo"].includes(t.category))
     .reduce((sum, t) => sum + Number(t.amount), 0);
 
   const realDisposable = realIncome - realEssentials - realCommitments;
@@ -362,7 +402,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex-1 w-full mx-auto bg-zinc-950 flex flex-col min-h-screen px-3 py-4 xs:px-4 xs:py-6 max-w-full xs:max-w-[480px] sm:max-w-[768px] tablet:max-w-[834px] md:max-w-[1024px] lg:max-w-[1440px] laptop:max-w-[1600px] sm:px-6 md:px-8 lg:py-10">
+    <div className="flex-1 w-full mx-auto bg-zinc-950 flex flex-col min-h-screen px-3 py-4 xs:px-4 xs:py-6 pb-24 sm:pb-10 max-w-full xs:max-w-[480px] sm:max-w-[768px] tablet:max-w-[834px] md:max-w-[1024px] lg:max-w-[1440px] laptop:max-w-[1600px] sm:px-6 md:px-8 lg:py-10">
       
       {/* Header do App */}
       <Header 
@@ -446,7 +486,7 @@ export default function DashboardPage() {
       />
 
       {/* Footer / Barra de Navegação PWA Minimalista */}
-      <footer className="mt-10 pt-5 border-t border-white/5 flex justify-around text-zinc-600 text-xs">
+      <footer className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-t border-white/5 py-3 flex justify-around text-zinc-600 text-xs sm:relative sm:bottom-auto sm:left-auto sm:right-auto sm:z-auto sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:border-white/5 sm:py-0 sm:mt-10 sm:pt-5">
         <Link href="/dashboard" className="flex flex-col items-center gap-1 text-yellow-500 font-bold transition-colors">
           <Coins className="w-5 h-5" />
           <span className="text-[9px] tracking-wider uppercase font-semibold">Dashboard</span>

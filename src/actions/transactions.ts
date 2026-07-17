@@ -41,7 +41,13 @@ export async function getTransactions(monthStr?: string) {
 
     const { data: transactions, error } = await supabase
       .from("transactions")
-      .select("*")
+      .select(`
+        *,
+        profiles (
+          full_name,
+          avatar_url
+        )
+      `)
       .eq("family_group_id", familyGroupId)
       .gte("date", startDate)
       .lte("date", endDate)

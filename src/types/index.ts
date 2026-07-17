@@ -7,4 +7,7 @@ export interface Bill {
   category: string;
   transactionId?: string;
   paidAmount?: number;
+  paidBy?: string;
+  isIndividual?: boolean;
 }
+

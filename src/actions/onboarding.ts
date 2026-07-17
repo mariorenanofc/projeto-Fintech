@@ -14,6 +14,7 @@ export interface FixedExpenseInput {
   category: string;
   title: string;
   amount: number;
+  dueDay?: number;
 }
 
 export interface CreditCardInvoiceItem {
@@ -155,7 +156,7 @@ export async function saveOnboardingData(data: OnboardingData) {
         family_group_id: familyGroupId,
         profile_id: user.id,
         category: item.category,
-        title: item.title,
+        title: item.dueDay ? `${item.title} [due:${item.dueDay}]` : item.title,
         amount: item.amount
       }));
       const { error } = await supabase.from("fixed_expenses").insert(expensesToInsert);
@@ -617,7 +618,7 @@ export async function addFixedExpense(item: FixedExpenseInput) {
       family_group_id: familyGroupId,
       profile_id: user.id,
       category: item.category,
-      title: item.title,
+      title: item.dueDay ? `${item.title} [due:${item.dueDay}]` : item.title,
       amount: item.amount
     });
     if (error) throw error;
@@ -632,7 +633,7 @@ export async function updateFixedExpense(id: string, item: FixedExpenseInput) {
     const supabase = await createClient();
     const { error } = await supabase.from("fixed_expenses").update({
       category: item.category,
-      title: item.title,
+      title: item.dueDay ? `${item.title} [due:${item.dueDay}]` : item.title,
       amount: item.amount
     }).eq("id", id);
     if (error) throw error;
@@ -791,13 +792,25 @@ export async function getProfileFinancialData() {
       supabase.from("debts_and_financings").select("*").eq("family_group_id", familyGroupId)
     ]);
 
+    const mappedExpenses = (expenses.data || []).map(exp => {
+      const titleStr = exp.title || "";
+      const match = titleStr.match(/\[due:(\d+)\]/);
+      const dueDay = match ? parseInt(match[1]) : 15;
+      const cleanTitle = titleStr.replace(/\s*\[due:\d+\]/, "");
+      return {
+        ...exp,
+        title: cleanTitle,
+        dueDay
+      };
+    });
+
     return {
       success: true,
       voicePreferences: profile.data?.voice_preferences || null,
       reservaFinanceiraAtual: profile.data?.reserva_financeira_atual || 0,
       investimentosTotal: profile.data?.investimentos_total || 0,
       incomes: incomes.data || [],
-      fixedExpenses: expenses.data || [],
+      fixedExpenses: mappedExpenses,
       creditCards: cards.data || [],
       debts: debts.data || []
     };
@@ -925,3 +938,58 @@ export async function updateProfileAssets(reserva: number, investimentos: number
     return { success: false, error: error.message };
   }
 }
+
+/**
+ * Server Action para exclusão definitiva de todos os dados do casal (LGPD/Hard Delete)
+ */
+export async function deleteUserAccount() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Não autenticado." };
+
+    const familyGroupId = await getFamilyGroupId(supabase, user.id);
+
+    // Deletar dados vinculados ao grupo familiar em todas as tabelas compartilhadas
+    await Promise.all([
+      supabase.from("transactions").delete().eq("family_group_id", familyGroupId),
+      supabase.from("incomes").delete().eq("family_group_id", familyGroupId),
+      supabase.from("fixed_expenses").delete().eq("family_group_id", familyGroupId),
+      supabase.from("credit_cards").delete().eq("family_group_id", familyGroupId),
+      supabase.from("debts_and_financings").delete().eq("family_group_id", familyGroupId),
+      supabase.from("ai_calls_log").delete().eq("family_group_id", familyGroupId),
+      supabase.from("ai_tokens_wallet").delete().eq("family_group_id", familyGroupId),
+      supabase.from("ai_chat_messages").delete().eq("family_group_id", familyGroupId)
+    ]);
+
+    // Tentar deletar o perfil do usuário
+    const { error: profileErr } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("family_group_id", familyGroupId);
+
+    // Caso a exclusão em cascata seja bloqueada por restrição de chave ou RLS,
+    // garantimos a anonimização dos dados de perfil antes de desvincular
+    if (profileErr) {
+      await supabase
+        .from("profiles")
+        .update({ 
+          full_name: "Usuário Excluído", 
+          avatar_url: null, 
+          voice_preferences: null,
+          reserva_financeira_atual: 0,
+          investimentos_total: 0
+        })
+        .eq("family_group_id", familyGroupId);
+    }
+
+    // Por fim, deleta o grupo familiar
+    await supabase.from("family_groups").delete().eq("id", familyGroupId);
+
+    return { success: true };
+  } catch (err: any) {
+    console.error("Erro ao excluir conta conjugal:", err);
+    return { success: false, error: err.message || "Erro desconhecido ao processar a exclusão." };
+  }
+}
+

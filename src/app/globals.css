@@ -151,6 +151,7 @@ footer.border-t {
     padding-bottom: env(safe-area-inset-bottom, 16px);
     padding-top: 12px;
     box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* Quando o usuário NÃO está rolando para baixo (parado ou rolando para cima), ocultamos o footer para abrir espaço */

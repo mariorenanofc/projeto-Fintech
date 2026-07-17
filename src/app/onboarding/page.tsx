@@ -46,12 +46,12 @@ export default function OnboardingPage() {
   const [incomes, setIncomes] = useState<IncomeInput[]>([]);
   
   const [fixedExpenses, setFixedExpenses] = useState<FixedExpenseInput[]>([
-    { category: "Água", title: "Conta de Água", amount: 0 },
-    { category: "Luz", title: "Conta de Luz", amount: 0 },
-    { category: "Internet", title: "Internet Banda Larga", amount: 0 },
-    { category: "Telefonia", title: "Plano de Celular", amount: 0 },
-    { category: "Feira/Mercado", title: "Supermercado Mensal", amount: 0 },
-    { category: "Combustível", title: "Gasolina/Transporte", amount: 0 }
+    { category: "Água", title: "Conta de Água", amount: 0, dueDay: 10 },
+    { category: "Luz", title: "Conta de Luz", amount: 0, dueDay: 12 },
+    { category: "Internet", title: "Internet Banda Larga", amount: 0, dueDay: 15 },
+    { category: "Telefonia", title: "Plano de Celular", amount: 0, dueDay: 18 },
+    { category: "Feira/Mercado", title: "Supermercado Mensal", amount: 0, dueDay: 5 },
+    { category: "Combustível", title: "Gasolina/Transporte", amount: 0, dueDay: 8 }
   ]);
 
   const [creditCards, setCreditCards] = useState<CreditCardInput[]>([]);
@@ -141,14 +141,14 @@ export default function OnboardingPage() {
   };
 
   const handleAddCustomExpense = () => {
-    setFixedExpenses([...fixedExpenses, { category: "Customizada", title: "", amount: 0 }]);
+    setFixedExpenses([...fixedExpenses, { category: "Customizada", title: "", amount: 0, dueDay: 15 }]);
   };
 
   const handleRemoveCustomExpense = (index: number) => {
     setFixedExpenses(fixedExpenses.filter((_, i) => i !== index));
   };
 
-  const handleCustomExpenseChange = (index: number, field: "title" | "amount", value: any) => {
+  const handleCustomExpenseChange = (index: number, field: "title" | "amount" | "dueDay", value: any) => {
     const updated = [...fixedExpenses];
     updated[index] = { ...updated[index], [field]: value };
     setFixedExpenses(updated);
@@ -607,21 +607,44 @@ export default function OnboardingPage() {
                         </div>
                       )}
 
-                      <div className="sm:col-span-2">
-                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Valor Mensal Estimado (R$)</label>
-                        <input
-                          type="number"
-                          placeholder="0,00"
-                          value={item.amount || ""}
-                          onChange={(e) => {
-                            if (item.category === "Customizada") {
-                              handleCustomExpenseChange(index, "amount", Number(e.target.value));
-                            } else {
-                              handleFixedExpenseChange(index, Number(e.target.value));
-                            }
-                          }}
-                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
-                        />
+                      <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+                        <div>
+                          <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Valor Mensal (R$)</label>
+                          <input
+                            type="number"
+                            placeholder="0,00"
+                            value={item.amount || ""}
+                            onChange={(e) => {
+                              if (item.category === "Customizada") {
+                                handleCustomExpenseChange(index, "amount", Number(e.target.value));
+                              } else {
+                                handleFixedExpenseChange(index, Number(e.target.value));
+                              }
+                            }}
+                            className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Dia do Vencimento</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="31"
+                            placeholder="15"
+                            value={item.dueDay || 15}
+                            onChange={(e) => {
+                              const val = Math.max(1, Math.min(31, Number(e.target.value)));
+                              if (item.category === "Customizada") {
+                                handleCustomExpenseChange(index, "dueDay", val);
+                              } else {
+                                const updated = [...fixedExpenses];
+                                updated[index].dueDay = val;
+                                setFixedExpenses(updated);
+                              }
+                            }}
+                            className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

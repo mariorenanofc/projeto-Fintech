@@ -34,9 +34,11 @@ export function FloatingTools() {
       if (scrollTop > lastScrollTop && scrollTop > 50) {
         // Rolando para baixo -> esconde balões flutuantes
         setIsVisible(false);
+        document.body.classList.add("scrolling-down");
       } else if (scrollTop < lastScrollTop) {
         // Rolando para cima -> mostra balões flutuantes
         setIsVisible(true);
+        document.body.classList.remove("scrolling-down");
       }
       
       lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
@@ -45,6 +47,7 @@ export function FloatingTools() {
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", handleScroll);
+      document.body.classList.remove("scrolling-down");
     };
   }, []);
 

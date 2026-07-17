@@ -23,11 +23,11 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Fintech Casal - Sintonia & Planejamento Financeiro 💛",
     description: "Organize o orçamento do casal, planeje o futuro, acompanhe vencimentos com agenda compartilhada e alcance a prosperidade financeira juntos.",
-    url: "https://fintechcasal.com.br",
+    url: "https://www.fintechcasal.com.br",
     siteName: "Fintech Casal",
     images: [
       {
-        url: "/opengraph-image.png",
+        url: "https://www.fintechcasal.com.br/opengraph-image.jpg",
         width: 1200,
         height: 630,
         alt: "Fintech Casal Preview",
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Fintech Casal - Sintonia & Planejamento Financeiro 💛",
     description: "Organize o orçamento do casal, planeje o futuro, acompanhe vencimentos com agenda compartilhada e alcance a prosperidade financeira juntos.",
-    images: ["/opengraph-image.png"],
+    images: ["https://www.fintechcasal.com.br/opengraph-image.jpg"],
   },
   manifest: "/manifest.json",
   appleWebApp: {
