@@ -17,16 +17,17 @@ const geistMono = Roboto_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fintech Casal",
-  description: "O Fintech Casal é um aplicativo de organização financeira projetado para ajudar casais a gerenciar orçamentos conjuntos, com integração oficial ao Google Calendar.",
+  metadataBase: new URL("https://fintechcasal.com.br"),
+  title: "Fintech Casal - Sintonia & Planejamento Financeiro 💛",
+  description: "Organize o orçamento do casal, planeje o futuro, acompanhe vencimentos com agenda compartilhada e alcance a prosperidade financeira juntos.",
   openGraph: {
-    title: "Fintech Casal",
-    description: "SaaS financeiro compartilhado para casais. Planejem e poupem juntos pelo seu futuro.",
+    title: "Fintech Casal - Sintonia & Planejamento Financeiro 💛",
+    description: "Organize o orçamento do casal, planeje o futuro, acompanhe vencimentos com agenda compartilhada e alcance a prosperidade financeira juntos.",
     url: "https://fintechcasal.com.br",
     siteName: "Fintech Casal",
     images: [
       {
-        url: "/opengraph-image.png", // Imagem na pasta public/
+        url: "/opengraph-image.png",
         width: 1200,
         height: 630,
         alt: "Fintech Casal Preview",
@@ -34,6 +35,12 @@ export const metadata: Metadata = {
     ],
     locale: "pt_BR",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Fintech Casal - Sintonia & Planejamento Financeiro 💛",
+    description: "Organize o orçamento do casal, planeje o futuro, acompanhe vencimentos com agenda compartilhada e alcance a prosperidade financeira juntos.",
+    images: ["/opengraph-image.png"],
   },
   manifest: "/manifest.json",
   appleWebApp: {
@@ -45,6 +52,7 @@ export const metadata: Metadata = {
     telephone: false,
   },
 };
+
 
 export const viewport: Viewport = {
   themeColor: "#eab308",
