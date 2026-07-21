@@ -184,3 +184,55 @@ footer.border-t {
     padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
   }
 }
+
+/* =====================================================================
+   IMPRESSÃO DA GELADEIRA (A4 HIGH DEFINITION PRINTING)
+   ===================================================================== */
+@media print {
+  /* Oculta tudo que estiver na página principal por padrão ao imprimir */
+  body > * {
+    display: none !important;
+  }
+
+  /* Exibe exclusivamente o portal do dialog e a folha de relatório */
+  body > [data-slot="dialog-portal"],
+  [data-slot="dialog-portal"] {
+    display: block !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  [data-slot="dialog-overlay"] {
+    display: none !important;
+  }
+
+  [data-slot="dialog-content"] {
+    position: static !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Configuração de página A4 portrait com margens padrão */
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm;
+  }
+}

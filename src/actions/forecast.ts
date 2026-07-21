@@ -175,7 +175,7 @@ export async function getFinancialForecast(monthsAhead: number = 12): Promise<Fo
       const essentialsList: ForecastItemDetail[] = dbExpenses.map(exp => {
         const titleStr = exp.title || "";
         const match = titleStr.match(/\[due:(\d+)\]/);
-        const dueDay = match ? parseInt(match[1]) : 15;
+        const dueDay = exp.due_day || (match ? parseInt(match[1]) : 15);
         const cleanTitle = titleStr.replace(/\s*\[due:\d+\]/, "");
         const formattedDueDate = `${String(dueDay).padStart(2, "0")}/${monthStr.split("-")[1]}/${monthStr.split("-")[0]}`;
         

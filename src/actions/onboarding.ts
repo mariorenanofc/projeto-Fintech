@@ -70,6 +70,7 @@ export interface CardTacticalAction {
   nextInvoice: number;
   suggestedProportionalPayment: number;
   recommendation: string;
+  requiresNegotiation?: boolean;
 }
 
 export interface DebtNegotiationAction {
@@ -149,7 +150,8 @@ export async function saveOnboardingData(data: OnboardingData) {
         profile_id: user.id,
         title: item.receiptDay ? `${item.title} [rec:${item.receiptDay}]` : item.title,
         amount: item.amount,
-        owner: item.owner
+        owner: item.owner,
+        receipt_day: item.receiptDay || 5
       }));
       const { error } = await supabase.from("incomes").insert(incomesToInsert);
       if (error) throw new Error(`Erro ao salvar receitas: ${error.message}`);
@@ -162,7 +164,8 @@ export async function saveOnboardingData(data: OnboardingData) {
         profile_id: user.id,
         category: item.category,
         title: item.dueDay ? `${item.title} [due:${item.dueDay}]` : item.title,
-        amount: item.amount
+        amount: item.amount,
+        due_day: item.dueDay || 15
       }));
       const { error } = await supabase.from("fixed_expenses").insert(expensesToInsert);
       if (error) throw new Error(`Erro ao salvar despesas fixas: ${error.message}`);
@@ -177,7 +180,9 @@ export async function saveOnboardingData(data: OnboardingData) {
         total_limit: item.totalLimit,
         current_invoice: item.currentInvoice,
         next_invoice: item.nextInvoice,
-        invoices_schedule: JSON.stringify(item.invoicesSchedule || [])
+        invoices_schedule: JSON.stringify(item.invoicesSchedule || []),
+        closing_day: item.closingDay || 5,
+        due_day: item.dueDay || 15
       }));
       const { error } = await supabase.from("credit_cards").insert(cardsToInsert);
       if (error) throw new Error(`Erro ao salvar cartões de crédito: ${error.message}`);
@@ -198,7 +203,9 @@ export async function saveOnboardingData(data: OnboardingData) {
         installments_schedule: JSON.stringify(item.installmentsSchedule || []),
         overdue_installments: item.overdueInstallments || 0,
         overdue_value_accumulated: item.overdueValueAccumulated || 0,
-        tipo_divida: item.tipoDivida || 'toxica'
+        tipo_divida: item.tipoDivida || 'toxica',
+        due_day: item.dueDay || 10,
+        next_due_date: item.nextDueDate || null
       }));
       const { error } = await supabase.from("debts_and_financings").insert(debtsToInsert);
       if (error) throw new Error(`Erro ao salvar dívidas/financiamentos: ${error.message}`);
@@ -376,6 +383,8 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
         let recText = "";
         let formattedPayment = 0;
 
+        const requiresNegotiation = currentResidue < invoiceVal && invoiceVal > 0;
+
         if (currentResidue >= invoiceVal && invoiceVal > 0) {
           // Consegue pagar integralmente
           formattedPayment = invoiceVal;
@@ -397,7 +406,8 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
           currentInvoice: invoiceVal,
           nextInvoice: nextInvoiceVal,
           suggestedProportionalPayment: formattedPayment,
-          recommendation: recText
+          recommendation: recText,
+          requiresNegotiation
         });
       });
 
@@ -578,7 +588,8 @@ export async function addIncome(item: IncomeInput) {
       profile_id: user.id,
       title: formattedTitle,
       amount: item.amount,
-      owner: item.owner
+      owner: item.owner,
+      receipt_day: item.receiptDay || 5
     });
     if (error) throw error;
     return { success: true };
@@ -594,7 +605,8 @@ export async function updateIncome(id: string, item: IncomeInput) {
     const { error } = await supabase.from("incomes").update({
       title: formattedTitle,
       amount: item.amount,
-      owner: item.owner
+      owner: item.owner,
+      receipt_day: item.receiptDay || 5
     }).eq("id", id);
     if (error) throw error;
     return { success: true };
@@ -627,7 +639,8 @@ export async function addFixedExpense(item: FixedExpenseInput) {
       profile_id: user.id,
       category: item.category,
       title: item.dueDay ? `${item.title} [due:${item.dueDay}]` : item.title,
-      amount: item.amount
+      amount: item.amount,
+      due_day: item.dueDay || 15
     });
     if (error) throw error;
     return { success: true };
@@ -642,7 +655,8 @@ export async function updateFixedExpense(id: string, item: FixedExpenseInput) {
     const { error } = await supabase.from("fixed_expenses").update({
       category: item.category,
       title: item.dueDay ? `${item.title} [due:${item.dueDay}]` : item.title,
-      amount: item.amount
+      amount: item.amount,
+      due_day: item.dueDay || 15
     }).eq("id", id);
     if (error) throw error;
     return { success: true };
@@ -679,7 +693,9 @@ export async function addCreditCard(item: CreditCardInput) {
       total_limit: item.totalLimit,
       current_invoice: item.currentInvoice,
       next_invoice: item.nextInvoice,
-      invoices_schedule: item.invoicesSchedule || []
+      invoices_schedule: item.invoicesSchedule || [],
+      closing_day: item.closingDay || 5,
+      due_day: item.dueDay || 15
     });
     if (error) throw error;
     return { success: true };
@@ -697,7 +713,9 @@ export async function updateCreditCard(id: string, item: CreditCardInput) {
       total_limit: item.totalLimit,
       current_invoice: item.currentInvoice,
       next_invoice: item.nextInvoice,
-      invoices_schedule: item.invoicesSchedule || []
+      invoices_schedule: item.invoicesSchedule || [],
+      closing_day: item.closingDay || 5,
+      due_day: item.dueDay || 15
     }).eq("id", id);
     if (error) throw error;
     return { success: true };
@@ -740,7 +758,9 @@ export async function addDebt(item: DebtInput) {
       installments_schedule: item.installmentsSchedule || [],
       overdue_installments: item.overdueInstallments || 0,
       overdue_value_accumulated: item.overdueValueAccumulated || 0,
-      tipo_divida: item.tipoDivida || 'toxica'
+      tipo_divida: item.tipoDivida || 'toxica',
+      due_day: item.dueDay || 10,
+      next_due_date: item.nextDueDate || null
     });
     if (error) throw error;
     return { success: true };
@@ -764,7 +784,9 @@ export async function updateDebt(id: string, item: DebtInput) {
       installments_schedule: item.installmentsSchedule || [],
       overdue_installments: item.overdueInstallments || 0,
       overdue_value_accumulated: item.overdueValueAccumulated || 0,
-      tipo_divida: item.tipoDivida || 'toxica'
+      tipo_divida: item.tipoDivida || 'toxica',
+      due_day: item.dueDay || 10,
+      next_due_date: item.nextDueDate || null
     }).eq("id", id);
     if (error) throw error;
     return { success: true };
@@ -809,7 +831,7 @@ export async function getProfileFinancialData() {
     const mappedIncomes = (incomes.data || []).map(inc => {
       const titleStr = inc.title || "";
       const match = titleStr.match(/\[rec:(\d+)\]/);
-      const receiptDay = match ? parseInt(match[1]) : 5;
+      const receiptDay = inc.receipt_day || (match ? parseInt(match[1]) : 5);
       const cleanTitle = titleStr.replace(/\s*\[rec:\d+\]/, "");
       return {
         ...inc,
@@ -821,7 +843,7 @@ export async function getProfileFinancialData() {
     const mappedExpenses = (expenses.data || []).map(exp => {
       const titleStr = exp.title || "";
       const match = titleStr.match(/\[due:(\d+)\]/);
-      const dueDay = match ? parseInt(match[1]) : 15;
+      const dueDay = exp.due_day || (match ? parseInt(match[1]) : 15);
       const cleanTitle = titleStr.replace(/\s*\[due:\d+\]/, "");
       return {
         ...exp,
@@ -834,8 +856,8 @@ export async function getProfileFinancialData() {
       const nameStr = card.name || "";
       const closeMatch = nameStr.match(/\[close:(\d+)\]/);
       const dueMatch = nameStr.match(/\[due:(\d+)\]/);
-      const closingDay = closeMatch ? parseInt(closeMatch[1]) : 5;
-      const dueDay = dueMatch ? parseInt(dueMatch[1]) : 15;
+      const closingDay = card.closing_day || (closeMatch ? parseInt(closeMatch[1]) : 5);
+      const dueDay = card.due_day || (dueMatch ? parseInt(dueMatch[1]) : 15);
       const cleanName = nameStr.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
       return {
         ...card,
@@ -849,8 +871,8 @@ export async function getProfileFinancialData() {
       const titleStr = debt.title || "";
       const dueMatch = titleStr.match(/\[due:(\d+)\]/);
       const nextMatch = titleStr.match(/\[next:([^\]]+)\]/);
-      const dueDay = dueMatch ? parseInt(dueMatch[1]) : 10;
-      const nextDueDate = nextMatch ? nextMatch[1] : "";
+      const dueDay = debt.due_day || (dueMatch ? parseInt(dueMatch[1]) : 10);
+      const nextDueDate = debt.next_due_date || (nextMatch ? nextMatch[1] : "");
       const cleanTitle = titleStr.replace(/\s*\[due:\d+\]/, "").replace(/\s*\[next:[^\]]+\]/, "");
       return {
         ...debt,

@@ -27,6 +27,10 @@ import { ConfirmPaymentDialog } from "@/components/dashboard/confirm-payment-dia
 import { CelebrationModal } from "@/components/dashboard/celebration-modal";
 import { FinancialErrorBoundary } from "@/components/ui/financial-error-boundary";
 
+import { BankNegotiationModal } from "@/components/dashboard/bank-negotiation-modal";
+import { PrintReportModal } from "@/components/dashboard/print-report-modal";
+import { Printer } from "lucide-react";
+
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [loadingRealData, setLoadingRealData] = useState(true);
@@ -57,13 +61,18 @@ export default function DashboardPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [goals, setGoals] = useState<GoalInput[]>([]);
 
-  // Novos estados para a inteligência de pagamentos e economia
+  // Novos estados para a inteligência de pagamentos, simulação de renegociação e impressão
   const [economyTotal, setEconomyTotal] = useState(0);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [billToConfirm, setBillToConfirm] = useState<Bill | null>(null);
   const [actualAmountPaid, setActualAmountPaid] = useState<number>(0);
   const [celebrationOpen, setCelebrationOpen] = useState(false);
   const [celebrationStage, setCelebrationStage] = useState<"yellow" | "green">("yellow");
+
+  // Estados dos novos modais
+  const [negotiationModalOpen, setNegotiationModalOpen] = useState(false);
+  const [negotiationItem, setNegotiationItem] = useState<{ id: string; title: string; amount: number; type: "card" | "debt"; rawItem?: any } | null>(null);
+  const [printModalOpen, setPrintModalOpen] = useState(false);
 
   // Garante a montagem inicial
   useEffect(() => {
@@ -365,7 +374,7 @@ export default function DashboardPage() {
     }
   };
 
-  // Sincronizar conta com o Google Calendar
+  // Sincronizar conta com o Google Calendar com reconexão resiliente
   const handleSyncGoogleCalendar = async (bill: Bill) => {
     try {
       const res = await createCalendarEvent({
@@ -375,8 +384,24 @@ export default function DashboardPage() {
       });
       if (res.success) {
         toast.success(`Conta "${bill.title}" agendada no Google Agenda!`);
+      } else if (res.code === "TOKEN_EXPIRED" || res.code === "NO_GOOGLE_AUTH") {
+        toast.warning(res.error, {
+          action: {
+            label: "Reconectar Google",
+            onClick: async () => {
+              const supabase = createClient();
+              await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: {
+                  redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+                  scopes: "https://www.googleapis.com/auth/calendar.events"
+                }
+              });
+            }
+          }
+        });
       } else {
-        toast.warning(`Aviso: ${res.error}`, { description: "Faça login com Google para sincronizar." });
+        toast.warning(`Aviso: ${res.error}`);
       }
     } catch (err: any) {
       toast.error("Erro ao conectar com a API do Google: " + err.message);
@@ -504,10 +529,10 @@ export default function DashboardPage() {
           </FinancialErrorBoundary>
           
           {/* Botões de Ação */}
-          <div className="grid grid-cols-2 gap-3 w-full">
+          <div className="grid grid-cols-3 gap-2 w-full">
             <Link href="/chat" className="w-full block">
               <Button 
-                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 font-black shadow-[0_4px_15px_rgba(234,179,8,0.2)] flex items-center justify-center gap-1.5 h-11 rounded-xl text-xs border-none transition-all duration-300 hover:scale-[1.02]"
+                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 font-black shadow-[0_4px_15px_rgba(234,179,8,0.2)] flex items-center justify-center gap-1 h-11 rounded-xl text-[11px] border-none transition-all duration-300 hover:scale-[1.02]"
               >
                 Conselheiro IA 🤖
               </Button>
@@ -515,16 +540,32 @@ export default function DashboardPage() {
             <Link href="/profile" className="w-full block">
               <Button 
                 variant="outline" 
-                className="w-full border-white/5 hover:bg-zinc-900/50 hover:border-zinc-800 text-zinc-300 font-bold h-11 rounded-xl text-xs transition-all duration-300 hover:scale-[1.02]"
+                className="w-full border-white/5 hover:bg-zinc-900/50 hover:border-zinc-800 text-zinc-300 font-bold h-11 rounded-xl text-[11px] transition-all duration-300 hover:scale-[1.02]"
               >
                 Ajustar Finanças ⚙️
               </Button>
             </Link>
+            <Button 
+              type="button"
+              onClick={() => setPrintModalOpen(true)}
+              className="w-full bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-yellow-400 font-black h-11 rounded-xl text-[11px] transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-1"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Plano Geladeira 🖨️
+            </Button>
           </div>
 
           {/* Conselheiro de Choque / Recomendações */}
           <FinancialErrorBoundary fallbackTitle="Diagnóstico Indisponível">
-            <RecommendationsCard strategy={strategy} />
+            <RecommendationsCard 
+              strategy={strategy} 
+              rawCards={rawCards}
+              rawDebts={rawDebts}
+              onOpenNegotiationModal={(item) => {
+                setNegotiationItem(item);
+                setNegotiationModalOpen(true);
+              }}
+            />
           </FinancialErrorBoundary>
         </div>
 
@@ -567,6 +608,28 @@ export default function DashboardPage() {
           handleUndoPayment={handleUndoPayment}
         />
       </FinancialErrorBoundary>
+
+      {/* MODAL DE SIMULAÇÃO DE RENEGOCIAÇÃO BANCÁRIA */}
+      <BankNegotiationModal 
+        isOpen={negotiationModalOpen}
+        onClose={() => setNegotiationModalOpen(false)}
+        itemToNegotiate={negotiationItem}
+        currentResidue={realDisposable}
+        onSuccess={() => loadDashboardData(selectedMonthStr)}
+      />
+
+      {/* MODAL DE IMPRESSÃO DE RELATÓRIO MENSAL E ANUAL (Plano da Geladeira) */}
+      <PrintReportModal 
+        isOpen={printModalOpen}
+        onClose={() => setPrintModalOpen(false)}
+        strategy={strategy}
+        bills={bills}
+        rawCards={rawCards}
+        rawDebts={rawDebts}
+        goals={goals}
+        selectedMonthStr={selectedMonthStr}
+        getReadableMonthLabel={getReadableMonthLabel}
+      />
 
       {/* Footer / Barra de Navegação PWA Minimalista */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-t border-white/5 py-3 flex justify-around text-zinc-600 text-xs sm:relative sm:bottom-auto sm:left-auto sm:right-auto sm:z-auto sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:border-white/5 sm:py-0 sm:mt-10 sm:pt-5">

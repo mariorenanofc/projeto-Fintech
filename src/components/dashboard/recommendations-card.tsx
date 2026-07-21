@@ -1,13 +1,17 @@
 import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Info, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Info, AlertTriangle, Calculator } from "lucide-react";
 import { FinancialStrategyResult } from "@/actions/onboarding";
 
 interface RecommendationsCardProps {
   strategy: FinancialStrategyResult | null;
+  rawCards?: any[];
+  rawDebts?: any[];
+  onOpenNegotiationModal?: (item: { id: string; title: string; amount: number; type: "card" | "debt"; rawItem?: any }) => void;
 }
 
-export function RecommendationsCard({ strategy }: RecommendationsCardProps) {
+export function RecommendationsCard({ strategy, rawCards = [], rawDebts = [], onOpenNegotiationModal }: RecommendationsCardProps) {
   if (!strategy || !strategy.hasStrategy) return null;
 
   const percent = strategy.reservaMeta > 0 
@@ -23,10 +27,10 @@ export function RecommendationsCard({ strategy }: RecommendationsCardProps) {
       <CardHeader className="p-5 sm:p-6 pb-2">
         <CardTitle className="text-xs font-black uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
           <Info className="w-4 h-4" />
-          Recomendações da Nossa IA 💡
+          Engenharia Financeira & IA 💡
         </CardTitle>
         <CardDescription className="text-[9px] text-zinc-550 mt-0.5">
-          Ideias personalizadas para apoiar a jornada de vocês
+          Ideias personalizadas e simulações para resgatar a saúde financeira do casal
         </CardDescription>
       </CardHeader>
       
@@ -81,21 +85,78 @@ export function RecommendationsCard({ strategy }: RecommendationsCardProps) {
 
         {strategy.financialStage === "red" && (
           <div className="space-y-3">
-            <span className="text-[9px] text-rose-400 uppercase tracking-widest font-black block">Plano de Resgate (Fase Vermelha):</span>
+            <span className="text-[9px] text-rose-400 uppercase tracking-widest font-black block">Plano de Resgate (Engenharia Financeira):</span>
             
-            {strategy.cardActions.map((act, i) => (
-              <div key={i} className="bg-rose-500/5 border border-rose-500/10 p-3 rounded-xl space-y-1">
-                <span className="text-[10px] text-zinc-200 font-bold block">{act.cardName}</span>
-                <p className="text-[9px] text-zinc-400 leading-relaxed font-semibold">{act.recommendation}</p>
-              </div>
-            ))}
+            {strategy.cardActions.map((act, i) => {
+              const cleanCardName = act.cardName.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
+              const rawCard = rawCards.find(c => (c.name || "").includes(cleanCardName) || (c.name || "").includes(act.cardName));
+              const needsNegotiation = act.requiresNegotiation === true || 
+                act.recommendation.toLowerCase().includes("parcelar") || 
+                act.recommendation.toLowerCase().includes("renegociar") || 
+                act.recommendation.toLowerCase().includes("indisponível");
 
-            {strategy.debtActions.map((act, i) => (
-              <div key={i} className="bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-xl space-y-1">
-                <span className="text-[10px] text-zinc-200 font-bold block">{act.debtTitle}</span>
-                <p className="text-[9px] text-zinc-400 leading-relaxed font-semibold">{act.recommendation}</p>
-              </div>
-            ))}
+              return (
+                <div key={i} className="bg-rose-500/5 border border-rose-500/10 p-3 rounded-xl space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-zinc-200 font-bold block">{cleanCardName}</span>
+                    <span className="text-[10px] font-black text-rose-400">R$ {act.currentInvoice.toFixed(2)}</span>
+                  </div>
+                  <p className="text-[9px] text-zinc-400 leading-relaxed font-semibold">{act.recommendation}</p>
+                  
+                  {onOpenNegotiationModal && needsNegotiation && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => onOpenNegotiationModal({
+                        id: rawCard?.id || `card-${i}`,
+                        title: cleanCardName,
+                        amount: act.currentInvoice,
+                        type: "card",
+                        rawItem: rawCard
+                      })}
+                      className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-[9px] font-bold h-7 rounded-lg flex items-center justify-center gap-1 mt-1"
+                    >
+                      <Calculator className="w-3 h-3" /> Simular Renegociação Bancária ⚡
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+
+            {strategy.debtActions.map((act, i) => {
+              const cleanDebtTitle = act.debtTitle.replace(/\s*\[due:\d+\]/, "").replace(/\s*\[next:[^\]]+\]/, "");
+              const rawDebt = rawDebts.find(d => (d.title || "").includes(cleanDebtTitle) || (d.title || "").includes(act.debtTitle));
+              const needsNegotiation = act.recommendation.toLowerCase().includes("vencidas") || 
+                act.recommendation.toLowerCase().includes("renegociar") || 
+                act.recommendation.toLowerCase().includes("incorporação");
+
+              return (
+                <div key={i} className="bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-xl space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-zinc-200 font-bold block">{cleanDebtTitle}</span>
+                    <span className="text-[10px] font-black text-yellow-400">R$ {act.installmentValue.toFixed(2)}/mês</span>
+                  </div>
+                  <p className="text-[9px] text-zinc-400 leading-relaxed font-semibold">{act.recommendation}</p>
+
+                  {onOpenNegotiationModal && needsNegotiation && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => onOpenNegotiationModal({
+                        id: rawDebt?.id || `debt-${i}`,
+                        title: cleanDebtTitle,
+                        amount: act.installmentValue * 12,
+                        type: "debt",
+                        rawItem: rawDebt
+                      })}
+                      className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-[9px] font-bold h-7 rounded-lg flex items-center justify-center gap-1 mt-1"
+                    >
+                      <Calculator className="w-3 h-3" /> Simular Renegociação Bancária ⚡
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
 

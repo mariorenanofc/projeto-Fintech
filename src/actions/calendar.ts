@@ -48,7 +48,8 @@ export async function createCalendarEvent(billData: BillData) {
     if (!providerToken) {
       return {
         success: false,
-        error: "Token do Google (provider_token) não encontrado na sessão. Certifique-se de realizar o login com o Google Auth.",
+        code: "NO_GOOGLE_AUTH",
+        error: "Token do Google (provider_token) não encontrado na sessão. Faça login com a conta do Google para sincronizar suas contas.",
         status: 400,
       };
     }
@@ -71,12 +72,9 @@ export async function createCalendarEvent(billData: BillData) {
     }
 
     // 4. Configura as datas para o evento de dia inteiro no Google Calendar
-    // O Google Calendar exige que a data de término (end.date) de um evento de dia inteiro seja exclusiva (dia seguinte).
     const startDate = billData.dueDate;
     const startTemp = new Date(startDate + "T00:00:00");
     startTemp.setDate(startTemp.getDate() + 1);
-    
-    // Formata o end.date como YYYY-MM-DD
     const endDate = startTemp.toISOString().split("T")[0];
 
     // 5. Monta a requisição para a API REST do Google Calendar
@@ -97,13 +95,12 @@ export async function createCalendarEvent(billData: BillData) {
           end: {
             date: endDate,
           },
-          // Inclui o parceiro como convidado (attendee) para que o evento reflita e seja sincronizado no Google Agenda de ambos
           attendees: partnerEmails.map(email => ({ email })),
           reminders: {
             useDefault: false,
             overrides: [
-              { method: "popup", minutes: 1440 }, // Lembrete na tela 1 dia antes (1440 min)
-              { method: "email", minutes: 1440 }, // Lembrete por e-mail 1 dia antes
+              { method: "popup", minutes: 1440 },
+              { method: "email", minutes: 1440 },
             ],
           },
         }),
@@ -118,7 +115,8 @@ export async function createCalendarEvent(billData: BillData) {
       if (response.status === 401) {
         return {
           success: false,
-          error: "O token do Google expirou (vida útil de 1 hora). É necessário renová-lo.",
+          code: "TOKEN_EXPIRED",
+          error: "O token de acesso do Google expirou. Clique em 'Reconectar Google' para agendar sem interrupções.",
           status: 401,
           details: errorData,
         };
