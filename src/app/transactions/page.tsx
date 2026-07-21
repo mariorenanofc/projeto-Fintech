@@ -33,6 +33,7 @@ import {
   TransactionInput 
 } from "@/actions/transactions";
 import { getProfileFinancialData, generateFinancialStrategy } from "@/actions/onboarding";
+import { FinancialErrorBoundary } from "@/components/ui/financial-error-boundary";
 
 
 export default function TransactionsPage() {
@@ -371,97 +372,99 @@ export default function TransactionsPage() {
       </header>
 
       {/* Painel comparativo de Previsto vs Realizado */}
-      {loadingForecast || !strategy ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-zinc-900/40 border border-white/5 p-3 rounded-xl backdrop-blur-md animate-pulse h-[82px]" />
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
-          {/* Receitas */}
-          <div className="bg-zinc-900/40 backdrop-blur-md p-3 rounded-xl border border-white/5 flex flex-col justify-between text-xs">
-            <div>
-              <span className="text-[8px] text-zinc-500 uppercase font-black block">Receitas</span>
-              <span className="text-sm font-black text-emerald-400 mt-1 block">
-                R$ {realIncome.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </span>
-            </div>
-            <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
-              <div className="flex justify-between">
-                <span>Previsto:</span>
-                <span className="font-bold text-zinc-300">R$ {prevIncome.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-              </div>
-              <div className="flex justify-between text-[8px] text-zinc-500">
-                <span>Falta receber:</span>
-                <span className="font-semibold text-zinc-400">R$ {Math.max(0, prevIncome - realIncome).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-              </div>
-            </div>
+      <FinancialErrorBoundary fallbackTitle="Resumo Financeiro Indisponível" onReset={() => fetchData(selectedMonth)}>
+        {loadingForecast || !strategy ? (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-zinc-900/40 border border-white/5 p-3 rounded-xl backdrop-blur-md animate-pulse h-[82px]" />
+            ))}
           </div>
-
-          {/* Essenciais */}
-          <div className="bg-zinc-900/40 backdrop-blur-md p-3 rounded-xl border border-white/5 flex flex-col justify-between text-xs">
-            <div>
-              <span className="text-[8px] text-zinc-500 uppercase font-black block">Essenciais</span>
-              <span className="text-sm font-black text-zinc-200 mt-1 block">
-                R$ {realEssentials.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </span>
-            </div>
-            <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
-              <div className="flex justify-between">
-                <span>Limite:</span>
-                <span className="font-bold text-zinc-300">R$ {prevEssentials.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-              </div>
-              <div className="flex justify-between text-[8px] text-zinc-500">
-                <span>Disponível:</span>
-                <span className="font-semibold text-emerald-400">R$ {Math.max(0, prevEssentials - realEssentials).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Compromissos */}
-          <div className="bg-zinc-900/40 backdrop-blur-md p-3 rounded-xl border border-white/5 flex flex-col justify-between text-xs">
-            <div>
-              <span className="text-[8px] text-zinc-500 uppercase font-black block">Compromissos</span>
-              <span className="text-sm font-black text-rose-400 mt-1 block">
-                R$ {realCommitments.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </span>
-            </div>
-            <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
-              <div className="flex justify-between">
-                <span>Previsão:</span>
-                <span className="font-bold text-zinc-300">R$ {prevCommitments.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-              </div>
-              <div className="flex justify-between text-[8px] text-zinc-500">
-                <span>Falta pagar:</span>
-                <span className="font-semibold text-rose-400">R$ {Math.max(0, prevCommitments - realCommitments).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Saldo Disponível */}
-          <div className="bg-zinc-900/40 backdrop-blur-md p-3 rounded-xl border border-white/5 flex flex-col justify-between text-xs">
-            <div>
-              <span className="text-[8px] text-zinc-500 uppercase font-black block">Saldo Disponível</span>
-              <span className={`text-sm font-black mt-1 block ${realDisposable >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
-                R$ {realDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
-              </span>
-            </div>
-            <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
-              <div className="flex justify-between">
-                <span>Previsto:</span>
-                <span className="font-bold text-zinc-300">R$ {prevDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-              </div>
-              <div className="flex justify-between text-[8px] text-zinc-500">
-                <span>Diferença:</span>
-                <span className={`font-semibold ${realDisposable >= prevDisposable ? 'text-emerald-400' : 'text-rose-500'}`}>
-                  R$ {(realDisposable - prevDisposable).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 mb-6">
+            {/* Receitas */}
+            <div className="bg-zinc-900/40 backdrop-blur-md p-3 rounded-xl border border-white/5 flex flex-col justify-between text-xs">
+              <div>
+                <span className="text-[8px] text-zinc-500 uppercase font-black block">Receitas</span>
+                <span className="text-sm font-black text-emerald-400 mt-1 block">
+                  R$ {realIncome.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                 </span>
               </div>
+              <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                <div className="flex justify-between">
+                  <span>Previsto:</span>
+                  <span className="font-bold text-zinc-300">R$ {prevIncome.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                </div>
+                <div className="flex justify-between text-[8px] text-zinc-500">
+                  <span>Falta receber:</span>
+                  <span className="font-semibold text-zinc-400">R$ {Math.max(0, prevIncome - realIncome).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Essenciais */}
+            <div className="bg-zinc-900/40 backdrop-blur-md p-3 rounded-xl border border-white/5 flex flex-col justify-between text-xs">
+              <div>
+                <span className="text-[8px] text-zinc-500 uppercase font-black block">Essenciais</span>
+                <span className="text-sm font-black text-zinc-200 mt-1 block">
+                  R$ {realEssentials.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+              </div>
+              <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                <div className="flex justify-between">
+                  <span>Limite:</span>
+                  <span className="font-bold text-zinc-300">R$ {prevEssentials.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                </div>
+                <div className="flex justify-between text-[8px] text-zinc-500">
+                  <span>Disponível:</span>
+                  <span className="font-semibold text-emerald-400">R$ {Math.max(0, prevEssentials - realEssentials).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Compromissos */}
+            <div className="bg-zinc-900/40 backdrop-blur-md p-3 rounded-xl border border-white/5 flex flex-col justify-between text-xs">
+              <div>
+                <span className="text-[8px] text-zinc-500 uppercase font-black block">Compromissos</span>
+                <span className="text-sm font-black text-rose-400 mt-1 block">
+                  R$ {realCommitments.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+              </div>
+              <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                <div className="flex justify-between">
+                  <span>Previsão:</span>
+                  <span className="font-bold text-zinc-300">R$ {prevCommitments.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                </div>
+                <div className="flex justify-between text-[8px] text-zinc-500">
+                  <span>Falta pagar:</span>
+                  <span className="font-semibold text-rose-400">R$ {Math.max(0, prevCommitments - realCommitments).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Saldo Disponível */}
+            <div className="bg-zinc-900/40 backdrop-blur-md p-3 rounded-xl border border-white/5 flex flex-col justify-between text-xs">
+              <div>
+                <span className="text-[8px] text-zinc-500 uppercase font-black block">Saldo Disponível</span>
+                <span className={`text-sm font-black mt-1 block ${realDisposable >= 0 ? 'text-emerald-400' : 'text-rose-500'}`}>
+                  R$ {realDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                </span>
+              </div>
+              <div className="mt-2 pt-1.5 border-t border-white/5 flex flex-col gap-0.5 text-[9px] text-zinc-405">
+                <div className="flex justify-between">
+                  <span>Previsto:</span>
+                  <span className="font-bold text-zinc-300">R$ {prevDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                </div>
+                <div className="flex justify-between text-[8px] text-zinc-500">
+                  <span>Diferença:</span>
+                  <span className={`font-semibold ${realDisposable >= prevDisposable ? 'text-emerald-400' : 'text-rose-500'}`}>
+                    R$ {(realDisposable - prevDisposable).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </FinancialErrorBoundary>
 
       <div className="flex-1 flex flex-col gap-6 lg:grid lg:grid-cols-2 lg:gap-8 lg:items-start">
 
@@ -689,65 +692,67 @@ export default function TransactionsPage() {
         </div>
 
         {/* COLUNA DIREITA: Listagem de Transações */}
-        <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md">
-          <CardHeader className="p-6 pb-3">
-            <CardTitle className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-              <Info className="w-4 h-4 text-yellow-500" />
-              Lançamentos do Mês
-            </CardTitle>
-            <CardDescription className="text-[10px] text-zinc-500 mt-0.5">Histórico financeiro detalhado e ordenado por data</CardDescription>
-          </CardHeader>
-          <CardContent className="p-6 pt-0 space-y-3 max-h-[480px] overflow-y-auto pr-2">
-            {loading ? (
-              <p className="text-xs text-zinc-555 uppercase tracking-widest font-semibold animate-pulse text-center py-8">Carregando...</p>
-            ) : transactions.length > 0 ? (
-              transactions.map((item, idx) => (
-                <div key={idx} className="bg-zinc-950/40 p-4.5 rounded-xl border border-white/5 flex justify-between items-center">
-                  <div>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <Badge className="bg-zinc-900 text-zinc-400 border border-white/5 text-[8px] uppercase font-bold py-0">{item.category}</Badge>
-                      {item.description.startsWith("[Individual]") ? (
-                        <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-[8px] uppercase font-bold py-0">Pessoal</Badge>
-                      ) : (
-                        <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] uppercase font-bold py-0">Conjunto</Badge>
-                      )}
-                      {item.profiles?.full_name && (
-                        <span className="text-[9px] text-zinc-500 font-semibold">
-                          por {item.profiles.full_name.split(" ")[0]}
-                        </span>
-                      )}
+        <FinancialErrorBoundary fallbackTitle="Lista de Transações Indisponível" onReset={() => fetchData(selectedMonth)}>
+          <Card className="bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md">
+            <CardHeader className="p-6 pb-3">
+              <CardTitle className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Info className="w-4 h-4 text-yellow-500" />
+                Lançamentos do Mês
+              </CardTitle>
+              <CardDescription className="text-[10px] text-zinc-500 mt-0.5">Histórico financeiro detalhado e ordenado por data</CardDescription>
+            </CardHeader>
+            <CardContent className="p-6 pt-0 space-y-3 max-h-[480px] overflow-y-auto pr-2">
+              {loading ? (
+                <p className="text-xs text-zinc-555 uppercase tracking-widest font-semibold animate-pulse text-center py-8">Carregando...</p>
+              ) : transactions.length > 0 ? (
+                transactions.map((item, idx) => (
+                  <div key={idx} className="bg-zinc-950/40 p-4.5 rounded-xl border border-white/5 flex justify-between items-center">
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Badge className="bg-zinc-900 text-zinc-400 border border-white/5 text-[8px] uppercase font-bold py-0">{item.category}</Badge>
+                        {item.description.startsWith("[Individual]") ? (
+                          <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-[8px] uppercase font-bold py-0">Pessoal</Badge>
+                        ) : (
+                          <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] uppercase font-bold py-0">Conjunto</Badge>
+                        )}
+                        {item.profiles?.full_name && (
+                          <span className="text-[9px] text-zinc-500 font-semibold">
+                            por {item.profiles.full_name.split(" ")[0]}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-xs font-black text-zinc-200 mt-2">
+                        {item.description.replace(/^\[Individual\]\s*/, "")}
+                      </h4>
+                      <span className="text-[9px] text-zinc-550 font-semibold block mt-1">
+                        {new Date(item.date + "T00:00:00").toLocaleDateString('pt-BR')}
+                      </span>
                     </div>
-                    <h4 className="text-xs font-black text-zinc-200 mt-2">
-                      {item.description.replace(/^\[Individual\]\s*/, "")}
-                    </h4>
-                    <span className="text-[9px] text-zinc-550 font-semibold block mt-1">
-                      {new Date(item.date + "T00:00:00").toLocaleDateString('pt-BR')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs font-black ${item.type === "income" ? "text-emerald-400" : "text-rose-400"}`}>
-                      {item.type === "income" ? "+" : "-"} R$ {Number(item.amount).toFixed(2)}
-                    </span>
-                    <div className="flex gap-1.5">
-                      <button onClick={() => handleEdit(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
-                      <button onClick={() => openDeleteConfirm(item.id)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs font-black ${item.type === "income" ? "text-emerald-400" : "text-rose-400"}`}>
+                        {item.type === "income" ? "+" : "-"} R$ {Number(item.amount).toFixed(2)}
+                      </span>
+                      <div className="flex gap-1.5">
+                        <button onClick={() => handleEdit(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => openDeleteConfirm(item.id)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="text-center py-10 bg-zinc-950/10 rounded-xl border border-dashed border-white/5">
+                  <Info className="w-6 h-6 text-zinc-650 mx-auto mb-2" />
+                  <p className="text-xs text-zinc-500">Nenhuma transação registrada neste mês.</p>
+                  <p className="text-[9px] text-zinc-650 mt-1">Use o formulário ao lado para lançar receitas ou saídas.</p>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-10 bg-zinc-950/10 rounded-xl border border-dashed border-white/5">
-                <Info className="w-6 h-6 text-zinc-650 mx-auto mb-2" />
-                <p className="text-xs text-zinc-500">Nenhuma transação registrada neste mês.</p>
-                <p className="text-[9px] text-zinc-650 mt-1">Use o formulário ao lado para lançar receitas ou saídas.</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        </FinancialErrorBoundary>
 
       </div>
 

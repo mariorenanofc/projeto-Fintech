@@ -25,6 +25,7 @@ import { FlowSummary } from "@/components/dashboard/flow-summary";
 import { CalendarSection } from "@/components/dashboard/calendar-section";
 import { ConfirmPaymentDialog } from "@/components/dashboard/confirm-payment-dialog";
 import { CelebrationModal } from "@/components/dashboard/celebration-modal";
+import { FinancialErrorBoundary } from "@/components/ui/financial-error-boundary";
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
@@ -427,15 +428,17 @@ export default function DashboardPage() {
         
         {/* COLUNA ESQUERDA (tablet:col-span-5): Semáforo e Recomendações */}
         <div className="flex flex-col gap-6 tablet:col-span-5 h-full">
-          {/* Card do Semáforo */}
-          <SemaphoreCard 
-            loadingRealData={loadingRealData}
-            financeStatus={financeStatus}
-            realDisposable={realDisposable}
-            reservaLivreCasal={reservaLivreCasal}
-            tetoDiario={tetoDiario}
-            strategy={strategy}
-          />
+          {/* Card do Semáforo com Error Boundary */}
+          <FinancialErrorBoundary fallbackTitle="Semáforo Indisponível" onReset={() => loadDashboardData(selectedMonthStr)}>
+            <SemaphoreCard 
+              loadingRealData={loadingRealData}
+              financeStatus={financeStatus}
+              realDisposable={realDisposable}
+              reservaLivreCasal={reservaLivreCasal}
+              tetoDiario={tetoDiario}
+              strategy={strategy}
+            />
+          </FinancialErrorBoundary>
           
           {/* Botões de Ação */}
           <div className="grid grid-cols-2 gap-3 w-full">
@@ -457,43 +460,49 @@ export default function DashboardPage() {
           </div>
 
           {/* Conselheiro de Choque / Recomendações */}
-          <RecommendationsCard strategy={strategy} />
+          <FinancialErrorBoundary fallbackTitle="Diagnóstico Indisponível">
+            <RecommendationsCard strategy={strategy} />
+          </FinancialErrorBoundary>
         </div>
 
         {/* COLUNA DIREITA (tablet:col-span-7): Resumo do Fluxo */}
         <div className="flex flex-col gap-6 tablet:col-span-7 h-full flex-grow">
-          <FlowSummary 
-            loadingRealData={loadingRealData}
-            strategy={strategy}
-            realIncome={realIncome}
-            realEssentials={realEssentials}
-            realCommitments={realCommitments}
-            realDisposable={realDisposable}
-            prevIncome={prevIncome}
-            prevEssentials={prevEssentials}
-            prevCommitments={prevCommitments}
-            prevDisposable={prevDisposable}
-            financeStatus={financeStatus}
-            rawCards={rawCards}
-            rawDebts={rawDebts}
-            selectedMonthStr={selectedMonthStr}
-            getReadableMonthLabel={getReadableMonthLabel}
-            goals={goals}
-          />
+          <FinancialErrorBoundary fallbackTitle="Fluxo Financeiro Indisponível" onReset={() => loadDashboardData(selectedMonthStr)}>
+            <FlowSummary 
+              loadingRealData={loadingRealData}
+              strategy={strategy}
+              realIncome={realIncome}
+              realEssentials={realEssentials}
+              realCommitments={realCommitments}
+              realDisposable={realDisposable}
+              prevIncome={prevIncome}
+              prevEssentials={prevEssentials}
+              prevCommitments={prevCommitments}
+              prevDisposable={prevDisposable}
+              financeStatus={financeStatus}
+              rawCards={rawCards}
+              rawDebts={rawDebts}
+              selectedMonthStr={selectedMonthStr}
+              getReadableMonthLabel={getReadableMonthLabel}
+              goals={goals}
+            />
+          </FinancialErrorBoundary>
         </div>
       </div>
 
       {/* SEÇÃO DE CALENDÁRIO & CONTAS INTEGRADA */}
-      <CalendarSection 
-        selectedDate={selectedDate}
-        handleDateSelect={handleDateSelect}
-        selectedDateBills={selectedDateBills}
-        hasBillOnDay={hasBillOnDay}
-        mounted={mounted}
-        handleSyncGoogleCalendar={handleSyncGoogleCalendar}
-        openConfirmModal={openConfirmModal}
-        handleUndoPayment={handleUndoPayment}
-      />
+      <FinancialErrorBoundary fallbackTitle="Agenda e Vencimentos Indisponíveis" onReset={() => loadDashboardData(selectedMonthStr)}>
+        <CalendarSection 
+          selectedDate={selectedDate}
+          handleDateSelect={handleDateSelect}
+          selectedDateBills={selectedDateBills}
+          hasBillOnDay={hasBillOnDay}
+          mounted={mounted}
+          handleSyncGoogleCalendar={handleSyncGoogleCalendar}
+          openConfirmModal={openConfirmModal}
+          handleUndoPayment={handleUndoPayment}
+        />
+      </FinancialErrorBoundary>
 
       {/* Footer / Barra de Navegação PWA Minimalista */}
       <footer className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-t border-white/5 py-3 flex justify-around text-zinc-600 text-xs sm:relative sm:bottom-auto sm:left-auto sm:right-auto sm:z-auto sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:border-white/5 sm:py-0 sm:mt-10 sm:pt-5">
