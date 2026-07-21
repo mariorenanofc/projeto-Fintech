@@ -51,7 +51,7 @@ export default function LoginPage() {
             <AuthButton />
           </div>
 
-          <span className="text-[9px] text-zinc-650 mt-4 uppercase tracking-wider font-semibold">
+          <span className="text-[10px] text-zinc-400 mt-4 uppercase tracking-wider font-semibold">
             Seguro &bull; RLS Isolado &bull; Google OAuth
           </span>
         </div>
@@ -65,7 +65,7 @@ export default function LoginPage() {
               <ShieldAlert className="w-5 h-5 text-yellow-500 filter drop-shadow-[0_0_5px_rgba(234,179,8,0.3)]" />
             </div>
             <h3 className="text-xs font-black text-zinc-200 uppercase tracking-wider">Semáforo de Gastos</h3>
-            <p className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
+            <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
               Sinal visual diário (Verde, Amarelo ou Vermelho) indicando se vocês podem realizar novas compras.
             </p>
           </div>
@@ -76,7 +76,7 @@ export default function LoginPage() {
               <CalendarRange className="w-5 h-5 text-yellow-500 filter drop-shadow-[0_0_5px_rgba(234,179,8,0.3)]" />
             </div>
             <h3 className="text-xs font-black text-zinc-200 uppercase tracking-wider">Google Calendar</h3>
-            <p className="text-[10px] text-zinc-500 mt-2 leading-relaxed">
+            <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
               Agenda integrada para salvar as datas de vencimento automaticamente em seus calendários do Google.
             </p>
           </div>
@@ -85,16 +85,16 @@ export default function LoginPage() {
 
         {/* Footer da Página com Links Legais (Exigência do Google OAuth) */}
         <footer className="mt-12 flex flex-col items-center gap-3">
-          <div className="flex items-center gap-4 text-xs text-zinc-500 font-medium">
-            <Link href="/politica-de-privacidade" className="hover:text-yellow-500 transition-colors underline underline-offset-4">
+          <div className="flex items-center gap-4 text-xs text-zinc-400 font-medium">
+            <Link href="/politica-de-privacidade" aria-label="Política de Privacidade" className="hover:text-yellow-500 transition-colors underline underline-offset-4">
               Política de Privacidade
             </Link>
             <span>&bull;</span>
-            <Link href="/termos-de-uso" className="hover:text-yellow-500 transition-colors underline underline-offset-4">
+            <Link href="/termos-de-uso" aria-label="Termos de Uso" className="hover:text-yellow-500 transition-colors underline underline-offset-4">
               Termos de Uso
             </Link>
           </div>
-          <div className="text-[10px] text-zinc-650 flex items-center gap-1.5 font-medium tracking-wide">
+          <div className="text-[10px] text-zinc-400 flex items-center gap-1.5 font-medium tracking-wide">
             <span>Desenvolvido com</span>
             <Heart className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500 animate-pulse" />
             <span>para casais investidores</span>
