@@ -83,82 +83,102 @@ export function RecommendationsCard({ strategy, rawCards = [], rawDebts = [], on
           </div>
         </div>
 
-        {strategy.financialStage === "red" && (
-          <div className="space-y-3">
-            <span className="text-[9px] text-rose-400 uppercase tracking-widest font-black block">Plano de Resgate (Engenharia Financeira):</span>
-            
-            {strategy.cardActions.map((act, i) => {
-              const cleanCardName = act.cardName.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
-              const rawCard = rawCards.find(c => (c.name || "").includes(cleanCardName) || (c.name || "").includes(act.cardName));
-              const needsNegotiation = act.requiresNegotiation === true || 
-                act.recommendation.toLowerCase().includes("parcelar") || 
-                act.recommendation.toLowerCase().includes("renegociar") || 
-                act.recommendation.toLowerCase().includes("indisponível");
+        {strategy.financialStage === "red" && (() => {
+          const criticalCards = strategy.cardActions.filter(c => !c.requiresNegotiation && c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0);
+          const negotiationCards = strategy.cardActions.filter(c => c.requiresNegotiation || c.suggestedProportionalPayment < c.currentInvoice || c.recommendation.toLowerCase().includes("parcelar") || c.recommendation.toLowerCase().includes("renegociar") || c.recommendation.toLowerCase().includes("indisponível"));
 
-              return (
-                <div key={i} className="bg-rose-500/5 border border-rose-500/10 p-3 rounded-xl space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-zinc-200 font-bold block">{cleanCardName}</span>
-                    <span className="text-[10px] font-black text-rose-400">R$ {act.currentInvoice.toFixed(2)}</span>
-                  </div>
-                  <p className="text-[9px] text-zinc-400 leading-relaxed font-semibold">{act.recommendation}</p>
-                  
-                  {onOpenNegotiationModal && needsNegotiation && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => onOpenNegotiationModal({
-                        id: rawCard?.id || `card-${i}`,
-                        title: cleanCardName,
-                        amount: act.currentInvoice,
-                        type: "card",
-                        rawItem: rawCard
-                      })}
-                      className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-[9px] font-bold h-7 rounded-lg flex items-center justify-center gap-1 mt-1"
-                    >
-                      <Calculator className="w-3 h-3" /> Simular Renegociação Bancária ⚡
-                    </Button>
-                  )}
+          return (
+            <div className="space-y-4 pt-1">
+              <span className="text-[10px] text-yellow-500 uppercase tracking-widest font-black block">Plano de Resgate Priorizado 🛡️</span>
+
+              {/* Seção 1: Alocação Crítica */}
+              <div className="bg-zinc-950/40 p-3.5 rounded-xl border border-white/5 space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-[9px] text-zinc-300 uppercase tracking-wider font-extrabold flex items-center gap-1">
+                    🛡️ Alocação Crítica (Pagar Integralmente)
+                  </span>
                 </div>
-              );
-            })}
+                <p className="text-[9px] text-zinc-500 leading-relaxed">Contas prioritárias que devem ser pagas integralmente assim que o salário for recebido:</p>
+                
+                <div className="space-y-2 pt-1">
+                  {strategy.debtActions.map((act, i) => {
+                    const cleanDebtTitle = act.debtTitle.replace(/\s*\[due:\d+\]/, "").replace(/\s*\[next:[^\]]+\]/, "");
+                    return (
+                      <div key={`debt-${i}`} className="bg-zinc-900/60 p-2.5 rounded-lg border border-white/5 flex justify-between items-center text-[10px]">
+                        <div>
+                          <span className="text-zinc-200 font-bold block">{cleanDebtTitle}</span>
+                          <span className="text-[8px] text-zinc-500 font-semibold">{act.recommendation}</span>
+                        </div>
+                        <span className="text-rose-400 font-black whitespace-nowrap">R$ {act.installmentValue.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
 
-            {strategy.debtActions.map((act, i) => {
-              const cleanDebtTitle = act.debtTitle.replace(/\s*\[due:\d+\]/, "").replace(/\s*\[next:[^\]]+\]/, "");
-              const rawDebt = rawDebts.find(d => (d.title || "").includes(cleanDebtTitle) || (d.title || "").includes(act.debtTitle));
-              const needsNegotiation = act.recommendation.toLowerCase().includes("vencidas") || 
-                act.recommendation.toLowerCase().includes("renegociar") || 
-                act.recommendation.toLowerCase().includes("incorporação");
-
-              return (
-                <div key={i} className="bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-xl space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-zinc-200 font-bold block">{cleanDebtTitle}</span>
-                    <span className="text-[10px] font-black text-yellow-400">R$ {act.installmentValue.toFixed(2)}/mês</span>
-                  </div>
-                  <p className="text-[9px] text-zinc-400 leading-relaxed font-semibold">{act.recommendation}</p>
-
-                  {onOpenNegotiationModal && needsNegotiation && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => onOpenNegotiationModal({
-                        id: rawDebt?.id || `debt-${i}`,
-                        title: cleanDebtTitle,
-                        amount: act.installmentValue * 12,
-                        type: "debt",
-                        rawItem: rawDebt
-                      })}
-                      className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-[9px] font-bold h-7 rounded-lg flex items-center justify-center gap-1 mt-1"
-                    >
-                      <Calculator className="w-3 h-3" /> Simular Renegociação Bancária ⚡
-                    </Button>
-                  )}
+                  {criticalCards.map((act, i) => {
+                    const cleanCardName = act.cardName.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
+                    return (
+                      <div key={`card-crit-${i}`} className="bg-zinc-900/60 p-2.5 rounded-lg border border-white/5 flex justify-between items-center text-[10px]">
+                        <div>
+                          <span className="text-zinc-200 font-bold block">{cleanCardName}</span>
+                          <span className="text-[8px] text-zinc-500 font-semibold">Pagamento integral da fatura atual.</span>
+                        </div>
+                        <span className="text-rose-400 font-black whitespace-nowrap">R$ {act.currentInvoice.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        )}
+              </div>
+
+              {/* Seção 2: Engenharia Financeira / Renegociações */}
+              {negotiationCards.length > 0 && (
+                <div className="bg-zinc-950/40 p-3.5 rounded-xl border border-yellow-500/20 space-y-2.5">
+                  <div className="flex justify-between items-center">
+                    <span className="text-[9px] text-yellow-400 uppercase tracking-wider font-extrabold flex items-center gap-1">
+                      ⚡ Engenharia Financeira (Renegociações Bancárias)
+                    </span>
+                  </div>
+                  <p className="text-[9px] text-zinc-400 leading-relaxed">
+                    Faturas que ultrapassam o caixa disponível. Simule o parcelamento usando a taxa mínima do seu banco:
+                  </p>
+
+                  <div className="space-y-2 pt-1">
+                    {negotiationCards.map((act, i) => {
+                      const cleanCardName = act.cardName.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
+                      const rawCard = rawCards.find(c => (c.name || "").includes(cleanCardName) || (c.name || "").includes(act.cardName));
+
+                      return (
+                        <div key={`card-neg-${i}`} className="bg-yellow-500/5 border border-yellow-500/15 p-3 rounded-lg space-y-2">
+                          <div className="flex justify-between items-center text-[10px]">
+                            <span className="text-zinc-200 font-bold">{cleanCardName}</span>
+                            <span className="text-yellow-400 font-black">Fatura: R$ {act.currentInvoice.toFixed(2)}</span>
+                          </div>
+                          <p className="text-[9px] text-zinc-400 leading-relaxed font-medium">{act.recommendation}</p>
+
+                          {onOpenNegotiationModal && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => onOpenNegotiationModal({
+                                id: rawCard?.id || `card-${i}`,
+                                title: cleanCardName,
+                                amount: act.currentInvoice,
+                                type: "card",
+                                rawItem: rawCard
+                              })}
+                              className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-[9px] font-bold h-7 rounded-lg flex items-center justify-center gap-1"
+                            >
+                              <Calculator className="w-3 h-3" /> Simular Renegociação Bancária ⚡
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {strategy.financialStage === "yellow" && (
           <div className="space-y-4">

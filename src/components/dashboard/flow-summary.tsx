@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { TrendingUp, TrendingDown, Info, ShieldCheck, RefreshCcw, Target, CheckCircle2 } from "lucide-react";
 import { AudioExplainerButton } from "@/components/ui/audio-explainer";
 import { FinancialStrategyResult, GoalInput } from "@/actions/onboarding";
+import { CreditCardLimitsCard } from "@/components/dashboard/credit-card-limits-card";
 
 interface FlowSummaryProps {
   loadingRealData: boolean;
@@ -151,6 +152,12 @@ export function FlowSummary({
                 <span className="text-yellow-500 font-bold">Nota de Planejamento:</span> Estes valores representam o seu orçamento previsto. Lance todas as movimentações reais na aba de transações para obter a análise exata do seu fluxo de caixa conjugal!
               </p>
             </div>
+
+            {/* Limites de Crédito & Alertas Táticos (Inseridos no Fluxo) */}
+            <CreditCardLimitsCard 
+              rawCards={rawCards}
+              financeStatus={financeStatus}
+            />
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {/* Receitas */}
@@ -371,95 +378,6 @@ export function FlowSummary({
 
               </div>
             )}
-
-            {/* Aloca\u00e7\u00e3o Cr\u00edtica e Engenharia (Aparece apenas em Choque) */}
-            {strategy.isChoqueRequired && (() => {
-              const totalAlocacaoCritica = strategy.debtActions.reduce((acc, a) => acc + a.installmentValue, 0) + 
-                strategy.cardActions.filter(c => c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0).reduce((acc, c) => acc + c.currentInvoice, 0);
-              const totalResiduoPosAlocacao = Math.max(0, strategy.disposableIncomeForDebts - totalAlocacaoCritica);
-
-              return (
-                <div className="space-y-4 border-t border-white/5 pt-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <ShieldCheck className="w-4 h-4 text-rose-500" />
-                      <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                        Alocação Crítica (Total: R$ {totalAlocacaoCritica.toFixed(2)})
-                      </h4>
-                      <AudioExplainerButton 
-                        text={`A Alocação Crítica soma ${totalAlocacaoCritica.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}. Estas contas representam os pagamentos obrigatórios e prioritários do mês. Elas devem ser pagas integralmente assim que o salário for recebido para evitar penalidades e proteger o seu patrimônio.`} 
-                        className="ml-1"
-                      />
-                    </div>
-                    <p className="text-[10px] text-zinc-550 mb-3">As seguintes contas devem ser pagas integralmente assim que o salário for recebido para evitar penalidades e proteger o patrimônio.</p>
-                    
-                    <div className="bg-zinc-950/50 rounded-xl border border-white/5 overflow-hidden">
-                      {strategy.debtActions.map((action, i) => (
-                        <div key={i} className="flex justify-between items-center p-3 border-b border-white/5 last:border-none">
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-bold text-zinc-300">{action.debtTitle}</span>
-                            <span className="text-[9px] text-zinc-550 leading-tight mt-0.5 pr-2">{action.recommendation}</span>
-                          </div>
-                          <span className="text-xs font-black text-rose-400 whitespace-nowrap">R$ {action.installmentValue.toFixed(2)}</span>
-                        </div>
-                      ))}
-                      {strategy.cardActions.filter(c => c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0).map((action, i) => (
-                        <div key={`c-${i}`} className="flex justify-between items-center p-3 border-b border-white/5 last:border-none">
-                          <div className="flex flex-col">
-                            <span className="text-[11px] font-bold text-zinc-300">{action.cardName}</span>
-                            <span className="text-[9px] text-zinc-550 leading-tight mt-0.5 pr-2">Pagamento integral da fatura atual.</span>
-                          </div>
-                          <span className="text-xs font-black text-rose-400 whitespace-nowrap">R$ {action.currentInvoice.toFixed(2)}</span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between items-center p-3 bg-zinc-900/80 border-t border-white/5">
-                        <span className="text-[10px] font-bold text-yellow-500 uppercase tracking-wider">Saldo que sobrou para renegociações</span>
-                        <span className="text-xs font-black text-yellow-500">R$ {totalResiduoPosAlocacao.toFixed(2)}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {strategy.cardActions.filter(c => c.suggestedProportionalPayment < c.currentInvoice && c.currentInvoice > 0).length > 0 && (
-                    <div>
-                      <div className="flex items-center gap-2 mb-2 mt-4">
-                        <RefreshCcw className="w-4 h-4 text-yellow-500" />
-                        <h4 className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
-                          Engenharia Financeira
-                        </h4>
-                        <AudioExplainerButton 
-                          text={`Na sessão de Engenharia Financeira, identificamos faturas de cartões que ultrapassam o saldo restante para este período. O valor de ${totalResiduoPosAlocacao.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} sobrou após a Alocação Crítica. Ele deve ser usado como entrada para renegociar e parcelar estas faturas ativamente com o banco.`} 
-                          className="ml-1"
-                        />
-                      </div>
-                      <p className="text-[10px] text-zinc-550 mb-3">
-                        Faturas que ultrapassam o saldo restante. Exigem ação ativa de renegociação (parcelamento da fatura) usando o resíduo (se houver) como entrada.
-                      </p>
-                      
-                      <div className="bg-zinc-950/50 rounded-xl border border-white/5 overflow-hidden">
-                        {strategy.cardActions.filter(c => c.suggestedProportionalPayment < c.currentInvoice && c.currentInvoice > 0).map((action, i) => (
-                          <div key={`eng-${i}`} className="flex flex-col p-3 border-b border-white/5 last:border-none">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-[11px] font-bold text-zinc-300">{action.cardName}</span>
-                              <span className="text-xs font-black text-yellow-500">R$ {action.currentInvoice.toFixed(2)}</span>
-                            </div>
-                            <span className="text-[9px] text-zinc-400 leading-tight bg-zinc-900/50 p-2 rounded border border-white/5">
-                              {action.recommendation}
-                            </span>
-                          </div>
-                        ))}
-                        
-                        <div className="p-3 bg-yellow-500/10 border-t border-yellow-500/20 flex gap-2">
-                          <Info className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0 mt-0.5" />
-                          <span className="text-[9px] text-yellow-500 font-medium leading-relaxed">
-                            <strong>Importante:</strong> Verifique com o banco o valor mínimo exigido para entrada no parcelamento da fatura. Caso o resíduo sugerido pelo app seja inferior ao mínimo do banco, entre em contato com a instituição para negociar condições especiais.
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
 
             {/* Previsão do Mês que Vem (Próximo Mês) */}
             <div className="border-t border-white/5 pt-5 space-y-4">

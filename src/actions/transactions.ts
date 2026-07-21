@@ -8,6 +8,9 @@ export interface TransactionInput {
   description: string;
   category: string;
   date: string; // Formato: AAAA-MM-DD
+  paymentMethod?: "pix" | "money" | "transfer" | "credit_card";
+  creditCardId?: string;
+  creditCardName?: string;
 }
 
 // Helper para obter o family_group_id do usuário logado
@@ -77,17 +80,37 @@ export async function addTransaction(item: TransactionInput) {
 
     const familyGroupId = await getFamilyGroupId(supabase, user.id);
 
+    let finalDescription = item.description;
+    if (item.paymentMethod === "pix" && !finalDescription.startsWith("[PIX]")) {
+      finalDescription = `[PIX] ${finalDescription}`;
+    } else if (item.paymentMethod === "money" && !finalDescription.startsWith("[Dinheiro]")) {
+      finalDescription = `[Dinheiro] ${finalDescription}`;
+    } else if (item.paymentMethod === "transfer" && !finalDescription.startsWith("[Transferência]")) {
+      finalDescription = `[Transferência] ${finalDescription}`;
+    } else if (item.paymentMethod === "credit_card" && item.creditCardName && !finalDescription.startsWith("[Cartão:")) {
+      finalDescription = `[Cartão: ${item.creditCardName}] ${finalDescription}`;
+    }
+
     const { error } = await supabase.from("transactions").insert({
       family_group_id: familyGroupId,
       profile_id: user.id,
       type: item.type,
       amount: item.amount,
-      description: item.description,
+      description: finalDescription,
       category: item.category || "Geral",
       date: item.date || new Date().toISOString().substring(0, 10)
     });
 
     if (error) throw error;
+
+    if (item.type === "expense" && item.paymentMethod === "credit_card" && item.creditCardId) {
+      const { data: card } = await supabase.from("credit_cards").select("current_invoice").eq("id", item.creditCardId).single();
+      if (card) {
+        const newInv = Number(card.current_invoice || 0) + Number(item.amount);
+        await supabase.from("credit_cards").update({ current_invoice: newInv }).eq("id", item.creditCardId);
+      }
+    }
+
     return { success: true };
 
   } catch (error: any) {
@@ -102,16 +125,31 @@ export async function addTransaction(item: TransactionInput) {
 export async function updateTransaction(id: string, item: TransactionInput) {
   try {
     const supabase = await createClient();
+
+    let finalDescription = item.description;
+    if (item.paymentMethod === "pix" && !finalDescription.startsWith("[PIX]")) {
+      finalDescription = `[PIX] ${finalDescription}`;
+    } else if (item.paymentMethod === "money" && !finalDescription.startsWith("[Dinheiro]")) {
+      finalDescription = `[Dinheiro] ${finalDescription}`;
+    } else if (item.paymentMethod === "transfer" && !finalDescription.startsWith("[Transferência]")) {
+      finalDescription = `[Transferência] ${finalDescription}`;
+    } else if (item.paymentMethod === "credit_card" && item.creditCardName && !finalDescription.startsWith("[Cartão:")) {
+      finalDescription = `[Cartão: ${item.creditCardName}] ${finalDescription}`;
+    }
+
     const { error } = await supabase
       .from("transactions")
       .update({
         type: item.type,
         amount: item.amount,
-        description: item.description,
+        description: finalDescription,
         category: item.category || "Geral",
         date: item.date
       })
       .eq("id", id);
+
+    if (error) throw error;
+    return { success: true };
 
     if (error) throw error;
     return { success: true };

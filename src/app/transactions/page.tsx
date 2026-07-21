@@ -59,6 +59,8 @@ export default function TransactionsPage() {
     return new Date().toISOString().substring(0, 7);
   });
 
+  const [userCreditCards, setUserCreditCards] = useState<any[]>([]);
+
   // Estados de Edição / Cadastro
   const [editId, setEditId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -68,7 +70,9 @@ export default function TransactionsPage() {
     amount: 0,
     description: "",
     category: "Alimentação",
-    date: new Date().toISOString().substring(0, 10)
+    date: new Date().toISOString().substring(0, 10),
+    paymentMethod: "pix",
+    creditCardId: ""
   });
 
   useEffect(() => {
@@ -124,6 +128,7 @@ export default function TransactionsPage() {
     try {
       const rawRes = await getProfileFinancialData();
       if (rawRes.success) {
+        setUserCreditCards(rawRes.creditCards || []);
         // Filtragem de Receitas Previstas que ainda não possuem transação no mês
         const filteredIncomes = (rawRes.incomes || [])
           .filter((inc: any) => {
@@ -554,7 +559,7 @@ export default function TransactionsPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="col-span-2">
+                    <div>
                       <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Categoria</label>
                       <select
                         value={form.category}
@@ -566,6 +571,44 @@ export default function TransactionsPage() {
                         ))}
                       </select>
                     </div>
+
+                    <div>
+                      <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Forma de Pagamento</label>
+                      <select
+                        value={form.paymentMethod || "pix"}
+                        onChange={e => setForm({ ...form, paymentMethod: e.target.value as any })}
+                        className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11"
+                      >
+                        <option value="pix">PIX</option>
+                        <option value="money">Dinheiro à Vista</option>
+                        <option value="transfer">Transferência / Débito</option>
+                        <option value="credit_card">Cartão de Crédito</option>
+                      </select>
+                    </div>
+
+                    {form.paymentMethod === "credit_card" && (
+                      <div className="col-span-2">
+                        <label className="text-[9px] text-yellow-500 uppercase tracking-wider font-bold block mb-1">Qual Cartão de Crédito?</label>
+                        <select
+                          value={form.creditCardId || ""}
+                          onChange={e => {
+                            const selectedId = e.target.value;
+                            const cardObj = userCreditCards.find(c => c.id === selectedId);
+                            setForm({
+                              ...form,
+                              creditCardId: selectedId,
+                              creditCardName: cardObj?.name || ""
+                            });
+                          }}
+                          className="bg-zinc-950/80 border border-yellow-500/30 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11"
+                        >
+                          <option value="">Selecione o cartão de crédito...</option>
+                          {userCreditCards.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
 
 

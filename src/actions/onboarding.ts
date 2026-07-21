@@ -20,6 +20,7 @@ export interface FixedExpenseInput {
 
 export interface CreditCardInvoiceItem {
   month: string; // Ex: "2026-08"
+  date?: string; // Ex: "2026-08-15"
   amount: number;
 }
 
@@ -36,6 +37,7 @@ export interface CreditCardInput {
 
 export interface DebtInstallmentItem {
   month: string; // Ex: "2026-08"
+  date?: string; // Ex: "2026-08-15"
   amount: number;
 }
 
@@ -685,15 +687,25 @@ export async function addCreditCard(item: CreditCardInput) {
     const familyGroupId = await getFamilyGroupId(supabase, user.id);
 
     const formattedName = `${item.name} [close:${item.closingDay || 5}][due:${item.dueDay || 15}]`;
+    const currentMonthStr = new Date().toISOString().substring(0, 7);
+    const schedule = item.invoicesSchedule || [];
+    const currentSched = schedule.find(s => s.month === currentMonthStr || s.date?.startsWith(currentMonthStr));
+    const firstUpcoming = schedule.length > 0 ? Number(schedule[0].amount) : 0;
+    const derivedCurrentInvoice = (item.currentInvoice !== undefined && item.currentInvoice > 0) 
+      ? item.currentInvoice 
+      : (currentSched ? Number(currentSched.amount) : firstUpcoming);
+    const derivedNextInvoice = (item.nextInvoice !== undefined && item.nextInvoice > 0) 
+      ? item.nextInvoice 
+      : (schedule.length > 1 ? Number(schedule[1].amount) : derivedCurrentInvoice);
 
     const { error } = await supabase.from("credit_cards").insert({
       family_group_id: familyGroupId,
       profile_id: user.id,
       name: formattedName,
       total_limit: item.totalLimit,
-      current_invoice: item.currentInvoice,
-      next_invoice: item.nextInvoice,
-      invoices_schedule: item.invoicesSchedule || [],
+      current_invoice: derivedCurrentInvoice,
+      next_invoice: derivedNextInvoice,
+      invoices_schedule: schedule,
       closing_day: item.closingDay || 5,
       due_day: item.dueDay || 15
     });
@@ -708,12 +720,23 @@ export async function updateCreditCard(id: string, item: CreditCardInput) {
   try {
     const supabase = await createClient();
     const formattedName = `${item.name} [close:${item.closingDay || 5}][due:${item.dueDay || 15}]`;
+    const currentMonthStr = new Date().toISOString().substring(0, 7);
+    const schedule = item.invoicesSchedule || [];
+    const currentSched = schedule.find(s => s.month === currentMonthStr || s.date?.startsWith(currentMonthStr));
+    const firstUpcoming = schedule.length > 0 ? Number(schedule[0].amount) : 0;
+    const derivedCurrentInvoice = (item.currentInvoice !== undefined && item.currentInvoice > 0) 
+      ? item.currentInvoice 
+      : (currentSched ? Number(currentSched.amount) : firstUpcoming);
+    const derivedNextInvoice = (item.nextInvoice !== undefined && item.nextInvoice > 0) 
+      ? item.nextInvoice 
+      : (schedule.length > 1 ? Number(schedule[1].amount) : derivedCurrentInvoice);
+
     const { error } = await supabase.from("credit_cards").update({
       name: formattedName,
       total_limit: item.totalLimit,
-      current_invoice: item.currentInvoice,
-      next_invoice: item.nextInvoice,
-      invoices_schedule: item.invoicesSchedule || [],
+      current_invoice: derivedCurrentInvoice,
+      next_invoice: derivedNextInvoice,
+      invoices_schedule: schedule,
       closing_day: item.closingDay || 5,
       due_day: item.dueDay || 15
     }).eq("id", id);
@@ -852,6 +875,8 @@ export async function getProfileFinancialData() {
       };
     });
 
+    const currentMonthStr = new Date().toISOString().substring(0, 7);
+
     const mappedCards = (cards.data || []).map(card => {
       const nameStr = card.name || "";
       const closeMatch = nameStr.match(/\[close:(\d+)\]/);
@@ -859,9 +884,18 @@ export async function getProfileFinancialData() {
       const closingDay = card.closing_day || (closeMatch ? parseInt(closeMatch[1]) : 5);
       const dueDay = card.due_day || (dueMatch ? parseInt(dueMatch[1]) : 15);
       const cleanName = nameStr.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
+
+      const schedule = Array.isArray(card.invoices_schedule) ? card.invoices_schedule : [];
+      const currentSched = schedule.find((s: any) => s.month === currentMonthStr || s.date?.startsWith(currentMonthStr));
+      const firstUpcoming = schedule.length > 0 ? Number(schedule[0].amount) : 0;
+      const derivedCurrentInvoice = Number(card.current_invoice) > 0 
+        ? Number(card.current_invoice) 
+        : (currentSched ? Number(currentSched.amount) : firstUpcoming);
+
       return {
         ...card,
         name: cleanName,
+        current_invoice: derivedCurrentInvoice,
         closingDay,
         dueDay
       };

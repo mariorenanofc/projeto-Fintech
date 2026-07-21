@@ -957,38 +957,16 @@ export default function ProfilePage() {
                         required
                       />
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Limite Total</label>
-                        <input
-                          type="number"
-                          placeholder="0.00"
-                          value={cardForm.totalLimit || ""}
-                          onChange={e => setCardForm({ ...cardForm, totalLimit: Number(e.target.value) })}
-                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-2 w-full text-xs"
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Fatura Atual</label>
-                        <input
-                          type="number"
-                          placeholder="0.00"
-                          value={cardForm.currentInvoice || ""}
-                          onChange={e => setCardForm({ ...cardForm, currentInvoice: Number(e.target.value) })}
-                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-2 w-full text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Próx. Fatura</label>
-                        <input
-                          type="number"
-                          placeholder="0.00"
-                          value={cardForm.nextInvoice || ""}
-                          onChange={e => setCardForm({ ...cardForm, nextInvoice: Number(e.target.value) })}
-                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-2 w-full text-xs"
-                        />
-                      </div>
+                    <div>
+                      <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Limite Total do Cartão (R$)</label>
+                      <input
+                        type="number"
+                        placeholder="0.00"
+                        value={cardForm.totalLimit || ""}
+                        onChange={e => setCardForm({ ...cardForm, totalLimit: Number(e.target.value) })}
+                        className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                        required
+                      />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -1407,52 +1385,66 @@ export default function ProfilePage() {
                 ))}
 
                 {/* LISTAGEM DE CARTÕES */}
-                {activeTab === "cards" && creditCards.map((item, idx) => (
-                  <div key={idx} className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <h4 className="text-xs font-black text-zinc-200">{item.name}</h4>
-                        <div className="flex gap-2 items-center mt-0.5">
-                          <span className="text-[9px] text-zinc-500 font-semibold">Limite: R$ {Number(item.total_limit).toFixed(2)}</span>
-                          <span className="text-[9px] text-yellow-500/80 font-mono font-semibold">
-                            &bull; Corte: Dia {item.closingDay || 5} | Venc: Dia {item.dueDay || 15}
-                          </span>
+                {activeTab === "cards" && creditCards.map((item, idx) => {
+                  const currentInv = Number(item.current_invoice || 0);
+                  const limitTotal = Number(item.total_limit || 1);
+                  const limitUsedPercent = Math.min(100, Math.round((currentInv / limitTotal) * 100));
+                  const availableLimit = Math.max(0, limitTotal - currentInv);
+
+                  return (
+                    <div key={idx} className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 space-y-3">
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h4 className="text-xs font-black text-zinc-200">{item.name}</h4>
+                          <div className="flex gap-2 items-center mt-0.5">
+                            <span className="text-[9px] text-zinc-500 font-semibold">Limite Total: R$ {limitTotal.toFixed(2)}</span>
+                            <span className="text-[9px] text-yellow-500/80 font-mono font-semibold">
+                              &bull; Corte: Dia {item.closingDay || 5} | Venc: Dia {item.dueDay || 15}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button onClick={() => handleEditCard(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={() => confirmDelete(item.id, "card", item.name)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button onClick={() => handleEditCard(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </button>
-                         <button onClick={() => confirmDelete(item.id, "card", item.name)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-rose-500/20 text-zinc-400 hover:text-rose-500 transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 text-[10px] border-t border-white/5 pt-2">
-                      <div>
-                        <span className="text-zinc-550 block">Fatura Atual:</span>
-                        <span className="font-bold text-rose-400">R$ {Number(item.current_invoice).toFixed(2)}</span>
-                      </div>
-                      <div>
-                        <span className="text-zinc-550 block">Próxima Fatura:</span>
-                        <span className="font-bold text-zinc-350">R$ {Number(item.next_invoice || 0).toFixed(2)}</span>
-                      </div>
-                    </div>
-                    {parseSchedule(item.invoices_schedule).length > 0 && (
-                      <div className="bg-zinc-900/30 p-2.5 rounded-lg border border-white/5">
-                        <span className="text-[8px] text-zinc-500 uppercase tracking-wider block mb-1">Futuros Fechamentos Agendados:</span>
-                        <div className="grid grid-cols-3 gap-1">
-                          {parseSchedule(item.invoices_schedule).map((sch: any, i: number) => (
-                            <div key={i} className="bg-zinc-950/60 p-1 rounded border border-white/5 text-center">
-                              <span className="text-[8px] text-yellow-500 block font-bold">{sch.month}</span>
-                              <span className="text-[9px] text-zinc-300 block font-bold">R$ {Number(sch.amount).toFixed(0)}</span>
-                            </div>
-                          ))}
+
+                      {/* Barra de Progresso do Limite */}
+                      <div className="space-y-1.5 pt-1 border-t border-white/5">
+                        <div className="flex justify-between items-center text-[9px]">
+                          <span className="text-zinc-400 font-bold uppercase">Limite Usado ({limitUsedPercent}%)</span>
+                          <span className="text-emerald-400 font-bold">R$ {availableLimit.toFixed(2)} disponível</span>
+                        </div>
+                        <div className="w-full bg-zinc-950 h-2 rounded-full overflow-hidden border border-white/5">
+                          <div 
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              limitUsedPercent > 80 ? "bg-rose-500" : limitUsedPercent > 50 ? "bg-yellow-500" : "bg-emerald-500"
+                            }`}
+                            style={{ width: `${limitUsedPercent}%` }}
+                          />
                         </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {parseSchedule(item.invoices_schedule).length > 0 && (
+                        <div className="bg-zinc-900/30 p-2.5 rounded-lg border border-white/5">
+                          <span className="text-[8px] text-zinc-500 uppercase tracking-wider block mb-1">Futuros Fechamentos Agendados:</span>
+                          <div className="grid grid-cols-3 gap-1">
+                            {parseSchedule(item.invoices_schedule).map((sch: any, i: number) => (
+                              <div key={i} className="bg-zinc-950/60 p-1 rounded border border-white/5 text-center">
+                                <span className="text-[8px] text-yellow-500 block font-bold">{sch.month}</span>
+                                <span className="text-[9px] text-zinc-300 block font-bold">R$ {Number(sch.amount).toFixed(0)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
 
                 {/* LISTAGEM DE DÍVIDAS */}
                 {activeTab === "debts" && debts.map((item, idx) => (
