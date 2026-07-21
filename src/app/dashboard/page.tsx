@@ -263,9 +263,11 @@ export default function DashboardPage() {
     });
 
     // 3. Mapeia Faturas do Cartão com o dia real de vencimento
+    const isCurrentMonth = currentMonthStr === new Date().toISOString().substring(0, 7);
+
     cards.forEach((card, idx) => {
-      let invVal = Number(card.current_invoice);
-      let dueDay = card.dueDay || 15;
+      let invVal = isCurrentMonth ? Number(card.current_invoice) : Number(card.next_invoice || card.current_invoice || 0);
+      let dueDay = card.dueDay || card.due_day || 15;
       const nameStr = card.name || "";
       const dueMatch = nameStr.match(/\[due:(\d+)\]/);
 
@@ -275,7 +277,7 @@ export default function DashboardPage() {
 
       const cleanName = nameStr.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
 
-      if (card.invoices_schedule && Array.isArray(card.invoices_schedule)) {
+      if (card.invoices_schedule && Array.isArray(card.invoices_schedule) && card.invoices_schedule.length > 0) {
         const schedItem = card.invoices_schedule.find((s: any) => s.month === currentMonthStr || s.date?.startsWith(currentMonthStr));
         if (schedItem) {
           invVal = Number(schedItem.amount);
@@ -286,14 +288,16 @@ export default function DashboardPage() {
         }
       }
 
-      generatedBills.push({
-        id: `card-${card.id || idx}`,
-        title: `Fatura ${cleanName}`,
-        amount: invVal,
-        dueDate: `${currentYearMonth}${String(dueDay).padStart(2, '0')}`,
-        status: "pending",
-        category: "Cartão de Crédito"
-      });
+      if (invVal > 0) {
+        generatedBills.push({
+          id: `card-${card.id || idx}`,
+          title: `Fatura ${cleanName}`,
+          amount: invVal,
+          dueDate: `${currentYearMonth}${String(dueDay).padStart(2, '0')}`,
+          status: "pending",
+          category: "Cartão de Crédito"
+        });
+      }
     });
 
     // Cruza com transações pagas
@@ -419,10 +423,24 @@ export default function DashboardPage() {
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
     if (date) {
-      const monthStr = date.toISOString().substring(0, 7);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const monthStr = `${year}-${month}`;
       if (monthStr !== selectedMonthStr) {
         setSelectedMonthStr(monthStr);
+        loadDashboardData(monthStr);
       }
+    }
+  };
+
+  // Trata a navegação de mês nas setas do calendário (Setembro, Outubro, Novembro, etc.)
+  const handleCalendarMonthChange = (monthDate: Date) => {
+    const year = monthDate.getFullYear();
+    const month = String(monthDate.getMonth() + 1).padStart(2, '0');
+    const newMonthStr = `${year}-${month}`;
+    if (newMonthStr !== selectedMonthStr) {
+      setSelectedMonthStr(newMonthStr);
+      loadDashboardData(newMonthStr);
     }
   };
 
@@ -606,6 +624,7 @@ export default function DashboardPage() {
           handleSyncGoogleCalendar={handleSyncGoogleCalendar}
           openConfirmModal={openConfirmModal}
           handleUndoPayment={handleUndoPayment}
+          onMonthChange={handleCalendarMonthChange}
         />
       </FinancialErrorBoundary>
 

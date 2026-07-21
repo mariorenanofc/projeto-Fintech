@@ -18,6 +18,7 @@ interface CalendarSectionProps {
   handleSyncGoogleCalendar: (bill: Bill) => void;
   openConfirmModal: (bill: Bill) => void;
   handleUndoPayment: (transactionId: string) => void;
+  onMonthChange?: (monthDate: Date) => void;
 }
 
 export function CalendarSection({
@@ -30,6 +31,7 @@ export function CalendarSection({
   handleSyncGoogleCalendar,
   openConfirmModal,
   handleUndoPayment,
+  onMonthChange,
 }: CalendarSectionProps) {
   // Calculo de contas pendentes a vencer nos próximos 3 dias
   const todayStr = new Date().toISOString().substring(0, 10);
@@ -76,6 +78,7 @@ export function CalendarSection({
                   mode="single"
                   selected={selectedDate}
                   onSelect={handleDateSelect}
+                  onMonthChange={onMonthChange}
                   locale={ptBR}
                   className="rounded-md text-zinc-100"
                   modifiers={{
