@@ -1,11 +1,11 @@
 import React from "react";
 import Link from "next/link";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Info, ShieldCheck, RefreshCcw, Target, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, Info, ShieldCheck, RefreshCcw, Target, CheckCircle2, Sparkles, ArrowRight, Zap } from "lucide-react";
 import { AudioExplainerButton } from "@/components/ui/audio-explainer";
 import { FinancialStrategyResult, GoalInput } from "@/actions/onboarding";
-import { CreditCardLimitsCard } from "@/components/dashboard/credit-card-limits-card";
+import { TiltCard } from "@/components/ui/tilt-card";
 
 interface FlowSummaryProps {
   loadingRealData: boolean;
@@ -24,6 +24,7 @@ interface FlowSummaryProps {
   selectedMonthStr: string;
   getReadableMonthLabel: (monthStr: string) => string;
   goals: GoalInput[];
+  onOpenNegotiationModal?: (item: { id: string; title: string; amount: number; type: "card" | "debt"; rawItem?: any }) => void;
 }
 
 export function FlowSummary({
@@ -43,6 +44,7 @@ export function FlowSummary({
   selectedMonthStr,
   getReadableMonthLabel,
   goals,
+  onOpenNegotiationModal,
 }: FlowSummaryProps) {
   
   const getNextMonthStr = (monthStr: string): string => {
@@ -51,31 +53,31 @@ export function FlowSummary({
     return `${year}-${String(month + 1).padStart(2, "0")}`;
   };
 
+  const nextMonthStr = getNextMonthStr(selectedMonthStr);
+
   const getNextMonthForecast = () => {
     if (!strategy) return { nextCommitments: 0, nextResidue: 0, difference: 0 };
     
-    const nextMonthStr = getNextMonthStr(selectedMonthStr);
-    const nextEssentials = strategy.totalEssentialExpenses;
+    let nextCommitments = strategy.totalEssentialExpenses;
     
-    const nextCards = rawCards.reduce((sum, card) => {
-      let val = Number(card.next_invoice || 0);
-      if (card.invoices_schedule && Array.isArray(card.invoices_schedule)) {
-        const item = card.invoices_schedule.find((s: any) => s.month === nextMonthStr);
-        if (item) val = Number(item.amount);
-      }
-      return sum + val;
-    }, 0);
-    
-    const nextDebts = rawDebts.reduce((sum, debt) => {
-      let val = Number(debt.current_installment_value || 0);
+    rawDebts.forEach((debt) => {
       if (debt.installments_schedule && Array.isArray(debt.installments_schedule)) {
         const item = debt.installments_schedule.find((s: any) => s.month === nextMonthStr);
-        if (item) val = Number(item.amount);
+        if (item) nextCommitments += Number(item.amount);
+      } else {
+        nextCommitments += Number(debt.current_installment_value || 0);
       }
-      return sum + val;
-    }, 0);
+    });
     
-    const nextCommitments = nextEssentials + nextCards + nextDebts;
+    rawCards.forEach((card) => {
+      let invVal = Number(card.next_invoice || 0);
+      if (card.invoices_schedule && Array.isArray(card.invoices_schedule)) {
+        const item = card.invoices_schedule.find((s: any) => s.month === nextMonthStr);
+        if (item) invVal = Number(item.amount);
+      }
+      nextCommitments += invVal;
+    });
+
     const nextResidue = strategy.totalIncome - nextCommitments;
     const currentCommitments = strategy.totalEssentialExpenses + strategy.totalDebtInstallments + strategy.totalCreditCardInvoices;
     const difference = currentCommitments - nextCommitments;
@@ -93,19 +95,20 @@ export function FlowSummary({
     : 0;
 
   return (
-    <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md relative overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5 flex-grow flex flex-col h-full">
+    <TiltCard glowColor="rgba(234, 179, 8, 0.15)" className="relative overflow-hidden space-y-6 flex-grow flex flex-col h-full">
       <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-2xl pointer-events-none" />
       
-      <CardHeader className="p-6 sm:p-8 pb-2 sm:pb-3">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-1.5 text-yellow-400 font-bold text-xs uppercase tracking-wider">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>Nosso Fluxo & Sonhos ✨</span>
-          </div>
+      <div className="flex justify-between items-center border-b border-white/5 pb-3">
+        <div>
+          <span className="text-[10px] text-yellow-500 font-extrabold uppercase tracking-widest block">Painel Estratégico</span>
+          <h3 className="text-xl font-black text-white flex items-center gap-2">Nosso Fluxo &amp; Sonhos ✨</h3>
         </div>
-      </CardHeader>
+        <Button size="sm" className="bg-zinc-900 border border-white/10 text-xs text-yellow-400 font-bold rounded-xl hover:bg-zinc-800">
+          <Zap className="w-3.5 h-3.5 mr-1" /> Dados do Banco
+        </Button>
+      </div>
       
-      <CardContent className="p-6 sm:p-8 pt-4 sm:pt-6 space-y-8 flex-grow flex flex-col justify-between">
+      <div className="pt-2 space-y-8 flex-grow flex flex-col justify-between">
         {loadingRealData || !strategy ? (
           <div className="space-y-4 animate-pulse py-4 w-full">
             <div className="w-full h-12 bg-zinc-950/40 rounded-xl" />
@@ -118,46 +121,31 @@ export function FlowSummary({
           </div>
         ) : strategy.hasStrategy ? (
           <>
-            {/* Resumo Instantâneo de Caixa (Regra dos 5 Segundos) */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl flex flex-col justify-center">
-                <span className="text-[9px] text-emerald-400 font-extrabold uppercase tracking-wider block">Entrou (Receitas)</span>
-                <span className="text-sm sm:text-base font-black text-emerald-300 mt-0.5">
-                  R$ {realIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-              <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex flex-col justify-center">
-                <span className="text-[9px] text-rose-400 font-extrabold uppercase tracking-wider block">Saiu (Saídas)</span>
-                <span className="text-sm sm:text-base font-black text-rose-300 mt-0.5">
-                  R$ {(realEssentials + realCommitments).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
-              <div className={`p-3 rounded-xl border flex flex-col justify-center ${
-                realDisposable >= 0 ? "bg-yellow-500/10 border-yellow-500/30" : "bg-rose-500/15 border-rose-500/30"
-              }`}>
-                <span className={`text-[9px] font-extrabold uppercase tracking-wider block ${
-                  realDisposable >= 0 ? "text-yellow-400" : "text-rose-400"
-                }`}>Sobra Líquida</span>
-                <span className={`text-sm sm:text-base font-black mt-0.5 ${
-                  realDisposable >= 0 ? "text-yellow-300" : "text-rose-400"
-                }`}>
-                  R$ {realDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                </span>
-              </div>
+            {/* Banner de CTA para a Previsão Futura do Casal (Posicionado dentro do Painel Estratégico) */}
+            <div className="w-full">
+              <Link href="/dashboard/previsao" className="block w-full group">
+                <div className="w-full bg-gradient-to-r from-yellow-500/10 via-amber-500/15 to-yellow-500/10 hover:from-yellow-500/20 hover:to-amber-500/25 border border-yellow-500/30 hover:border-yellow-400/60 rounded-2xl p-4 transition-all duration-300 shadow-[0_4px_20px_rgba(234,179,8,0.1)] hover:shadow-[0_0_25px_rgba(234,179,8,0.25)] flex items-center justify-between gap-3 backdrop-blur-md">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center text-yellow-400 shrink-0 shadow-[0_0_12px_rgba(234,179,8,0.3)]">
+                      <Sparkles className="w-5 h-5 animate-pulse" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-white uppercase tracking-wider">Previsão Futura do Casal 🔮</span>
+                        <span className="bg-yellow-500/20 text-yellow-300 text-[8px] font-extrabold uppercase px-2 py-0.5 rounded-full border border-yellow-500/30">NOVO</span>
+                      </div>
+                      <p className="text-[10px] sm:text-xs text-zinc-300 font-semibold mt-0.5">
+                        Projete a evolução de patrimônio, reserva e quitação de dívidas nos próximos 12 meses →
+                      </p>
+                    </div>
+                  </div>
+                  <div className="hidden xs:flex items-center gap-1 text-yellow-400 font-black text-xs group-hover:translate-x-1 transition-transform shrink-0">
+                    Ver Projeção
+                    <ArrowRight className="w-4 h-4" />
+                  </div>
+                </div>
+              </Link>
             </div>
-
-            <div className="bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-xl flex items-start gap-2.5">
-              <Info className="w-4.5 h-4.5 text-yellow-500 flex-shrink-0 mt-0.5" />
-              <p className="text-[10px] text-zinc-400 leading-relaxed font-semibold">
-                <span className="text-yellow-500 font-bold">Nota de Planejamento:</span> Estes valores representam o seu orçamento previsto. Lance todas as movimentações reais na aba de transações para obter a análise exata do seu fluxo de caixa conjugal!
-              </p>
-            </div>
-
-            {/* Limites de Crédito & Alertas Táticos (Inseridos no Fluxo) */}
-            <CreditCardLimitsCard 
-              rawCards={rawCards}
-              financeStatus={financeStatus}
-            />
 
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {/* Receitas */}
@@ -426,7 +414,7 @@ export function FlowSummary({
             <p className="text-xs text-zinc-400">Vamos começar? Clique em "Planejar Nosso Futuro" para nos contar um pouco sobre o orçamento de vocês e habilitar esta visão!</p>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </TiltCard>
   );
 }

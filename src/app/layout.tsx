@@ -5,6 +5,8 @@ import { PWAProvider } from "@/components/pwa-provider";
 import { FloatingTools } from "@/components/floating-tools";
 import { CookieBanner } from "@/components/cookie-banner";
 import { Toaster } from "@/components/ui/sonner";
+import { BackgroundParallaxElements } from "@/components/ui/background-parallax-elements";
+import { SmoothScrollProvider } from "@/components/ui/smooth-scroll-provider";
 
 const geistSans = Inter({
   variable: "--font-geist-sans",
@@ -180,12 +182,15 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdData) }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-50 selection:bg-yellow-500 selection:text-zinc-950 animate-fade-in">
-        <PWAProvider />
-        {children}
-        <FloatingTools />
-        <CookieBanner />
-        <Toaster position="top-right" />
+      <body className="min-h-full flex flex-col bg-[#0A0A0A] text-zinc-50 selection:bg-yellow-500 selection:text-zinc-950 animate-fade-in relative">
+        <SmoothScrollProvider>
+          <BackgroundParallaxElements />
+          <PWAProvider />
+          {children}
+          <FloatingTools />
+          <CookieBanner />
+          <Toaster position="top-right" />
+        </SmoothScrollProvider>
       </body>
     </html>
   );

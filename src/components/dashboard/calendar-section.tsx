@@ -21,6 +21,8 @@ interface CalendarSectionProps {
   onMonthChange?: (monthDate: Date) => void;
 }
 
+import { TiltCard } from "@/components/ui/tilt-card";
+
 export function CalendarSection({
   selectedDate,
   handleDateSelect,
@@ -43,18 +45,19 @@ export function CalendarSection({
     b => b.status === "pending" && b.dueDate >= todayStr && b.dueDate <= in3DaysStr
   );
   const upcomingBillsTotal = upcomingBills.reduce((sum, b) => sum + b.amount, 0);
+
   return (
     <section className="w-full mt-6">
-      <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
-        <CardHeader className="p-6 sm:p-8 pb-2 sm:pb-3 border-b border-white/5">
+      <TiltCard glowColor="rgba(234, 179, 8, 0.15)" className="space-y-4">
+        <div className="flex flex-col border-b border-white/5 pb-3">
           <div className="flex items-center gap-2">
             <CalendarIcon className="w-4 h-4 text-yellow-500" />
-            <CardTitle className="text-xs font-bold uppercase tracking-wider text-zinc-400">Nosso Calendário de Vencimentos 📅</CardTitle>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400">Nosso Calendário de Vencimentos 📅</h3>
           </div>
-          <CardDescription className="text-[10px] text-zinc-550 mt-1">Escolham um dia para acompanhar o fluxo das nossas contas juntos</CardDescription>
-        </CardHeader>
+          <p className="text-[10px] text-zinc-500 mt-1">Escolham um dia para acompanhar o fluxo das nossas contas juntos</p>
+        </div>
         
-        <CardContent className="flex-1 p-6 sm:p-8 pt-4 sm:pt-6">
+        <div className="space-y-4 pt-1">
           {upcomingBills.length > 0 && (
             <div className="bg-amber-500/10 border border-amber-500/25 p-3.5 rounded-xl flex items-center justify-between gap-3 mb-4 text-xs font-semibold text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
               <div className="flex items-center gap-2.5">
@@ -204,8 +207,8 @@ export function CalendarSection({
             </div>
 
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </TiltCard>
     </section>
   );
 }

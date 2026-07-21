@@ -2,7 +2,20 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Coins, TrendingUp, ShieldCheck, Sparkles, ArrowRight } from "lucide-react";
+import { 
+  Coins, 
+  TrendingUp, 
+  TrendingDown, 
+  CreditCard, 
+  Activity, 
+  ShieldCheck, 
+  Sparkles, 
+  ArrowRight, 
+  Heart, 
+  Printer, 
+  Bot, 
+  Loader2 
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { 
@@ -17,19 +30,20 @@ import { getTransactions, addTransaction, deleteTransaction } from "@/actions/tr
 import { toast } from "sonner";
 import { Bill } from "@/types";
 
-// Importações dos subcomponentes modulares
 import { Header } from "@/components/dashboard/header";
 import { SemaphoreCard } from "@/components/dashboard/semaphore-card";
+import { CreditCardLimitsCard } from "@/components/dashboard/credit-card-limits-card";
 import { RecommendationsCard } from "@/components/dashboard/recommendations-card";
 import { FlowSummary } from "@/components/dashboard/flow-summary";
 import { CalendarSection } from "@/components/dashboard/calendar-section";
 import { ConfirmPaymentDialog } from "@/components/dashboard/confirm-payment-dialog";
 import { CelebrationModal } from "@/components/dashboard/celebration-modal";
 import { FinancialErrorBoundary } from "@/components/ui/financial-error-boundary";
-
 import { BankNegotiationModal } from "@/components/dashboard/bank-negotiation-modal";
 import { PrintReportModal } from "@/components/dashboard/print-report-modal";
-import { Printer } from "lucide-react";
+
+import { TiltCard } from "@/components/ui/tilt-card";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
 
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
@@ -470,10 +484,17 @@ export default function DashboardPage() {
 
   const realDisposable = realIncome - realEssentials - realCommitments;
 
+  // Valores de Exibição das Métricas Principais (Utiliza Previsão do Onboarding/Estratégia se ainda não houver lançamentos reais no mês)
+  const displayIncome = realIncome > 0 ? realIncome : prevIncome;
+  const displayExpenses = (realEssentials + realCommitments) > 0 ? (realEssentials + realCommitments) : (prevEssentials + prevCommitments);
+  const displayDisposable = (realIncome > 0 || realEssentials > 0 || realCommitments > 0) 
+    ? realDisposable 
+    : (strategy?.remainingCashResidue !== undefined ? strategy.remainingCashResidue : prevDisposable);
+
   // Reserva Livre real (o valor alocado para lazer/desejos do casal)
   const reservaLivreCasal = strategy?.hasStrategy
-    ? (realDisposable > 0 
-        ? Math.min(strategy.lazerTravaValue, realDisposable) 
+    ? (displayDisposable > 0 
+        ? Math.min(strategy.lazerTravaValue, displayDisposable) 
         : 0)
     : 0;
 
@@ -491,8 +512,14 @@ export default function DashboardPage() {
     return `${months[month - 1]} de ${year}`;
   };
 
+  const totalCardLimitFree = rawCards.reduce((acc: number, c: any) => {
+    const limit = Number(c.total_limit || c.totalLimit || 0);
+    const invoice = Number(c.current_invoice || c.currentInvoice || 0);
+    return acc + Math.max(0, limit - invoice);
+  }, 0);
+
   return (
-    <div className="flex-1 w-full mx-auto bg-zinc-950 flex flex-col min-h-screen px-3 py-4 xs:px-4 xs:py-6 pb-24 sm:pb-10 max-w-full xs:max-w-[480px] sm:max-w-[768px] tablet:max-w-[834px] md:max-w-[1024px] lg:max-w-[1440px] laptop:max-w-[1600px] sm:px-6 md:px-8 lg:py-10">
+    <div className="flex-1 w-full mx-auto bg-transparent flex flex-col min-h-screen px-3 py-4 xs:px-4 xs:py-6 pb-6 sm:pb-6 max-w-full xs:max-w-[480px] sm:max-w-[768px] tablet:max-w-[834px] md:max-w-[1024px] lg:max-w-[1440px] laptop:max-w-[1600px] sm:px-6 md:px-8 lg:py-8 space-y-6">
       
       {/* Header do App */}
       <Header 
@@ -503,100 +530,114 @@ export default function DashboardPage() {
         handleLogout={handleLogout}
       />
 
-      {/* Banner de CTA para a Previsão Futura */}
-      <div className="mb-6 w-full">
-        <Link href="/dashboard/previsao" className="block w-full group">
-          <div className="w-full bg-gradient-to-r from-yellow-500/10 via-amber-500/15 to-yellow-500/10 hover:from-yellow-500/20 hover:to-amber-500/25 border border-yellow-500/30 hover:border-yellow-400/60 rounded-2xl p-4 transition-all duration-300 shadow-[0_4px_20px_rgba(234,179,8,0.1)] hover:shadow-[0_0_25px_rgba(234,179,8,0.25)] flex items-center justify-between gap-3 backdrop-blur-md">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center text-yellow-400 shrink-0 shadow-[0_0_12px_rgba(234,179,8,0.3)]">
-                <Sparkles className="w-5 h-5 animate-pulse" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-white uppercase tracking-wider">Previsão Futura do Casal</span>
-                  <span className="bg-yellow-500/20 text-yellow-300 text-[8px] font-extrabold uppercase px-2 py-0.5 rounded-full border border-yellow-500/30">NOVO</span>
-                </div>
-                <p className="text-[10px] sm:text-xs text-zinc-300 font-semibold mt-0.5">
-                  Projete a evolução de patrimônio, reserva e quitação de dívidas nos próximos 12 meses →
-                </p>
-              </div>
-            </div>
-            <div className="hidden xs:flex items-center gap-1 text-yellow-400 font-black text-xs group-hover:translate-x-1 transition-transform shrink-0">
-              Ver Projeção
-              <ArrowRight className="w-4 h-4" />
+      {/* Hero Section Micro1 Style (Igual ao test/dashboard) */}
+      <section className="relative text-center py-4 space-y-4">
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-bold mb-1 backdrop-blur-md shadow-[0_0_15px_rgba(234,179,8,0.15)] animate-pulse">
+          <Sparkles className="w-4 h-4 text-yellow-400" /> ENGINE FLUIDITY 2.0 &amp; SUPABASE REALTIME ⚡
+        </div>
+
+        <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-white max-w-4xl mx-auto leading-tight">
+          Diagnóstico Inteligente &amp; <br />
+          <span className="bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 bg-clip-text text-transparent filter drop-shadow-[0_0_25px_rgba(234,179,8,0.3)]">
+            Fluxo de Caixa Conjugal
+          </span>
+        </h1>
+      </section>
+
+      {/* 4 Cards de Métricas Chave com Contadores Animados Reais (Count-Up) */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+        <TiltCard glowColor="rgba(16, 185, 129, 0.2)">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-extrabold text-emerald-400 uppercase tracking-wider">Receita Prevista</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+              <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-        </Link>
-      </div>
+          <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <AnimatedCounter value={displayIncome} prefix="R$ " decimals={2} />
+          </div>
+          <span className="text-[10px] text-zinc-400 mt-2 block">100% liquidadas no mês</span>
+        </TiltCard>
 
-      {/* Grid Geral de Responsividade */}
+        <TiltCard glowColor="rgba(244, 63, 94, 0.2)">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-extrabold text-rose-400 uppercase tracking-wider">Saídas Previstas</span>
+            <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+              <TrendingDown className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <AnimatedCounter value={displayExpenses} prefix="R$ " decimals={2} />
+          </div>
+          <span className="text-[10px] text-zinc-400 mt-2 block">Essenciais + Dívidas + Cartões</span>
+        </TiltCard>
+
+        <TiltCard glowColor="rgba(234, 179, 8, 0.2)">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-extrabold text-yellow-400 uppercase tracking-wider">Sobra Líquida</span>
+            <div className="w-8 h-8 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
+              <Activity className="w-4 h-4" />
+            </div>
+          </div>
+          <div className={`text-2xl sm:text-3xl font-black ${displayDisposable >= 0 ? "text-yellow-400" : "text-rose-400"} tracking-tight`}>
+            <AnimatedCounter value={displayDisposable} prefix="R$ " decimals={2} />
+          </div>
+          <span className="text-[10px] text-yellow-500/80 font-bold mt-2 block">
+            {displayDisposable >= 0 ? "✨ Fluxo positivo mantido" : "⚠️ Ajuste de rota recomendado"}
+          </span>
+        </TiltCard>
+
+        <TiltCard glowColor="rgba(6, 182, 212, 0.2)">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-extrabold text-cyan-400 uppercase tracking-wider">Limite Total Livre</span>
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+              <CreditCard className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            <AnimatedCounter value={totalCardLimitFree} prefix="R$ " decimals={2} />
+          </div>
+          <span className="text-[10px] text-zinc-400 mt-2 block">Disponível em {rawCards.length} cartões</span>
+        </TiltCard>
+      </section>
+
+      {/* Grid Principal de 2 Colunas (Equilibradas em Altura) */}
       <div className="flex-1 flex flex-col gap-6 tablet:grid tablet:grid-cols-12 tablet:gap-6 lg:gap-8 tablet:items-stretch h-full">
         
-        {/* COLUNA ESQUERDA (tablet:col-span-5): Semáforo e Recomendações */}
-        <div className="flex flex-col gap-6 tablet:col-span-5 h-full">
-          {/* Card do Semáforo com Error Boundary */}
+        {/* COLUNA ESQUERDA (tablet:col-span-5): Semáforo e Limites de Crédito Reais */}
+        <div className="flex flex-col gap-6 tablet:col-span-5 h-full justify-between space-y-2">
+          {/* 1. Card do Semáforo */}
           <FinancialErrorBoundary fallbackTitle="Semáforo Indisponível" onReset={() => loadDashboardData(selectedMonthStr)}>
             <SemaphoreCard 
               loadingRealData={loadingRealData}
               financeStatus={financeStatus}
-              realDisposable={realDisposable}
+              realDisposable={displayDisposable}
               reservaLivreCasal={reservaLivreCasal}
               tetoDiario={tetoDiario}
               strategy={strategy}
+              onOpenPrintModal={() => setPrintModalOpen(true)}
             />
           </FinancialErrorBoundary>
-          
-          {/* Botões de Ação */}
-          <div className="grid grid-cols-3 gap-2 w-full">
-            <Link href="/chat" className="w-full block">
-              <Button 
-                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 font-black shadow-[0_4px_15px_rgba(234,179,8,0.2)] flex items-center justify-center gap-1 h-11 rounded-xl text-[11px] border-none transition-all duration-300 hover:scale-[1.02]"
-              >
-                Conselheiro IA 🤖
-              </Button>
-            </Link>
-            <Link href="/profile" className="w-full block">
-              <Button 
-                variant="outline" 
-                className="w-full border-white/5 hover:bg-zinc-900/50 hover:border-zinc-800 text-zinc-300 font-bold h-11 rounded-xl text-[11px] transition-all duration-300 hover:scale-[1.02]"
-              >
-                Ajustar Finanças ⚙️
-              </Button>
-            </Link>
-            <Button 
-              type="button"
-              onClick={() => setPrintModalOpen(true)}
-              className="w-full bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-yellow-400 font-black h-11 rounded-xl text-[11px] transition-all duration-300 hover:scale-[1.02] flex items-center justify-center gap-1"
-            >
-              <Printer className="w-3.5 h-3.5" />
-              Plano Geladeira 🖨️
-            </Button>
-          </div>
 
-          {/* Conselheiro de Choque / Recomendações */}
-          <FinancialErrorBoundary fallbackTitle="Diagnóstico Indisponível">
-            <RecommendationsCard 
-              strategy={strategy} 
+          {/* 2. Nossos Limites de Crédito Reais 💳 */}
+          <FinancialErrorBoundary fallbackTitle="Limites de Crédito Indisponíveis">
+            <CreditCardLimitsCard 
               rawCards={rawCards}
-              rawDebts={rawDebts}
-              onOpenNegotiationModal={(item) => {
-                setNegotiationItem(item);
-                setNegotiationModalOpen(true);
-              }}
+              financeStatus={financeStatus}
             />
           </FinancialErrorBoundary>
         </div>
 
-        {/* COLUNA DIREITA (tablet:col-span-7): Resumo do Fluxo */}
+        {/* COLUNA DIREITA (tablet:col-span-7): Painel Estratégico (Nosso Fluxo & Sonhos ✨) */}
         <div className="flex flex-col gap-6 tablet:col-span-7 h-full flex-grow">
           <FinancialErrorBoundary fallbackTitle="Fluxo Financeiro Indisponível" onReset={() => loadDashboardData(selectedMonthStr)}>
             <FlowSummary 
               loadingRealData={loadingRealData}
               strategy={strategy}
-              realIncome={realIncome}
+              realIncome={displayIncome}
               realEssentials={realEssentials}
               realCommitments={realCommitments}
-              realDisposable={realDisposable}
+              realDisposable={displayDisposable}
               prevIncome={prevIncome}
               prevEssentials={prevEssentials}
               prevCommitments={prevCommitments}
@@ -607,33 +648,54 @@ export default function DashboardPage() {
               selectedMonthStr={selectedMonthStr}
               getReadableMonthLabel={getReadableMonthLabel}
               goals={goals}
+              onOpenNegotiationModal={(item) => {
+                setNegotiationItem(item);
+                setNegotiationModalOpen(true);
+              }}
             />
           </FinancialErrorBoundary>
         </div>
       </div>
 
-      {/* SEÇÃO DE CALENDÁRIO & CONTAS INTEGRADA */}
-      <FinancialErrorBoundary fallbackTitle="Agenda e Vencimentos Indisponíveis" onReset={() => loadDashboardData(selectedMonthStr)}>
-        <CalendarSection 
-          selectedDate={selectedDate}
-          handleDateSelect={handleDateSelect}
-          selectedDateBills={selectedDateBills}
-          allBills={bills}
-          hasBillOnDay={hasBillOnDay}
-          mounted={mounted}
-          handleSyncGoogleCalendar={handleSyncGoogleCalendar}
-          openConfirmModal={openConfirmModal}
-          handleUndoPayment={handleUndoPayment}
-          onMonthChange={handleCalendarMonthChange}
-        />
-      </FinancialErrorBoundary>
+      {/* SEÇÃO LARGURA TOTAL 100% 1: Engenharia Financeira & IA 💡 (Plano de Resgate Priorizado) */}
+      <div className="w-full pt-2">
+        <FinancialErrorBoundary fallbackTitle="Diagnóstico Indisponível">
+          <RecommendationsCard 
+            strategy={strategy} 
+            rawCards={rawCards}
+            rawDebts={rawDebts}
+            onOpenNegotiationModal={(item) => {
+              setNegotiationItem(item);
+              setNegotiationModalOpen(true);
+            }}
+          />
+        </FinancialErrorBoundary>
+      </div>
+
+      {/* SEÇÃO LARGURA TOTAL 100% 2: Nosso Calendário de Vencimentos 📅 */}
+      <div className="w-full pt-2">
+        <FinancialErrorBoundary fallbackTitle="Agenda e Vencimentos Indisponíveis" onReset={() => loadDashboardData(selectedMonthStr)}>
+          <CalendarSection 
+            selectedDate={selectedDate}
+            handleDateSelect={handleDateSelect}
+            selectedDateBills={selectedDateBills}
+            allBills={bills}
+            hasBillOnDay={hasBillOnDay}
+            mounted={mounted}
+            handleSyncGoogleCalendar={handleSyncGoogleCalendar}
+            openConfirmModal={openConfirmModal}
+            handleUndoPayment={handleUndoPayment}
+            onMonthChange={handleCalendarMonthChange}
+          />
+        </FinancialErrorBoundary>
+      </div>
 
       {/* MODAL DE SIMULAÇÃO DE RENEGOCIAÇÃO BANCÁRIA */}
       <BankNegotiationModal 
         isOpen={negotiationModalOpen}
         onClose={() => setNegotiationModalOpen(false)}
         itemToNegotiate={negotiationItem}
-        currentResidue={realDisposable}
+        currentResidue={displayDisposable}
         onSuccess={() => loadDashboardData(selectedMonthStr)}
       />
 
@@ -650,20 +712,37 @@ export default function DashboardPage() {
         getReadableMonthLabel={getReadableMonthLabel}
       />
 
-      {/* Footer / Barra de Navegação PWA Minimalista */}
-      <footer className="fixed bottom-0 left-0 right-0 z-50 bg-zinc-950/80 backdrop-blur-md border-t border-white/5 py-3 flex justify-around text-zinc-600 text-xs sm:relative sm:bottom-auto sm:left-auto sm:right-auto sm:z-auto sm:bg-transparent sm:backdrop-blur-none sm:border-t-0 sm:border-white/5 sm:py-0 sm:mt-10 sm:pt-5">
-        <Link href="/dashboard" className="flex flex-col items-center gap-1 text-yellow-500 font-bold transition-colors">
-          <Coins className="w-5 h-5" />
-          <span className="text-[9px] tracking-wider uppercase font-semibold">Dashboard</span>
-        </Link>
-        <Link href="/transactions" className="flex flex-col items-center gap-1 hover:text-zinc-400 transition-colors">
-          <TrendingUp className="w-5 h-5" />
-          <span className="text-[9px] tracking-wider uppercase font-semibold">Transações</span>
-        </Link>
-        <Link href="/profile" className="flex flex-col items-center gap-1 hover:text-zinc-400 transition-colors">
-          <ShieldCheck className="w-5 h-5" />
-          <span className="text-[9px] tracking-wider uppercase font-semibold">Perfil</span>
-        </Link>
+      {/* Footer Padrão Micro1 (Igual ao test/dashboard) */}
+      <footer className="w-full border-t border-white/5 pt-8 pb-8 text-center space-y-4 mt-6">
+        <div className="flex justify-center items-center">
+          <div className="w-10 h-10 rounded-2xl bg-zinc-900 border border-yellow-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+            <Coins className="w-5 h-5 text-yellow-500" />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <h4 className="text-sm font-black text-white tracking-tight">Sintonia &amp; Engenharia Financeira Familiar</h4>
+          <p className="text-xs text-zinc-400 font-medium">Plataforma de inteligência financeira conjugal e gestão de crédito de alto desempenho</p>
+        </div>
+
+        <div className="flex items-center justify-center gap-4 text-xs text-zinc-400 font-semibold flex-wrap">
+          <Link href="/dashboard" className="hover:text-yellow-400 transition-colors">Dashboard</Link>
+          <span>&bull;</span>
+          <Link href="/transactions" className="hover:text-yellow-400 transition-colors">Transações</Link>
+          <span>&bull;</span>
+          <Link href="/profile" className="hover:text-yellow-400 transition-colors">Perfil &amp; Cartões</Link>
+          <span>&bull;</span>
+          <Link href="/onboarding" className="hover:text-yellow-400 transition-colors">Onboarding</Link>
+          <span>&bull;</span>
+          <Link href="/chat" className="hover:text-yellow-400 transition-colors">Conselheira IA</Link>
+          <span>&bull;</span>
+          <Link href="/politica-de-privacidade" className="hover:text-yellow-400 transition-colors">Privacidade</Link>
+        </div>
+
+        <div className="text-[10px] text-zinc-500 pt-3 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-2 max-w-4xl mx-auto px-4">
+          <span>&copy; {new Date().getFullYear()} Fintech Casal. Todos os direitos reservados.</span>
+          <span className="flex items-center gap-1">Desenvolvido com <Heart className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500 animate-pulse" /> para casais de alto desempenho</span>
+        </div>
       </footer>
 
       {/* Modal de Confirmação de Pagamento */}

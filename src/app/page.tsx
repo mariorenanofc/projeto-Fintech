@@ -1,103 +1,157 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
 import { AuthButton } from "@/components/auth-button";
-import { Coins, ShieldAlert, Sparkles, CalendarRange, Heart } from "lucide-react";
+import { TiltCard } from "@/components/ui/tilt-card";
+import { Coins, ShieldAlert, Sparkles, CalendarRange, Heart, Bot, TrendingUp, Lock, CheckCircle2 } from "lucide-react";
 
 export default function LoginPage() {
   return (
-    <div className="flex-1 w-full min-h-screen bg-zinc-950 flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <div className="flex-1 w-full min-h-screen bg-transparent flex flex-col items-center justify-between px-4 py-8 relative overflow-hidden">
       
-      {/* Atmosfera: Efeitos de iluminação (glow) sutis no fundo */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-yellow-500/8 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute -bottom-20 -left-20 w-72 h-72 bg-yellow-500/5 rounded-full blur-[100px] pointer-events-none" />
-      <div className="absolute -top-20 -right-20 w-72 h-72 bg-yellow-500/3 rounded-full blur-[100px] pointer-events-none" />
+      {/* Luz de Fundo Efeito Glow Micro1 */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-yellow-500/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-3/4 -left-20 w-[400px] h-[400px] bg-yellow-500/5 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Conteúdo Principal */}
-      <div className="w-full max-w-4xl flex flex-col items-center z-10 py-12">
+      {/* Outer Container */}
+      <div className="w-full max-w-6xl mx-auto flex flex-col items-center z-10 space-y-12">
         
-        {/* Card Centralizado de Login */}
-        <div className="w-full max-w-md bg-zinc-900/40 border border-white/5 backdrop-blur-md rounded-2xl p-8 shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_30px_rgba(234,179,8,0.06)] flex flex-col items-center text-center relative overflow-hidden">
-          
-          {/* Brilho interno do card */}
-          <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-yellow-500/20 to-transparent" />
-          
-          {/* Logotipo da Fintech */}
-          <div className="relative mb-6">
-            <div className="absolute inset-0 bg-yellow-500/20 rounded-2xl blur-md animate-pulse" />
-            <div className="relative w-12 h-12 rounded-2xl bg-zinc-900 border border-yellow-500/30 flex items-center justify-center shadow-lg">
-              <Coins className="w-6.5 h-6.5 text-yellow-500 filter drop-shadow-[0_0_8px_rgba(234,179,8,0.4)]" />
+        {/* Top Header Logo */}
+        <header className="w-full flex justify-between items-center py-2">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-yellow-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+              <Coins className="w-5 h-5 text-yellow-500" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-black tracking-tight text-white">
+                FINTECH CASAL
+              </span>
+              <span className="text-[9px] text-zinc-400 font-medium tracking-wider uppercase">
+                Planejamento Conjugal &amp; Engenharia de Crédito
+              </span>
             </div>
           </div>
 
-          {/* Textos de Títulos */}
-          <h1 className="text-xl font-black tracking-tight text-white sm:text-2xl">
-            Fintech Casal
+          <div className="hidden sm:flex items-center gap-2 text-xs font-bold text-zinc-400">
+            <Lock className="w-3.5 h-3.5 text-yellow-500" />
+            <span>Google OAuth 2.0 Verified</span>
+          </div>
+        </header>
+
+        {/* Hero Section */}
+        <section className="text-center space-y-4 max-w-3xl pt-4">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-black backdrop-blur-md shadow-[0_0_15px_rgba(234,179,8,0.15)] animate-pulse">
+            <Sparkles className="w-4 h-4 text-yellow-400" /> PLATAFORMA DE SINTONIA FINANCEIRA PARA CASAIS ⚡
+          </div>
+          <h1 className="text-3xl sm:text-6xl font-black tracking-tight text-white leading-tight">
+            Sintonia, Orçamento &amp; <br />
+            <span className="bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 bg-clip-text text-transparent filter drop-shadow-[0_0_25px_rgba(234,179,8,0.3)]">
+              Engenharia Financeira Conjugal
+            </span>
           </h1>
-          <p className="text-[10px] text-yellow-500 font-bold uppercase tracking-widest mt-1">
-            Finanças Compartilhadas
+          <p className="text-xs sm:text-base text-zinc-300 font-medium max-w-2xl mx-auto leading-relaxed">
+            Eliminem o estresse financeiro a dois. Acompanhem o semáforo de gastos, planejem reservas e sincronizem automaticamente as contas no Google Calendar.
           </p>
+        </section>
 
-          <div className="bg-zinc-950/50 border border-white/5 p-4 rounded-xl mt-4">
-            <h2 className="text-sm font-bold text-white mb-2">Qual a finalidade deste app?</h2>
-            <p className="text-xs text-zinc-400 leading-relaxed text-justify">
-              O <strong>Fintech Casal</strong> é um aplicativo de organização financeira projetado para ajudar casais a planejar orçamentos conjuntos, gerenciar despesas e acompanhar contas a pagar.
-              <br/><br/>
-              <strong>Integração com Google:</strong> Utilizamos o Login do Google para garantir acesso seguro à sua conta. Solicitamos acesso ao seu <strong>Google Calendar (Google Agenda)</strong> exclusivamente para poder adicionar, de forma automática, lembretes das datas de vencimento das contas cadastradas no aplicativo diretamente na sua agenda pessoal, evitando multas e atrasos. Seus dados não são compartilhados com terceiros.
-            </p>
-          </div>
+        {/* Card Central de Login com Google OAuth */}
+        <div className="w-full max-w-lg">
+          <TiltCard glowColor="rgba(234, 179, 8, 0.25)" className="p-10 sm:p-12 text-center space-y-8 relative overflow-hidden backdrop-blur-xl bg-zinc-950/90 border-[#27272A] shadow-2xl">
+            {/* Brilho Superior no Card */}
+            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
+            
+            <div className="flex flex-col items-center space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-yellow-500/40 flex items-center justify-center shadow-[0_0_25px_rgba(234,179,8,0.35)] mb-1">
+                <Coins className="w-7 h-7 text-yellow-400" />
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">Entrar no Fintech Casal</h2>
+              <p className="text-xs sm:text-sm text-zinc-400 font-semibold">Acesso rápido e seguro para o casal</p>
+            </div>
 
-          {/* Botão de Google Auth Premium Centralizado */}
-          <div className="w-full flex justify-center mt-8 mb-2">
-            <AuthButton />
-          </div>
+            {/* Google OAuth Login Button com espaço adequado */}
+            <div className="w-full flex justify-center py-4 my-2">
+              <AuthButton />
+            </div>
 
-          <span className="text-[10px] text-zinc-400 mt-4 uppercase tracking-wider font-semibold">
-            Seguro &bull; RLS Isolado &bull; Google OAuth
-          </span>
+            {/* Aviso de Transparência do Google Calendar API */}
+            <div className="bg-zinc-900/90 p-5 sm:p-6 rounded-2xl border border-white/10 text-left space-y-2.5 mt-4 shadow-inner">
+              <span className="text-xs text-yellow-400 uppercase font-extrabold tracking-wider flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-yellow-500 shrink-0" /> Integração com Google Agenda
+              </span>
+              <p className="text-xs text-zinc-300 leading-relaxed font-normal">
+                Utilizamos permissões estritas para adicionar lembretes das contas a pagar diretamente na sua agenda pessoal, evitando atrasos e juros. Seus dados estão protegidos sob isolamento RLS.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-center gap-6 text-xs text-zinc-400 font-bold tracking-wider uppercase pt-2">
+              <span className="flex items-center gap-1.5">🔒 Criptografia SSL</span>
+              <span>&bull;</span>
+              <span className="flex items-center gap-1.5">🛡️ Supabase Auth</span>
+            </div>
+          </TiltCard>
         </div>
 
-        {/* Estética dos Textos: Funcionalidades em Grid Elegante abaixo do Card */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-10 w-full max-w-3xl">
+        {/* Grade de Funcionalidades em 3D Tilt Cards */}
+        <section className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
           
-          {/* Item 1: Semáforo */}
-          <div className="bg-zinc-900/20 border border-white/5 backdrop-blur-sm p-5 rounded-2xl flex flex-col items-center text-center hover:bg-zinc-900/30 hover:border-white/10 transition-all duration-300 group">
-            <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 mb-3 group-hover:scale-105 transition-transform">
-              <ShieldAlert className="w-5 h-5 text-yellow-500 filter drop-shadow-[0_0_5px_rgba(234,179,8,0.3)]" />
+          <TiltCard glowColor="rgba(234, 179, 8, 0.15)">
+            <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400 mb-3">
+              <ShieldAlert className="w-5 h-5 text-yellow-400" />
             </div>
-            <h3 className="text-xs font-black text-zinc-200 uppercase tracking-wider">Semáforo de Gastos</h3>
-            <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
-              Sinal visual diário (Verde, Amarelo ou Vermelho) indicando se vocês podem realizar novas compras.
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">Semáforo de Gastos 🚦</h3>
+            <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed">
+              Sinal visual diário (Verde, Amarelo ou Vermelho) calculando o teto de gastos do casal em tempo real.
             </p>
-          </div>
+          </TiltCard>
 
-          {/* Item 3: Calendário */}
-          <div className="bg-zinc-900/20 border border-white/5 backdrop-blur-sm p-5 rounded-2xl flex flex-col items-center text-center hover:bg-zinc-900/30 hover:border-white/10 transition-all duration-300 group">
-            <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-400 mb-3 group-hover:scale-105 transition-transform">
-              <CalendarRange className="w-5 h-5 text-yellow-500 filter drop-shadow-[0_0_5px_rgba(234,179,8,0.3)]" />
+          <TiltCard glowColor="rgba(16, 185, 129, 0.15)">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-3">
+              <TrendingUp className="w-5 h-5 text-emerald-400" />
             </div>
-            <h3 className="text-xs font-black text-zinc-200 uppercase tracking-wider">Google Calendar</h3>
-            <p className="text-[10px] text-zinc-400 mt-2 leading-relaxed">
-              Agenda integrada para salvar as datas de vencimento automaticamente em seus calendários do Google.
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">Engenharia de Crédito ⚡</h3>
+            <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed">
+              Aplicação da Lei 14.690/23 para simulação de parcelamentos e resgate imediato da saúde financeira.
             </p>
-          </div>
+          </TiltCard>
 
-        </div>
+          <TiltCard glowColor="rgba(6, 182, 212, 0.15)">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-3">
+              <CalendarRange className="w-5 h-5 text-cyan-400" />
+            </div>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">Google Calendar Sync 📅</h3>
+            <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed">
+              Sincronização automática das datas de vencimento de cartões e contas no Google Agenda do casal.
+            </p>
+          </TiltCard>
 
-        {/* Footer da Página com Links Legais (Exigência do Google OAuth) */}
-        <footer className="mt-12 flex flex-col items-center gap-3">
-          <div className="flex items-center gap-4 text-xs text-zinc-400 font-medium">
-            <Link href="/politica-de-privacidade" aria-label="Política de Privacidade" className="hover:text-yellow-500 transition-colors underline underline-offset-4">
+          <TiltCard glowColor="rgba(244, 63, 94, 0.15)">
+            <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400 mb-3">
+              <Bot className="w-5 h-5 text-rose-400" />
+            </div>
+            <h3 className="text-xs font-black text-white uppercase tracking-wider">Conselheira IA 🤖</h3>
+            <p className="text-[11px] text-zinc-400 mt-2 leading-relaxed">
+              Assistente virtual com inteligência financeira pronta para responder dúvidas e traçar estratégias.
+            </p>
+          </TiltCard>
+
+        </section>
+
+        {/* Footer com Links Requeridos pelo Google OAuth */}
+        <footer className="w-full border-t border-white/5 pt-6 pb-4 flex flex-col items-center gap-3">
+          <div className="flex items-center gap-6 text-xs text-zinc-400 font-bold">
+            <Link href="/politica-de-privacidade" className="hover:text-yellow-400 transition-colors underline underline-offset-4">
               Política de Privacidade
             </Link>
             <span>&bull;</span>
-            <Link href="/termos-de-uso" aria-label="Termos de Uso" className="hover:text-yellow-500 transition-colors underline underline-offset-4">
+            <Link href="/termos-de-uso" className="hover:text-yellow-400 transition-colors underline underline-offset-4">
               Termos de Uso
             </Link>
           </div>
-          <div className="text-[10px] text-zinc-400 flex items-center gap-1.5 font-medium tracking-wide">
+          <div className="text-[10px] text-zinc-500 flex items-center gap-1.5 font-medium tracking-wide">
             <span>Desenvolvido com</span>
             <Heart className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500 animate-pulse" />
-            <span>para casais investidores</span>
+            <span>para casais investidores — {new Date().getFullYear()}</span>
           </div>
         </footer>
 

@@ -1,7 +1,7 @@
 import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TiltCard } from "@/components/ui/tilt-card";
 import { Button } from "@/components/ui/button";
-import { Info, AlertTriangle, Calculator } from "lucide-react";
+import { Info, AlertTriangle, Calculator, ShieldCheck, Zap } from "lucide-react";
 import { FinancialStrategyResult } from "@/actions/onboarding";
 
 interface RecommendationsCardProps {
@@ -22,223 +22,198 @@ export function RecommendationsCard({ strategy, rawCards = [], rawDebts = [], on
   const lazerIdeal = strategy.totalIncome * 0.30;
   const investIdeal = strategy.totalIncome * 0.20;
 
+  const criticalCards = strategy.financialStage === "red"
+    ? strategy.cardActions.filter(c => !c.requiresNegotiation && c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0)
+    : [];
+
+  const negotiationCards = strategy.financialStage === "red"
+    ? strategy.cardActions.filter(c => c.requiresNegotiation || c.suggestedProportionalPayment < c.currentInvoice || c.recommendation.toLowerCase().includes("parcelar") || c.recommendation.toLowerCase().includes("renegociar") || c.recommendation.toLowerCase().includes("indisponível"))
+    : [];
+
   return (
-    <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
-      <CardHeader className="p-5 sm:p-6 pb-2">
-        <CardTitle className="text-xs font-black uppercase tracking-wider text-yellow-500 flex items-center gap-1.5">
-          <Info className="w-4 h-4" />
-          Engenharia Financeira & IA 💡
-        </CardTitle>
-        <CardDescription className="text-[9px] text-zinc-550 mt-0.5">
+    <TiltCard glowColor="rgba(234, 179, 8, 0.15)" className="space-y-6">
+      {/* Header do Card com Ícone e Subtítulo */}
+      <div className="flex flex-col border-b border-white/5 pb-3">
+        <h3 className="text-sm font-black uppercase tracking-wider text-yellow-500 flex items-center gap-2">
+          <Info className="w-4.5 h-4.5" />
+          Engenharia Financeira &amp; IA 💡
+        </h3>
+        <p className="text-xs text-zinc-400 mt-0.5">
           Ideias personalizadas e simulações para resgatar a saúde financeira do casal
-        </CardDescription>
-      </CardHeader>
+        </p>
+      </div>
       
-      <CardContent className="p-5 sm:p-6 pt-3 space-y-4">
-        {/* Risco de Insolvência Alerta Crítico */}
-        {strategy.isInsolvencyRisk && (
-          <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-xl space-y-1.5 text-rose-400">
-            <span className="text-[9px] uppercase font-black tracking-widest flex items-center gap-1.5 text-rose-400">
-              <AlertTriangle className="w-4 h-4 text-rose-500 animate-pulse" />
-              Risco de Insolvência Detectado!
-            </span>
-            <p className="text-[9px] leading-relaxed font-semibold text-zinc-355">
-              A soma dos Gastos Essenciais e das Parcelas Estruturais consome mais de 100% da renda de vocês. A trava de Lazer foi suspensa (0%). É urgente revisar e cortar despesas básicas de imediato!
-            </p>
-          </div>
-        )}
-
-        {/* Plano de Distribuição Matemática V2 */}
-        <div className="bg-zinc-950/40 p-3.5 rounded-xl border border-white/5 space-y-2.5">
-          <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-black block">
-            Distribuição Sugerida do Orçamento:
-          </span>
-          <div className="grid grid-cols-2 gap-2 text-center text-[10px] font-semibold text-zinc-300">
-            <div className="bg-zinc-950/60 p-2 rounded-lg border border-white/5">
-              <span className="text-[8px] text-zinc-500 block uppercase font-bold">Essenciais</span>
-              <span className="text-zinc-200 block font-black mt-1">R$ {strategy.essentialsValue.toFixed(0)}</span>
-            </div>
-            {strategy.estruturalDebtsValue > 0 && (
-              <div className="bg-zinc-950/60 p-2 rounded-lg border border-white/5">
-                <span className="text-[8px] text-zinc-500 block uppercase font-bold">Estruturais</span>
-                <span className="text-zinc-200 block font-black mt-1">R$ {strategy.estruturalDebtsValue.toFixed(0)}</span>
-              </div>
-            )}
-            <div className="bg-zinc-950/60 p-2 rounded-lg border border-white/5">
-              <span className="text-[8px] text-zinc-500 block uppercase font-bold">Lazer ({strategy.financialStage === "red" ? "6%" : "12%"})</span>
-              <span className="text-yellow-500 block font-black mt-1">R$ {strategy.lazerTravaValue.toFixed(0)}</span>
-            </div>
-            {strategy.reserveMaintenanceValue > 0 && (
-              <div className="bg-zinc-950/60 p-2 rounded-lg border border-white/5">
-                <span className="text-[8px] text-zinc-500 block uppercase font-bold">Reserva (7%)</span>
-                <span className="text-emerald-400 block font-black mt-1">R$ {strategy.reserveMaintenanceValue.toFixed(0)}</span>
-              </div>
-            )}
-            <div className="bg-zinc-950/60 p-2 rounded-lg border border-yellow-500/20 col-span-2">
-              <span className="text-[8px] text-yellow-500 block uppercase font-bold">
-                {strategy.financialStage === "red" ? "Foco: Quitar Dívidas" : strategy.financialStage === "yellow" ? "Foco: Reserva" : "Foco: Investir"}
+      <div className="space-y-6">
+        {/* LINHA 1: Distribuição do Orçamento + Alocação Crítica (50% / 50% lado a lado em telas grandes) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          
+          {/* CARD 1: Distribuição Sugerida do Orçamento */}
+          <div className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 space-y-4 flex flex-col justify-between h-full">
+            <div>
+              <span className="text-xs text-zinc-300 uppercase tracking-widest font-black block mb-3">
+                📊 Distribuição Sugerida do Orçamento:
               </span>
-              <span className="text-yellow-400 block font-black mt-1">R$ {strategy.focusValue.toFixed(0)}</span>
-            </div>
-          </div>
-        </div>
 
-        {strategy.financialStage === "red" && (() => {
-          const criticalCards = strategy.cardActions.filter(c => !c.requiresNegotiation && c.suggestedProportionalPayment >= c.currentInvoice && c.currentInvoice > 0);
-          const negotiationCards = strategy.cardActions.filter(c => c.requiresNegotiation || c.suggestedProportionalPayment < c.currentInvoice || c.recommendation.toLowerCase().includes("parcelar") || c.recommendation.toLowerCase().includes("renegociar") || c.recommendation.toLowerCase().includes("indisponível"));
-
-          return (
-            <div className="space-y-4 pt-1">
-              <span className="text-[10px] text-yellow-500 uppercase tracking-widest font-black block">Plano de Resgate Priorizado 🛡️</span>
-
-              {/* Seção 1: Alocação Crítica */}
-              <div className="bg-zinc-950/40 p-3.5 rounded-xl border border-white/5 space-y-2.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-[9px] text-zinc-300 uppercase tracking-wider font-extrabold flex items-center gap-1">
-                    🛡️ Alocação Crítica (Pagar Integralmente)
+              {/* Risco de Insolvência Alerta Crítico */}
+              {strategy.isInsolvencyRisk && (
+                <div className="bg-rose-500/10 border border-rose-500/20 p-3.5 rounded-xl space-y-1.5 text-rose-400 mb-3">
+                  <span className="text-[10px] uppercase font-black tracking-widest flex items-center gap-1.5 text-rose-400">
+                    <AlertTriangle className="w-4 h-4 text-rose-500 animate-pulse" />
+                    Risco de Insolvência Detectado!
                   </span>
-                </div>
-                <p className="text-[9px] text-zinc-500 leading-relaxed">Contas prioritárias que devem ser pagas integralmente assim que o salário for recebido:</p>
-                
-                <div className="space-y-2 pt-1">
-                  {strategy.debtActions.map((act, i) => {
-                    const cleanDebtTitle = act.debtTitle.replace(/\s*\[due:\d+\]/, "").replace(/\s*\[next:[^\]]+\]/, "");
-                    return (
-                      <div key={`debt-${i}`} className="bg-zinc-900/60 p-2.5 rounded-lg border border-white/5 flex justify-between items-center text-[10px]">
-                        <div>
-                          <span className="text-zinc-200 font-bold block">{cleanDebtTitle}</span>
-                          <span className="text-[8px] text-zinc-500 font-semibold">{act.recommendation}</span>
-                        </div>
-                        <span className="text-rose-400 font-black whitespace-nowrap">R$ {act.installmentValue.toFixed(2)}</span>
-                      </div>
-                    );
-                  })}
-
-                  {criticalCards.map((act, i) => {
-                    const cleanCardName = act.cardName.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
-                    return (
-                      <div key={`card-crit-${i}`} className="bg-zinc-900/60 p-2.5 rounded-lg border border-white/5 flex justify-between items-center text-[10px]">
-                        <div>
-                          <span className="text-zinc-200 font-bold block">{cleanCardName}</span>
-                          <span className="text-[8px] text-zinc-500 font-semibold">Pagamento integral da fatura atual.</span>
-                        </div>
-                        <span className="text-rose-400 font-black whitespace-nowrap">R$ {act.currentInvoice.toFixed(2)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Seção 2: Engenharia Financeira / Renegociações */}
-              {negotiationCards.length > 0 && (
-                <div className="bg-zinc-950/40 p-3.5 rounded-xl border border-yellow-500/20 space-y-2.5">
-                  <div className="flex justify-between items-center">
-                    <span className="text-[9px] text-yellow-400 uppercase tracking-wider font-extrabold flex items-center gap-1">
-                      ⚡ Engenharia Financeira (Renegociações Bancárias)
-                    </span>
-                  </div>
-                  <p className="text-[9px] text-zinc-400 leading-relaxed">
-                    Faturas que ultrapassam o caixa disponível. Simule o parcelamento usando a taxa mínima do seu banco:
+                  <p className="text-[10px] leading-relaxed font-semibold text-zinc-300">
+                    A soma dos Gastos Essenciais e das Parcelas Estruturais consome mais de 100% da renda. A trava de Lazer foi suspensa (0%).
                   </p>
-
-                  <div className="space-y-2 pt-1">
-                    {negotiationCards.map((act, i) => {
-                      const cleanCardName = act.cardName.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
-                      const rawCard = rawCards.find(c => (c.name || "").includes(cleanCardName) || (c.name || "").includes(act.cardName));
-
-                      return (
-                        <div key={`card-neg-${i}`} className="bg-yellow-500/5 border border-yellow-500/15 p-3 rounded-lg space-y-2">
-                          <div className="flex justify-between items-center text-[10px]">
-                            <span className="text-zinc-200 font-bold">{cleanCardName}</span>
-                            <span className="text-yellow-400 font-black">Fatura: R$ {act.currentInvoice.toFixed(2)}</span>
-                          </div>
-                          <p className="text-[9px] text-zinc-400 leading-relaxed font-medium">{act.recommendation}</p>
-
-                          {onOpenNegotiationModal && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              onClick={() => onOpenNegotiationModal({
-                                id: rawCard?.id || `card-${i}`,
-                                title: cleanCardName,
-                                amount: act.currentInvoice,
-                                type: "card",
-                                rawItem: rawCard
-                              })}
-                              className="w-full bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 text-[9px] font-bold h-7 rounded-lg flex items-center justify-center gap-1"
-                            >
-                              <Calculator className="w-3 h-3" /> Simular Renegociação Bancária ⚡
-                            </Button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
                 </div>
               )}
-            </div>
-          );
-        })()}
 
-        {strategy.financialStage === "yellow" && (
-          <div className="space-y-4">
-            <div className="bg-yellow-500/5 border border-yellow-500/10 p-4 rounded-xl">
-              <span className="text-[9px] text-yellow-400 uppercase tracking-widest font-black block mb-2">Fase de Segurança (Fundo de Reserva):</span>
-              <div className="flex justify-between items-end mb-1">
-                <span className="text-[10px] text-zinc-300 font-bold">Progresso da Reserva</span>
-                <span className="text-[11px] text-yellow-400 font-black">{percent}%</span>
-              </div>
-              <div className="w-full bg-zinc-950 border border-white/5 h-2 rounded-full overflow-hidden mb-3">
-                <div 
-                  className="bg-yellow-500 h-full rounded-full transition-all duration-1000"
-                  style={{ width: `${percent}%` }}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-[10px] text-zinc-400 pt-1">
-                <div>
-                  <span className="text-zinc-550 block text-[8px] uppercase font-bold">Reserva Atual</span>
-                  <span className="font-bold text-zinc-200">R$ {strategy.reservaFinanceiraAtual.toFixed(2)}</span>
+              <div className="grid grid-cols-2 gap-2.5 text-center text-xs font-semibold text-zinc-300">
+                <div className="bg-zinc-950/60 p-3 rounded-lg border border-white/5">
+                  <span className="text-[9px] text-zinc-500 block uppercase font-bold">Essenciais</span>
+                  <span className="text-zinc-200 block font-black mt-1 text-sm">R$ {strategy.essentialsValue.toFixed(0)}</span>
                 </div>
-                <div>
-                  <span className="text-zinc-550 block text-[8px] uppercase font-bold">Meta (3x Essenciais)</span>
-                  <span className="font-bold text-yellow-400">R$ {strategy.reservaMeta.toFixed(2)}</span>
+                {strategy.estruturalDebtsValue > 0 && (
+                  <div className="bg-zinc-950/60 p-3 rounded-lg border border-white/5">
+                    <span className="text-[9px] text-zinc-500 block uppercase font-bold">Estruturais</span>
+                    <span className="text-zinc-200 block font-black mt-1 text-sm">R$ {strategy.estruturalDebtsValue.toFixed(0)}</span>
+                  </div>
+                )}
+                <div className="bg-zinc-950/60 p-3 rounded-lg border border-white/5">
+                  <span className="text-[9px] text-zinc-500 block uppercase font-bold">Lazer ({strategy.financialStage === "red" ? "6%" : "12%"})</span>
+                  <span className="text-yellow-500 block font-black mt-1 text-sm">R$ {strategy.lazerTravaValue.toFixed(0)}</span>
+                </div>
+                {strategy.reserveMaintenanceValue > 0 && (
+                  <div className="bg-zinc-950/60 p-3 rounded-lg border border-white/5">
+                    <span className="text-[9px] text-zinc-500 block uppercase font-bold">Reserva (7%)</span>
+                    <span className="text-emerald-400 block font-black mt-1 text-sm">R$ {strategy.reserveMaintenanceValue.toFixed(0)}</span>
+                  </div>
+                )}
+                <div className="bg-zinc-950/60 p-3 rounded-lg border border-yellow-500/20 col-span-2">
+                  <span className="text-[9px] text-yellow-500 block uppercase font-bold">
+                    {strategy.financialStage === "red" ? "Foco: Quitar Dívidas" : strategy.financialStage === "yellow" ? "Foco: Reserva" : "Foco: Investir"}
+                  </span>
+                  <span className="text-yellow-400 block font-black mt-1 text-base">R$ {strategy.focusValue.toFixed(0)}</span>
                 </div>
               </div>
             </div>
-            <p className="text-[10px] text-zinc-405 leading-relaxed font-semibold text-center italic bg-zinc-950/20 p-3 rounded-lg border border-white/5">
-              💡 Dica: Direcionem as sobras mensais para atingir a meta da reserva e liberar a trilha verde de investimentos!
+
+            <p className="text-[10px] text-zinc-500 leading-relaxed font-medium pt-2 border-t border-white/5">
+              Metodologia conjugal baseada no teto tático de resgate e proteção de caixa.
             </p>
           </div>
-        )}
 
-        {strategy.financialStage === "green" && (
-          <div className="space-y-4">
-            <div className="bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-xl space-y-3">
-              <span className="text-[9px] text-emerald-400 uppercase tracking-widest font-black block">Fase de Prosperidade (Alocação 50/30/20):</span>
-              
-              <div className="grid grid-cols-3 gap-2 pt-1">
-                <div className="bg-zinc-950/40 p-2.5 rounded-lg border border-white/5 text-center">
-                  <span className="text-[8px] text-zinc-500 uppercase tracking-wider block font-bold">Essenciais (50%)</span>
-                  <span className="text-[10px] text-zinc-300 font-bold block mt-1">R$ {essentialsIdeal.toFixed(0)}</span>
-                  <span className="text-[8px] text-zinc-550 block mt-0.5">Atual: R$ {strategy.totalEssentialExpenses.toFixed(0)}</span>
-                </div>
-                <div className="bg-zinc-950/40 p-2.5 rounded-lg border border-white/5 text-center">
-                  <span className="text-[8px] text-zinc-500 uppercase tracking-wider block font-bold">Desejos (30%)</span>
-                  <span className="text-[10px] text-yellow-500 font-bold block mt-1">R$ {lazerIdeal.toFixed(0)}</span>
-                </div>
-                <div className="bg-zinc-950/40 p-2.5 rounded-lg border border-white/5 text-center">
-                  <span className="text-[8px] text-zinc-500 uppercase tracking-wider block font-bold">Investir (20%)</span>
-                  <span className="text-[10px] text-emerald-400 font-bold block mt-1">R$ {investIdeal.toFixed(0)}</span>
-                  <span className="text-[8px] text-zinc-555 block mt-0.5">Total: R$ {strategy.investimentosTotal.toFixed(0)}</span>
-                </div>
+          {/* CARD 2: Alocação Crítica (Pagar Integralmente) */}
+          <div className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 space-y-3 flex flex-col justify-between h-full">
+            <div>
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-xs text-zinc-200 uppercase tracking-wider font-black flex items-center gap-1.5">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  🛡️ Alocação Crítica (Pagar Integralmente)
+                </span>
+              </div>
+              <p className="text-[10px] text-zinc-400 leading-relaxed mb-3">
+                Contas prioritárias que devem ser pagas integralmente assim que o salário for recebido:
+              </p>
+
+              <div className="space-y-2.5">
+                {strategy.debtActions.map((act, i) => {
+                  const cleanDebtTitle = act.debtTitle.replace(/\s*\[due:\d+\]/, "").replace(/\s*\[next:[^\]]+\]/, "");
+                  return (
+                    <div key={`debt-${i}`} className="bg-zinc-900/60 p-3 rounded-lg border border-white/5 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="text-zinc-200 font-bold block">{cleanDebtTitle}</span>
+                        <span className="text-[10px] text-zinc-400 font-semibold">{act.recommendation}</span>
+                      </div>
+                      <span className="text-rose-400 font-black whitespace-nowrap ml-2 text-sm">R$ {act.installmentValue.toFixed(2)}</span>
+                    </div>
+                  );
+                })}
+
+                {criticalCards.map((act, i) => {
+                  const cleanCardName = act.cardName.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
+                  return (
+                    <div key={`card-crit-${i}`} className="bg-zinc-900/60 p-3 rounded-lg border border-white/5 flex justify-between items-center text-xs">
+                      <div>
+                        <span className="text-zinc-200 font-bold block">{cleanCardName}</span>
+                        <span className="text-[10px] text-zinc-400 font-semibold">Pagamento integral da fatura atual.</span>
+                      </div>
+                      <span className="text-rose-400 font-black whitespace-nowrap ml-2 text-sm">R$ {act.currentInvoice.toFixed(2)}</span>
+                    </div>
+                  );
+                })}
+
+                {strategy.debtActions.length === 0 && criticalCards.length === 0 && (
+                  <p className="text-xs text-emerald-400 font-bold text-center py-4 bg-emerald-500/5 rounded-lg border border-emerald-500/10">
+                    Nenhuma dívida prioritária com juros abusivos em atraso! 🎉
+                  </p>
+                )}
               </div>
             </div>
-            <p className="text-[10px] text-zinc-405 leading-relaxed font-semibold text-center italic bg-zinc-950/20 p-3 rounded-lg border border-white/5">
-              💡 Dica: Vocês têm o Caminho Livre! Foquem em diversificar investimentos e realizar sonhos de longo prazo.
-            </p>
+
+            {strategy.financialStage === "yellow" && (
+              <div className="bg-yellow-500/5 border border-yellow-500/10 p-3.5 rounded-xl space-y-2">
+                <span className="text-[9px] text-yellow-400 uppercase tracking-widest font-black block">Progresso da Reserva: {percent}%</span>
+                <div className="w-full bg-zinc-950 border border-white/5 h-2 rounded-full overflow-hidden">
+                  <div className="bg-yellow-500 h-full rounded-full transition-all duration-1000" style={{ width: `${percent}%` }} />
+                </div>
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* LINHA 2: Renegociações Bancárias (Ocupando 100% da largura da tela) */}
+        {negotiationCards.length > 0 && (
+          <div className="w-full bg-zinc-950/40 p-5 rounded-xl border border-yellow-500/20 space-y-4">
+            <div>
+              <span className="text-xs text-yellow-400 uppercase tracking-wider font-black flex items-center gap-1.5 mb-1">
+                <Zap className="w-4 h-4 text-yellow-500" />
+                ⚡ Engenharia Financeira (Renegociações Bancárias)
+              </span>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Faturas que ultrapassam o caixa disponível. Simule o parcelamento usando a taxa mínima do seu banco (Lei 14.690/23):
+              </p>
+            </div>
+
+            {/* Grade Responsiva dos Cartões de Crédito (Lado a Lado em blocos empilhados) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+              {negotiationCards.map((act, i) => {
+                const cleanCardName = act.cardName.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
+                const rawCard = rawCards.find(c => (c.name || "").includes(cleanCardName) || (c.name || "").includes(act.cardName));
+
+                return (
+                  <div key={`card-neg-${i}`} className="bg-yellow-500/5 border border-yellow-500/15 p-4 rounded-xl flex flex-col justify-between space-y-3">
+                    <div>
+                      <div className="flex justify-between items-center text-xs mb-1.5">
+                        <span className="text-white font-extrabold">{cleanCardName}</span>
+                        <span className="text-yellow-400 font-black">R$ {act.currentInvoice.toFixed(2)}</span>
+                      </div>
+                      <p className="text-[10px] text-zinc-300 leading-relaxed font-medium">{act.recommendation}</p>
+                    </div>
+
+                    {onOpenNegotiationModal && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => onOpenNegotiationModal({
+                          id: rawCard?.id || `card-${i}`,
+                          title: cleanCardName,
+                          amount: act.currentInvoice,
+                          type: "card",
+                          rawItem: rawCard
+                        })}
+                        className="w-full bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black text-xs h-9 rounded-lg flex items-center justify-center gap-1.5 shadow-md mt-2"
+                      >
+                        <Calculator className="w-3.5 h-3.5" /> Simular Renegociação ⚡
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </TiltCard>
   );
 }
