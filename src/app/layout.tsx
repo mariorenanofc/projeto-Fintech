@@ -102,6 +102,21 @@ const jsonLdData = {
   "@context": "https://schema.org",
   "@graph": [
     {
+      "@type": "WebSite",
+      "@id": "https://fintechcasal.com.br/#website",
+      "url": "https://fintechcasal.com.br",
+      "name": "Fintech Casal",
+      "description": "Sintonia & Planejamento Financeiro para Casais",
+      "publisher": {
+        "@id": "https://fintechcasal.com.br/#organization"
+      },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://fintechcasal.com.br/?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
       "@type": "WebApplication",
       "@id": "https://fintechcasal.com.br/#webapp",
       "url": "https://fintechcasal.com.br",
@@ -122,6 +137,27 @@ const jsonLdData = {
       "name": "Fintech Casal",
       "url": "https://fintechcasal.com.br",
       "logo": "https://fintechcasal.com.br/icon-512.png"
+    },
+    {
+      "@type": "SiteNavigationElement",
+      "@id": "https://fintechcasal.com.br/#nav-onboarding",
+      "name": "App de Planejamento Financeiro para Casais",
+      "description": "Planeje o orçamento do casal, parcele contas e defina metas de reserva.",
+      "url": "https://fintechcasal.com.br/onboarding"
+    },
+    {
+      "@type": "SiteNavigationElement",
+      "@id": "https://fintechcasal.com.br/#nav-privacidade",
+      "name": "Política de Privacidade & Segurança LGPD",
+      "description": "Segurança e isolamento de dados com criptografia de ponta a ponta.",
+      "url": "https://fintechcasal.com.br/politica-de-privacidade"
+    },
+    {
+      "@type": "SiteNavigationElement",
+      "@id": "https://fintechcasal.com.br/#nav-termos",
+      "name": "Termos de Uso & Serviços",
+      "description": "Regras de utilização do aplicativo de finanças compartilhadas.",
+      "url": "https://fintechcasal.com.br/termos-de-uso"
     }
   ]
 };
