@@ -67,9 +67,18 @@ export function SemaphoreCard({
                 {financeStatus === "green" ? "Caminho Livre! ✨" : 
                  financeStatus === "yellow" ? "Fase de Segurança ⚠️" : "Ajuste de Rota! 🛡️"}
               </span>
+
+              {/* Métrica Herói em Destaque 5 Segundos */}
+              <div className="mt-3 z-10 px-4 py-2 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center gap-2 shadow-[0_0_15px_rgba(234,179,8,0.15)] backdrop-blur-md">
+                <span className="text-[10px] text-zinc-300 font-extrabold uppercase tracking-wider">Teto Diário:</span>
+                <span className="text-sm font-black text-yellow-400 font-mono">
+                  R$ {tetoDiario.toFixed(2)}
+                </span>
+                <span className="text-[9px] text-zinc-400 font-semibold">/dia</span>
+              </div>
             </div>
 
-            <div className="text-center max-w-sm mt-1 px-3 min-h-[80px] flex flex-col justify-center">
+            <div className="text-center max-w-sm mt-1 px-3 min-h-[60px] flex flex-col justify-center">
               <p className="text-xs text-zinc-400 leading-relaxed font-medium">
                 {financeStatus === "red" && "Cuidado, casal! Estamos no vermelho. O Conselheiro IA traçou um plano de resgate para ajudar a colocar as contas em ordem e blindar nosso bolso! 🛡️"}
                 {financeStatus === "yellow" && "Parabéns, casal! Nossas contas estão sob controle. O foco agora é construir nosso fundo de segurança financeira para emergências! ⚠️"}

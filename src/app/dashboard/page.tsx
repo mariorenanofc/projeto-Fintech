@@ -559,6 +559,7 @@ export default function DashboardPage() {
           selectedDate={selectedDate}
           handleDateSelect={handleDateSelect}
           selectedDateBills={selectedDateBills}
+          allBills={bills}
           hasBillOnDay={hasBillOnDay}
           mounted={mounted}
           handleSyncGoogleCalendar={handleSyncGoogleCalendar}

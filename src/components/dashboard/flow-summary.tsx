@@ -117,7 +117,35 @@ export function FlowSummary({
           </div>
         ) : strategy.hasStrategy ? (
           <>
-            <div className="bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-xl flex items-start gap-2.5 mb-2">
+            {/* Resumo Instantâneo de Caixa (Regra dos 5 Segundos) */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-emerald-500/10 border border-emerald-500/20 p-3 rounded-xl flex flex-col justify-center">
+                <span className="text-[9px] text-emerald-400 font-extrabold uppercase tracking-wider block">Entrou (Receitas)</span>
+                <span className="text-sm sm:text-base font-black text-emerald-300 mt-0.5">
+                  R$ {realIncome.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className="bg-rose-500/10 border border-rose-500/20 p-3 rounded-xl flex flex-col justify-center">
+                <span className="text-[9px] text-rose-400 font-extrabold uppercase tracking-wider block">Saiu (Saídas)</span>
+                <span className="text-sm sm:text-base font-black text-rose-300 mt-0.5">
+                  R$ {(realEssentials + realCommitments).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+              <div className={`p-3 rounded-xl border flex flex-col justify-center ${
+                realDisposable >= 0 ? "bg-yellow-500/10 border-yellow-500/30" : "bg-rose-500/15 border-rose-500/30"
+              }`}>
+                <span className={`text-[9px] font-extrabold uppercase tracking-wider block ${
+                  realDisposable >= 0 ? "text-yellow-400" : "text-rose-400"
+                }`}>Sobra Líquida</span>
+                <span className={`text-sm sm:text-base font-black mt-0.5 ${
+                  realDisposable >= 0 ? "text-yellow-300" : "text-rose-400"
+                }`}>
+                  R$ {realDisposable.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+              </div>
+            </div>
+
+            <div className="bg-yellow-500/5 border border-yellow-500/10 p-3 rounded-xl flex items-start gap-2.5">
               <Info className="w-4.5 h-4.5 text-yellow-500 flex-shrink-0 mt-0.5" />
               <p className="text-[10px] text-zinc-400 leading-relaxed font-semibold">
                 <span className="text-yellow-500 font-bold">Nota de Planejamento:</span> Estes valores representam o seu orçamento previsto. Lance todas as movimentações reais na aba de transações para obter a análise exata do seu fluxo de caixa conjugal!

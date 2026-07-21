@@ -12,6 +12,7 @@ interface CalendarSectionProps {
   selectedDate: Date | undefined;
   handleDateSelect: (date: Date | undefined) => void;
   selectedDateBills: Bill[];
+  allBills?: Bill[];
   hasBillOnDay: (date: Date) => boolean;
   mounted: boolean;
   handleSyncGoogleCalendar: (bill: Bill) => void;
@@ -23,12 +24,23 @@ export function CalendarSection({
   selectedDate,
   handleDateSelect,
   selectedDateBills,
+  allBills = [],
   hasBillOnDay,
   mounted,
   handleSyncGoogleCalendar,
   openConfirmModal,
   handleUndoPayment,
 }: CalendarSectionProps) {
+  // Calculo de contas pendentes a vencer nos próximos 3 dias
+  const todayStr = new Date().toISOString().substring(0, 10);
+  const in3DaysDate = new Date();
+  in3DaysDate.setDate(in3DaysDate.getDate() + 3);
+  const in3DaysStr = in3DaysDate.toISOString().substring(0, 10);
+
+  const upcomingBills = allBills.filter(
+    b => b.status === "pending" && b.dueDate >= todayStr && b.dueDate <= in3DaysStr
+  );
+  const upcomingBillsTotal = upcomingBills.reduce((sum, b) => sum + b.amount, 0);
   return (
     <section className="w-full mt-6">
       <Card className="bg-zinc-900/40 border-white/5 shadow-[0_8px_30px_rgba(234,179,8,0.04)] hover:shadow-[0_8px_30px_rgba(234,179,8,0.1)] backdrop-blur-md overflow-hidden rounded-2xl transition-all duration-500 ease-out hover:-translate-y-0.5">
@@ -41,10 +53,24 @@ export function CalendarSection({
         </CardHeader>
         
         <CardContent className="flex-1 p-6 sm:p-8 pt-4 sm:pt-6">
-          <div className="flex flex-col gap-8 lg:gap-16 lg:flex-row lg:items-stretch w-full mt-2 h-full">
+          {upcomingBills.length > 0 && (
+            <div className="bg-amber-500/10 border border-amber-500/25 p-3.5 rounded-xl flex items-center justify-between gap-3 mb-4 text-xs font-semibold text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+              <div className="flex items-center gap-2.5">
+                <CalendarIcon className="w-4 h-4 text-amber-400 shrink-0 animate-pulse" />
+                <span>
+                  Atenção, casal: <strong className="text-amber-200 font-extrabold">{upcomingBills.length} {upcomingBills.length === 1 ? 'conta vence' : 'contas vencem'} nos próximos 3 dias</strong> (Total: R$ {upcomingBillsTotal.toFixed(2)})!
+                </span>
+              </div>
+              <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[9px] uppercase font-black px-2.5 py-0.5 shrink-0 hidden xs:inline-flex">
+                Vencimento Próximo ⚠️
+              </Badge>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-8 lg:gap-12 lg:flex-row lg:items-stretch w-full mt-2 h-full">
             
             {/* Calendário */}
-            <div className="w-full lg:w-[58%] min-w-[320px] bg-zinc-950/50 p-4 sm:p-6 rounded-xl border border-white/5 flex flex-col justify-center items-center shadow-inner min-h-[360px]">
+            <div className="w-full lg:w-[58%] min-w-[340px] bg-zinc-950/50 p-4 sm:p-6 rounded-xl border border-white/5 flex flex-col justify-center items-center shadow-inner min-h-[360px]">
               {mounted ? (
                 <Calendar
                   mode="single"
