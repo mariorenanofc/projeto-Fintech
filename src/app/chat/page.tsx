@@ -111,7 +111,18 @@ export default function ChatPage() {
       setMessages(prev => [...prev, { role: "model", content: res.answer! }]);
       await fetchBalance(); // Atualiza saldo após debitar
     } else {
-      if (res.status === 402) {
+      if (res.status === 429) {
+        toast.error(res.error || "Limite de requisições por hora atingido.", {
+          duration: 6000,
+        });
+        setMessages(prev => [
+          ...prev, 
+          { 
+            role: "model", 
+            content: `⏳ **Limite de Uso da Hora Atingido (FinOps)**\n\n${res.error || "Sua cota de conselhos de IA desta hora acabou. Aguarde um momento para realizar novas perguntas."}` 
+          }
+        ]);
+      } else if (res.status === 402) {
         setOutOfTokensAlert(true);
         setMessages(prev => [
           ...prev, 
@@ -121,6 +132,7 @@ export default function ChatPage() {
           }
         ]);
       } else {
+        toast.error(res.error || "Falha ao consultar a IA.");
         setMessages(prev => [
           ...prev, 
           { role: "model", content: "Erro de conexão: " + (res.error || "Tente novamente mais tarde.") }

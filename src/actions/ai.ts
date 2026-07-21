@@ -43,6 +43,63 @@ export async function getAiTokenBalance() {
 }
 
 /**
+ * Interceptador / Middleware de Rate Limiting para proteger custos de IA (FinOps).
+ * Regra: Máximo 5 requisições de IA por casal / usuário por janela de 1 hora.
+ */
+export async function verifyAiRateLimit(userId: string, familyGroupId?: string, actionType = "chat") {
+  try {
+    const supabase = await createClient();
+    
+    // Define o início da janela de 1 hora
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+    // Consulta no Supabase filtrando por família/usuário na última 1 hora
+    let query = supabase
+      .from("ai_requests_log")
+      .select("created_at")
+      .gte("created_at", oneHourAgo)
+      .order("created_at", { ascending: true });
+
+    if (familyGroupId) {
+      query = query.or(`family_group_id.eq.${familyGroupId},user_id.eq.${userId}`);
+    } else {
+      query = query.eq("user_id", userId);
+    }
+
+    const { data: requests, error } = await query;
+
+    if (error) {
+      console.warn("Aviso ao consultar rate limit em ai_requests_log:", error.message);
+      return { allowed: true, count: 0 };
+    }
+
+    const requestCount = requests ? requests.length : 0;
+    const MAX_REQUESTS_PER_HOUR = 5;
+
+    if (requestCount >= MAX_REQUESTS_PER_HOUR) {
+      // Calcula quantos minutos faltam para a requisição mais antiga expirar da janela de 1 hora
+      const oldestRequestTime = new Date(requests[0].created_at).getTime();
+      const resetTime = oldestRequestTime + 60 * 60 * 1000;
+      const minutesRemaining = Math.max(1, Math.ceil((resetTime - Date.now()) / (1000 * 60)));
+
+      return {
+        allowed: false,
+        error: `Sua cota de conselhos de IA desta hora acabou. Voltamos em ${minutesRemaining} minuto(s).`,
+        status: 429,
+        minutesRemaining,
+        count: requestCount,
+      };
+    }
+
+    return { allowed: true, count: requestCount };
+
+  } catch (err) {
+    console.error("Erro inesperado no verifyAiRateLimit:", err);
+    return { allowed: true, count: 0 };
+  }
+}
+
+/**
  * Server Action para enviar a pergunta do usuário para a IA,
  * validando o saldo de tokens e debitando após a resposta da LLM.
  */
@@ -68,6 +125,17 @@ export async function askFinancialAdvisor(question: string, history: ChatMessage
     }
 
     const familyGroupId = profile.family_group_id;
+
+    // 2.1. Interceptador de Rate Limit (FinOps - 5 requisições de IA por hora)
+    const rateLimit = await verifyAiRateLimit(user.id, familyGroupId, "chat");
+    if (!rateLimit.allowed) {
+      return { 
+        success: false, 
+        error: rateLimit.error, 
+        status: 429,
+        minutesRemaining: rateLimit.minutesRemaining
+      };
+    }
 
     // 3. Consultar a carteira de tokens
     const { data: wallet } = await supabase
@@ -106,6 +174,17 @@ export async function askFinancialAdvisor(question: string, history: ChatMessage
           status: 403 
         };
       }
+    }
+
+    // Registrar o log da requisição no banco para contabilizar na janela de 1 hora
+    try {
+      await supabase.from("ai_requests_log").insert({
+        user_id: user.id,
+        family_group_id: familyGroupId,
+        action_type: "chat"
+      });
+    } catch (e) {
+      console.warn("Aviso ao registrar log em ai_requests_log:", e);
     }
 
     // 4. Buscar a estratégia financeira real do mês selecionado ou atual
