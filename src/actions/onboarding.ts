@@ -7,6 +7,7 @@ export interface IncomeInput {
   title: string;
   amount: number;
   owner: string;
+  receiptDay?: number; // Dia do recebimento mensal (Ex: 05)
 }
 
 export interface FixedExpenseInput {
@@ -14,7 +15,7 @@ export interface FixedExpenseInput {
   category: string;
   title: string;
   amount: number;
-  dueDay?: number;
+  dueDay?: number; // Dia do vencimento mensal (Ex: 15)
 }
 
 export interface CreditCardInvoiceItem {
@@ -28,6 +29,8 @@ export interface CreditCardInput {
   totalLimit: number;
   currentInvoice: number;
   nextInvoice: number;
+  closingDay?: number; // Dia de fechamento/corte da fatura (Ex: 05)
+  dueDay?: number; // Dia de vencimento da fatura (Ex: 15)
   invoicesSchedule?: CreditCardInvoiceItem[]; // Cronograma JSONB
 }
 
@@ -45,6 +48,8 @@ export interface DebtInput {
   monthlyLateInterestRate: number;
   penaltyValue: number;
   installmentsPaid: number;
+  dueDay?: number; // Dia de vencimento mensal da parcela (Ex: 10)
+  nextDueDate?: string; // Data exata do próximo vencimento (DD/MM/AAAA ou YYYY-MM-DD)
   installmentsSchedule?: DebtInstallmentItem[]; // Cronograma JSONB
   overdueInstallments?: number; // Parcelas em atraso
   overdueValueAccumulated?: number; // Valor acumulado em atraso
@@ -142,7 +147,7 @@ export async function saveOnboardingData(data: OnboardingData) {
       const incomesToInsert = data.incomes.map(item => ({
         family_group_id: familyGroupId,
         profile_id: user.id,
-        title: item.title,
+        title: item.receiptDay ? `${item.title} [rec:${item.receiptDay}]` : item.title,
         amount: item.amount,
         owner: item.owner
       }));
@@ -168,7 +173,7 @@ export async function saveOnboardingData(data: OnboardingData) {
       const cardsToInsert = data.creditCards.map(item => ({
         family_group_id: familyGroupId,
         profile_id: user.id,
-        name: item.name,
+        name: `${item.name} [close:${item.closingDay || 5}][due:${item.dueDay || 15}]`,
         total_limit: item.totalLimit,
         current_invoice: item.currentInvoice,
         next_invoice: item.nextInvoice,
@@ -183,7 +188,7 @@ export async function saveOnboardingData(data: OnboardingData) {
       const debtsToInsert = data.debts.map(item => ({
         family_group_id: familyGroupId,
         profile_id: user.id,
-        title: item.title,
+        title: `${item.title} [due:${item.dueDay || 10}]${item.nextDueDate ? ` [next:${item.nextDueDate}]` : ""}`,
         acquisition_value: item.acquisitionValue,
         total_installments: item.totalInstallments,
         current_installment_value: item.currentInstallmentValue,
@@ -566,10 +571,12 @@ export async function addIncome(item: IncomeInput) {
     if (!user) return { success: false, error: "Não autenticado" };
     const familyGroupId = await getFamilyGroupId(supabase, user.id);
 
+    const formattedTitle = item.receiptDay ? `${item.title} [rec:${item.receiptDay}]` : item.title;
+
     const { error } = await supabase.from("incomes").insert({
       family_group_id: familyGroupId,
       profile_id: user.id,
-      title: item.title,
+      title: formattedTitle,
       amount: item.amount,
       owner: item.owner
     });
@@ -583,8 +590,9 @@ export async function addIncome(item: IncomeInput) {
 export async function updateIncome(id: string, item: IncomeInput) {
   try {
     const supabase = await createClient();
+    const formattedTitle = item.receiptDay ? `${item.title} [rec:${item.receiptDay}]` : item.title;
     const { error } = await supabase.from("incomes").update({
-      title: item.title,
+      title: formattedTitle,
       amount: item.amount,
       owner: item.owner
     }).eq("id", id);
@@ -662,10 +670,12 @@ export async function addCreditCard(item: CreditCardInput) {
     if (!user) return { success: false, error: "Não autenticado" };
     const familyGroupId = await getFamilyGroupId(supabase, user.id);
 
+    const formattedName = `${item.name} [close:${item.closingDay || 5}][due:${item.dueDay || 15}]`;
+
     const { error } = await supabase.from("credit_cards").insert({
       family_group_id: familyGroupId,
       profile_id: user.id,
-      name: item.name,
+      name: formattedName,
       total_limit: item.totalLimit,
       current_invoice: item.currentInvoice,
       next_invoice: item.nextInvoice,
@@ -681,8 +691,9 @@ export async function addCreditCard(item: CreditCardInput) {
 export async function updateCreditCard(id: string, item: CreditCardInput) {
   try {
     const supabase = await createClient();
+    const formattedName = `${item.name} [close:${item.closingDay || 5}][due:${item.dueDay || 15}]`;
     const { error } = await supabase.from("credit_cards").update({
-      name: item.name,
+      name: formattedName,
       total_limit: item.totalLimit,
       current_invoice: item.currentInvoice,
       next_invoice: item.nextInvoice,
@@ -714,10 +725,12 @@ export async function addDebt(item: DebtInput) {
     if (!user) return { success: false, error: "Não autenticado" };
     const familyGroupId = await getFamilyGroupId(supabase, user.id);
 
+    const formattedTitle = `${item.title} [due:${item.dueDay || 10}]${item.nextDueDate ? ` [next:${item.nextDueDate}]` : ""}`;
+
     const { error } = await supabase.from("debts_and_financings").insert({
       family_group_id: familyGroupId,
       profile_id: user.id,
-      title: item.title,
+      title: formattedTitle,
       acquisition_value: item.acquisitionValue,
       total_installments: item.totalInstallments,
       current_installment_value: item.currentInstallmentValue,
@@ -739,8 +752,9 @@ export async function addDebt(item: DebtInput) {
 export async function updateDebt(id: string, item: DebtInput) {
   try {
     const supabase = await createClient();
+    const formattedTitle = `${item.title} [due:${item.dueDay || 10}]${item.nextDueDate ? ` [next:${item.nextDueDate}]` : ""}`;
     const { error } = await supabase.from("debts_and_financings").update({
-      title: item.title,
+      title: formattedTitle,
       acquisition_value: item.acquisitionValue,
       total_installments: item.totalInstallments,
       current_installment_value: item.currentInstallmentValue,
@@ -792,6 +806,18 @@ export async function getProfileFinancialData() {
       supabase.from("debts_and_financings").select("*").eq("family_group_id", familyGroupId)
     ]);
 
+    const mappedIncomes = (incomes.data || []).map(inc => {
+      const titleStr = inc.title || "";
+      const match = titleStr.match(/\[rec:(\d+)\]/);
+      const receiptDay = match ? parseInt(match[1]) : 5;
+      const cleanTitle = titleStr.replace(/\s*\[rec:\d+\]/, "");
+      return {
+        ...inc,
+        title: cleanTitle,
+        receiptDay
+      };
+    });
+
     const mappedExpenses = (expenses.data || []).map(exp => {
       const titleStr = exp.title || "";
       const match = titleStr.match(/\[due:(\d+)\]/);
@@ -804,15 +830,45 @@ export async function getProfileFinancialData() {
       };
     });
 
+    const mappedCards = (cards.data || []).map(card => {
+      const nameStr = card.name || "";
+      const closeMatch = nameStr.match(/\[close:(\d+)\]/);
+      const dueMatch = nameStr.match(/\[due:(\d+)\]/);
+      const closingDay = closeMatch ? parseInt(closeMatch[1]) : 5;
+      const dueDay = dueMatch ? parseInt(dueMatch[1]) : 15;
+      const cleanName = nameStr.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
+      return {
+        ...card,
+        name: cleanName,
+        closingDay,
+        dueDay
+      };
+    });
+
+    const mappedDebts = (debts.data || []).map(debt => {
+      const titleStr = debt.title || "";
+      const dueMatch = titleStr.match(/\[due:(\d+)\]/);
+      const nextMatch = titleStr.match(/\[next:([^\]]+)\]/);
+      const dueDay = dueMatch ? parseInt(dueMatch[1]) : 10;
+      const nextDueDate = nextMatch ? nextMatch[1] : "";
+      const cleanTitle = titleStr.replace(/\s*\[due:\d+\]/, "").replace(/\s*\[next:[^\]]+\]/, "");
+      return {
+        ...debt,
+        title: cleanTitle,
+        dueDay,
+        nextDueDate
+      };
+    });
+
     return {
       success: true,
       voicePreferences: profile.data?.voice_preferences || null,
       reservaFinanceiraAtual: profile.data?.reserva_financeira_atual || 0,
       investimentosTotal: profile.data?.investimentos_total || 0,
-      incomes: incomes.data || [],
+      incomes: mappedIncomes,
       fixedExpenses: mappedExpenses,
-      creditCards: cards.data || [],
-      debts: debts.data || []
+      creditCards: mappedCards,
+      debts: mappedDebts
     };
   } catch (error: any) {
     return { success: false, error: error.message, incomes: [], fixedExpenses: [], creditCards: [], debts: [], voicePreferences: null, reservaFinanceiraAtual: 0, investimentosTotal: 0 };

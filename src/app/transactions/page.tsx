@@ -530,7 +530,7 @@ export default function TransactionsPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Data</label>
+                      <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Data da Transação / Vencimento (DD/MM/AAAA)</label>
                       <input
                         type="date"
                         value={form.date}

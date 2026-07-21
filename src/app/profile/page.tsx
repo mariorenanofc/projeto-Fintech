@@ -408,17 +408,18 @@ export default function ProfilePage() {
   const addCardScheduleItem = () => {
     if (!tempScheduleMonth || tempScheduleAmount <= 0) return;
     const sched = [...parseSchedule(cardForm.invoicesSchedule)];
-    const filtered = sched.filter(item => item.month !== tempScheduleMonth);
-    filtered.push({ month: tempScheduleMonth, amount: tempScheduleAmount });
-    filtered.sort((a, b) => a.month.localeCompare(b.month));
+    const monthKey = tempScheduleMonth.length >= 7 ? tempScheduleMonth.substring(0, 7) : tempScheduleMonth;
+    const filtered = sched.filter(item => item.month !== monthKey && item.date !== tempScheduleMonth);
+    filtered.push({ month: monthKey, date: tempScheduleMonth, amount: tempScheduleAmount });
+    filtered.sort((a, b) => (a.date || a.month).localeCompare(b.date || b.month));
     setCardForm({ ...cardForm, invoicesSchedule: filtered });
     setTempScheduleMonth("");
     setTempScheduleAmount(0);
   };
 
-  const removeCardScheduleItem = (month: string) => {
+  const removeCardScheduleItem = (monthOrDate: string) => {
     const sched = [...parseSchedule(cardForm.invoicesSchedule)];
-    const filtered = sched.filter(item => item.month !== month);
+    const filtered = sched.filter(item => item.month !== monthOrDate && item.date !== monthOrDate);
     setCardForm({ ...cardForm, invoicesSchedule: filtered });
   };
 
@@ -474,17 +475,18 @@ export default function ProfilePage() {
   const addDebtScheduleItem = () => {
     if (!tempScheduleMonth || tempScheduleAmount <= 0) return;
     const sched = [...parseSchedule(debtForm.installmentsSchedule)];
-    const filtered = sched.filter(item => item.month !== tempScheduleMonth);
-    filtered.push({ month: tempScheduleMonth, amount: tempScheduleAmount });
-    filtered.sort((a, b) => a.month.localeCompare(b.month));
+    const monthKey = tempScheduleMonth.length >= 7 ? tempScheduleMonth.substring(0, 7) : tempScheduleMonth;
+    const filtered = sched.filter(item => item.month !== monthKey && item.date !== tempScheduleMonth);
+    filtered.push({ month: monthKey, date: tempScheduleMonth, amount: tempScheduleAmount });
+    filtered.sort((a, b) => (a.date || a.month).localeCompare(b.date || b.month));
     setDebtForm({ ...debtForm, installmentsSchedule: filtered });
     setTempScheduleMonth("");
     setTempScheduleAmount(0);
   };
 
-  const removeDebtScheduleItem = (month: string) => {
+  const removeDebtScheduleItem = (monthOrDate: string) => {
     const sched = [...parseSchedule(debtForm.installmentsSchedule)];
-    const filtered = sched.filter(item => item.month !== month);
+    const filtered = sched.filter(item => item.month !== monthOrDate && item.date !== monthOrDate);
     setDebtForm({ ...debtForm, installmentsSchedule: filtered });
   };
 
@@ -823,7 +825,7 @@ export default function ProfilePage() {
                         required
                       />
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Valor Mensal (R$)</label>
                         <input
@@ -831,6 +833,19 @@ export default function ProfilePage() {
                           placeholder="0.00"
                           value={incomeForm.amount || ""}
                           onChange={e => setIncomeForm({ ...incomeForm, amount: Number(e.target.value) })}
+                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Dia Recebimento</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          placeholder="05"
+                          value={incomeForm.receiptDay || 5}
+                          onChange={e => setIncomeForm({ ...incomeForm, receiptDay: Math.max(1, Math.min(31, Number(e.target.value))) })}
                           className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
                           required
                         />
@@ -976,15 +991,44 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Dia do Fechamento (Corte)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          placeholder="05"
+                          value={cardForm.closingDay || 5}
+                          onChange={e => setCardForm({ ...cardForm, closingDay: Math.max(1, Math.min(31, Number(e.target.value))) })}
+                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Dia do Vencimento da Fatura</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          placeholder="15"
+                          value={cardForm.dueDay || 15}
+                          onChange={e => setCardForm({ ...cardForm, dueDay: Math.max(1, Math.min(31, Number(e.target.value))) })}
+                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                          required
+                        />
+                      </div>
+                    </div>
+
                     {/* Editor de Cronograma de Faturas */}
                     <div className="bg-zinc-950/40 p-3 rounded-xl border border-white/5 space-y-2">
                       <span className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block">Cronograma de Faturas Futuras (Opcional)</span>
                       
                       <div className="grid grid-cols-3 gap-2 items-end">
                         <div>
-                          <label className="text-[8px] text-zinc-650 block mb-1">Mês (Ex: 08/2026)</label>
+                          <label className="text-[8px] text-zinc-650 block mb-1">Data Vencimento (DD/MM/AAAA)</label>
                           <input
-                            type="month"
+                            type="date"
                             value={tempScheduleMonth}
                             onChange={e => setTempScheduleMonth(e.target.value)}
                             className="bg-zinc-950/80 border border-white/5 rounded-lg text-zinc-200 p-2 w-full text-xs [color-scheme:dark]"
@@ -1010,9 +1054,11 @@ export default function ProfilePage() {
                         <div className="space-y-1.5 max-h-[120px] overflow-y-auto mt-2 pr-1">
                           {parseSchedule(cardForm.invoicesSchedule).map((sch, i) => (
                             <div key={i} className="flex justify-between items-center bg-zinc-900/40 px-2.5 py-1.5 rounded-lg border border-white/5">
-                              <span className="text-[10px] font-bold text-yellow-400">{sch.month}</span>
+                              <span className="text-[10px] font-bold text-yellow-400">
+                                {sch.date ? new Date(sch.date + "T00:00:00").toLocaleDateString('pt-BR') : sch.month}
+                              </span>
                               <span className="text-[10px] font-black text-zinc-300">R$ {sch.amount.toFixed(2)}</span>
-                              <button type="button" onClick={() => removeCardScheduleItem(sch.month)} className="text-zinc-600 hover:text-rose-400">
+                              <button type="button" onClick={() => removeCardScheduleItem(sch.date || sch.month)} className="text-zinc-600 hover:text-rose-400">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -1137,6 +1183,31 @@ export default function ProfilePage() {
                       </div>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Dia do Vencimento Mensal</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="31"
+                          placeholder="10"
+                          value={debtForm.dueDay || 10}
+                          onChange={e => setDebtForm({ ...debtForm, dueDay: Math.max(1, Math.min(31, Number(e.target.value))) })}
+                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                          required
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Data da Próxima Parcela (DD/MM/AAAA)</label>
+                        <input
+                          type="date"
+                          value={debtForm.nextDueDate || ""}
+                          onChange={e => setDebtForm({ ...debtForm, nextDueDate: e.target.value })}
+                          className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs [color-scheme:dark]"
+                        />
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-3 gap-2">
                       <div>
                         <label className="text-[8px] text-zinc-550 block mb-1">Juros Atraso/Mês (%)</label>
@@ -1217,9 +1288,9 @@ export default function ProfilePage() {
                       
                       <div className="grid grid-cols-3 gap-2 items-end">
                         <div>
-                          <label className="text-[8px] text-zinc-650 block mb-1">Mês (Ex: 08/2026)</label>
+                          <label className="text-[8px] text-zinc-650 block mb-1">Data Vencimento (DD/MM/AAAA)</label>
                           <input
-                            type="month"
+                            type="date"
                             value={tempScheduleMonth}
                             onChange={e => setTempScheduleMonth(e.target.value)}
                             className="bg-zinc-950/80 border border-white/5 rounded-lg text-zinc-200 p-2 w-full text-xs [color-scheme:dark]"
@@ -1245,9 +1316,11 @@ export default function ProfilePage() {
                         <div className="space-y-1.5 max-h-[120px] overflow-y-auto mt-2 pr-1">
                           {parseSchedule(debtForm.installmentsSchedule).map((sch, i) => (
                             <div key={i} className="flex justify-between items-center bg-zinc-900/40 px-2.5 py-1.5 rounded-lg border border-white/5">
-                              <span className="text-[10px] font-bold text-yellow-400">{sch.month}</span>
+                              <span className="text-[10px] font-bold text-yellow-400">
+                                {sch.date ? new Date(sch.date + "T00:00:00").toLocaleDateString('pt-BR') : sch.month}
+                              </span>
                               <span className="text-[10px] font-black text-zinc-300">R$ {sch.amount.toFixed(2)}</span>
-                              <button type="button" onClick={() => removeDebtScheduleItem(sch.month)} className="text-zinc-600 hover:text-rose-400">
+                              <button type="button" onClick={() => removeDebtScheduleItem(sch.date || sch.month)} className="text-zinc-600 hover:text-rose-400">
                                 <Trash2 className="w-3.5 h-3.5" />
                               </button>
                             </div>
@@ -1295,6 +1368,7 @@ export default function ProfilePage() {
                       <div className="flex gap-2 items-center mt-1">
                         <span className="text-[10px] text-emerald-400 font-bold">R$ {Number(item.amount).toFixed(2)}</span>
                         <span className="text-[9px] text-zinc-650 font-semibold uppercase tracking-wider">&bull; {item.owner}</span>
+                        <span className="text-[9px] text-zinc-550 font-semibold uppercase tracking-wider">&bull; Rec. Dia {item.receiptDay || 5}</span>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -1338,7 +1412,12 @@ export default function ProfilePage() {
                     <div className="flex justify-between items-center">
                       <div>
                         <h4 className="text-xs font-black text-zinc-200">{item.name}</h4>
-                        <span className="text-[9px] text-zinc-500 font-semibold">Limite: R$ {Number(item.total_limit).toFixed(2)}</span>
+                        <div className="flex gap-2 items-center mt-0.5">
+                          <span className="text-[9px] text-zinc-500 font-semibold">Limite: R$ {Number(item.total_limit).toFixed(2)}</span>
+                          <span className="text-[9px] text-yellow-500/80 font-mono font-semibold">
+                            &bull; Corte: Dia {item.closingDay || 5} | Venc: Dia {item.dueDay || 15}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => handleEditCard(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">
@@ -1381,7 +1460,12 @@ export default function ProfilePage() {
                     <div className="flex justify-between items-center">
                       <div>
                         <h4 className="text-xs font-black text-zinc-200">{item.title}</h4>
-                        <span className="text-[9px] text-zinc-500 block font-semibold">Total: R$ {Number(item.acquisition_value).toFixed(2)} &bull; Pagas: {item.installments_paid}/{item.total_installments}</span>
+                        <div className="flex gap-2 items-center mt-0.5">
+                          <span className="text-[9px] text-zinc-500 block font-semibold">Total: R$ {Number(item.acquisition_value).toFixed(2)} &bull; Pagas: {item.installments_paid}/{item.total_installments}</span>
+                          <span className="text-[9px] text-amber-400/80 font-mono font-semibold">
+                            &bull; Venc: Dia {item.dueDay || 10}{item.nextDueDate ? ` (${item.nextDueDate})` : ''}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <button onClick={() => handleEditDebt(item)} className="p-2 rounded-lg bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors">

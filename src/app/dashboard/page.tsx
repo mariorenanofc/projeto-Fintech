@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Coins, TrendingUp, ShieldCheck } from "lucide-react";
+import { Coins, TrendingUp, ShieldCheck, Sparkles, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { 
@@ -214,37 +214,74 @@ export default function DashboardPage() {
       });
     });
 
-    // 2. Mapeia parcelas de Dívidas / Empréstimos
+    // 2. Mapeia parcelas de Dívidas / Empréstimos com o dia real de vencimento
     debts.forEach((debt, idx) => {
       let instVal = Number(debt.current_installment_value);
+      let dueDay = debt.dueDay || 10;
+      const titleStr = debt.title || "";
+      const dueMatch = titleStr.match(/\[due:(\d+)\]/);
+      const nextMatch = titleStr.match(/\[next:([^\]]+)\]/);
+
+      if (dueMatch) {
+        dueDay = parseInt(dueMatch[1]);
+      }
+      if (nextMatch && nextMatch[1]?.startsWith(currentMonthStr)) {
+        const parts = nextMatch[1].split("-");
+        if (parts[2]) dueDay = parseInt(parts[2]);
+      }
+
+      const cleanTitle = titleStr.replace(/\s*\[due:\d+\]/, "").replace(/\s*\[next:[^\]]+\]/, "");
+
       if (debt.installments_schedule && Array.isArray(debt.installments_schedule)) {
-        const schedItem = debt.installments_schedule.find((s: any) => s.month === currentMonthStr);
-        if (schedItem) instVal = Number(schedItem.amount);
+        const schedItem = debt.installments_schedule.find((s: any) => s.month === currentMonthStr || s.date?.startsWith(currentMonthStr));
+        if (schedItem) {
+          instVal = Number(schedItem.amount);
+          if (schedItem.date) {
+            const dayStr = schedItem.date.split("-")[2];
+            if (dayStr) dueDay = parseInt(dayStr);
+          }
+        }
       }
 
       generatedBills.push({
         id: `debt-${debt.id || idx}`,
-        title: debt.title,
+        title: cleanTitle,
         amount: instVal,
-        dueDate: `${currentYearMonth}22`,
+        dueDate: `${currentYearMonth}${String(dueDay).padStart(2, '0')}`,
         status: "pending",
         category: "Financiamentos/Dívidas"
       });
     });
 
-    // 3. Mapeia Faturas do Cartão
+    // 3. Mapeia Faturas do Cartão com o dia real de vencimento
     cards.forEach((card, idx) => {
       let invVal = Number(card.current_invoice);
+      let dueDay = card.dueDay || 15;
+      const nameStr = card.name || "";
+      const dueMatch = nameStr.match(/\[due:(\d+)\]/);
+
+      if (dueMatch) {
+        dueDay = parseInt(dueMatch[1]);
+      }
+
+      const cleanName = nameStr.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
+
       if (card.invoices_schedule && Array.isArray(card.invoices_schedule)) {
-        const schedItem = card.invoices_schedule.find((s: any) => s.month === currentMonthStr);
-        if (schedItem) invVal = Number(schedItem.amount);
+        const schedItem = card.invoices_schedule.find((s: any) => s.month === currentMonthStr || s.date?.startsWith(currentMonthStr));
+        if (schedItem) {
+          invVal = Number(schedItem.amount);
+          if (schedItem.date) {
+            const dayStr = schedItem.date.split("-")[2];
+            if (dayStr) dueDay = parseInt(dayStr);
+          }
+        }
       }
 
       generatedBills.push({
         id: `card-${card.id || idx}`,
-        title: `Fatura ${card.name}`,
+        title: `Fatura ${cleanName}`,
         amount: invVal,
-        dueDate: `${currentYearMonth}20`,
+        dueDate: `${currentYearMonth}${String(dueDay).padStart(2, '0')}`,
         status: "pending",
         category: "Cartão de Crédito"
       });
@@ -422,6 +459,32 @@ export default function DashboardPage() {
         getReadableMonthLabel={getReadableMonthLabel}
         handleLogout={handleLogout}
       />
+
+      {/* Banner de CTA para a Previsão Futura */}
+      <div className="mb-6 w-full">
+        <Link href="/dashboard/previsao" className="block w-full group">
+          <div className="w-full bg-gradient-to-r from-yellow-500/10 via-amber-500/15 to-yellow-500/10 hover:from-yellow-500/20 hover:to-amber-500/25 border border-yellow-500/30 hover:border-yellow-400/60 rounded-2xl p-4 transition-all duration-300 shadow-[0_4px_20px_rgba(234,179,8,0.1)] hover:shadow-[0_0_25px_rgba(234,179,8,0.25)] flex items-center justify-between gap-3 backdrop-blur-md">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-yellow-500/20 border border-yellow-500/40 flex items-center justify-center text-yellow-400 shrink-0 shadow-[0_0_12px_rgba(234,179,8,0.3)]">
+                <Sparkles className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-black text-white uppercase tracking-wider">Previsão Futura do Casal</span>
+                  <span className="bg-yellow-500/20 text-yellow-300 text-[8px] font-extrabold uppercase px-2 py-0.5 rounded-full border border-yellow-500/30">NOVO</span>
+                </div>
+                <p className="text-[10px] sm:text-xs text-zinc-300 font-semibold mt-0.5">
+                  Projete a evolução de patrimônio, reserva e quitação de dívidas nos próximos 12 meses →
+                </p>
+              </div>
+            </div>
+            <div className="hidden xs:flex items-center gap-1 text-yellow-400 font-black text-xs group-hover:translate-x-1 transition-transform shrink-0">
+              Ver Projeção
+              <ArrowRight className="w-4 h-4" />
+            </div>
+          </div>
+        </Link>
+      </div>
 
       {/* Grid Geral de Responsividade */}
       <div className="flex-1 flex flex-col gap-6 tablet:grid tablet:grid-cols-12 tablet:gap-6 lg:gap-8 tablet:items-stretch h-full">

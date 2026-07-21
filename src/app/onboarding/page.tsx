@@ -500,7 +500,7 @@ export default function OnboardingPage() {
                           className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
                         />
                       </div>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-3 gap-2">
                         <div>
                           <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Valor Mensal (R$)</label>
                           <input
@@ -508,6 +508,18 @@ export default function OnboardingPage() {
                             placeholder="0,00"
                             value={item.amount || ""}
                             onChange={(e) => handleIncomeChange(index, "amount", Number(e.target.value))}
+                            className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Dia Recebimento</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="31"
+                            placeholder="05"
+                            value={item.receiptDay || 5}
+                            onChange={(e) => handleIncomeChange(index, "receiptDay", Math.max(1, Math.min(31, Number(e.target.value))))}
                             className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
                           />
                         </div>
@@ -702,7 +714,7 @@ export default function OnboardingPage() {
                         />
                       </div>
                       
-                      {/* TAREFA 1.3: Adição do campo Fatura do Próximo Mês */}
+                      {/* TAREFA 1.3: Adição do campo Fatura do Próximo Mês e Datas de Fechamento / Vencimento */}
                       <div className="grid grid-cols-3 gap-3">
                         <div>
                           <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Limite Total (R$)</label>
@@ -731,6 +743,33 @@ export default function OnboardingPage() {
                             placeholder="0,00"
                             value={item.nextInvoice || ""}
                             onChange={(e) => handleCardChange(index, "nextInvoice", Number(e.target.value))}
+                            className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Dia do Fechamento (Corte)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="31"
+                            placeholder="05"
+                            value={item.closingDay || 5}
+                            onChange={(e) => handleCardChange(index, "closingDay", Math.max(1, Math.min(31, Number(e.target.value))))}
+                            className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Dia do Vencimento da Fatura</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="31"
+                            placeholder="15"
+                            value={item.dueDay || 15}
+                            onChange={(e) => handleCardChange(index, "dueDay", Math.max(1, Math.min(31, Number(e.target.value))))}
                             className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
                           />
                         </div>
@@ -830,6 +869,30 @@ export default function OnboardingPage() {
                             value={item.currentInstallmentValue || ""}
                             onChange={(e) => handleDebtChange(index, "currentInstallmentValue", Number(e.target.value))}
                             className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Dia do Vencimento Mensal</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="31"
+                            placeholder="10"
+                            value={item.dueDay || 10}
+                            onChange={(e) => handleDebtChange(index, "dueDay", Math.max(1, Math.min(31, Number(e.target.value))))}
+                            className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Data da Próxima Parcela (DD/MM/AAAA)</label>
+                          <input
+                            type="date"
+                            value={item.nextDueDate || ""}
+                            onChange={(e) => handleDebtChange(index, "nextDueDate", e.target.value)}
+                            className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs [color-scheme:dark]"
                           />
                         </div>
                       </div>
