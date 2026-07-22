@@ -145,8 +145,13 @@ export default function TransactionsPage() {
     setLoading(true);
     setLoadingForecast(true);
     
-    // 1. Busca as transações reais já cadastradas
-    const res = await getTransactions(monthStr);
+    // Busca transações, dados brutos e estratégia em paralelo para acelerar carregamento
+    const [res, rawRes, stratRes] = await Promise.all([
+      getTransactions(monthStr),
+      getProfileFinancialData(),
+      generateFinancialStrategy(monthStr)
+    ]);
+
     let currentTransactions: any[] = [];
     if (res.success) {
       setTransactions(res.data);
@@ -157,7 +162,6 @@ export default function TransactionsPage() {
 
     // 2. Busca as previsões e filtra o que já foi liquidado/realizado
     try {
-      const rawRes = await getProfileFinancialData();
       if (rawRes.success) {
         setUserCreditCards(rawRes.creditCards || []);
         
@@ -233,12 +237,9 @@ export default function TransactionsPage() {
       console.error("Erro ao cruzar previsões:", err);
     }
     
-    // 3. Busca a estratégia planejada para comparação de orçamento
-    try {
-      const stratRes = await generateFinancialStrategy(monthStr);
+    // 3. Define a estratégia planejada para comparação de orçamento
+    if (stratRes) {
       setStrategy(stratRes);
-    } catch (err) {
-      console.error("Erro ao cruzar estratégia:", err);
     }
 
     setLoadingForecast(false);

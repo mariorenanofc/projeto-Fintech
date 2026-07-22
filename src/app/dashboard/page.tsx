@@ -131,19 +131,29 @@ export default function DashboardPage() {
     try {
       setLoadingRealData(true);
       
-      // 1. Busca perfil do usuário
+      // Busca perfil do usuário, dados financeiros, transações, estratégia e metas em paralelo
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
+      const [
+        userRes,
+        rawRes,
+        txRes,
+        strat,
+        goalsRes
+      ] = await Promise.all([
+        supabase.auth.getUser(),
+        getProfileFinancialData(),
+        getTransactions(monthStr),
+        generateFinancialStrategy(monthStr),
+        getGoals()
+      ]);
+
+      if (userRes.data?.user) {
+        const user = userRes.data.user;
         setUserProfile({
           full_name: user.user_metadata?.full_name || user.user_metadata?.name || "Usuário",
           avatar_url: user.user_metadata?.avatar_url || ""
         });
       }
-
-      // 2. Busca dados brutos para construir as contas do calendário e previsões
-      const rawRes = await getProfileFinancialData();
-      const txRes = await getTransactions(monthStr);
 
       if (rawRes.success) {
         setRawCards(rawRes.creditCards);
@@ -164,12 +174,8 @@ export default function DashboardPage() {
         setEconomyTotal(econ);
       }
 
-      // 3. Busca a estratégia/diagnóstico para o mês selecionado
-      const strat = await generateFinancialStrategy(monthStr);
       setStrategy(strat);
 
-      // 4. Busca metas e sonhos do casal
-      const goalsRes = await getGoals();
       if (goalsRes.success && goalsRes.data) {
         setGoals(goalsRes.data);
       }

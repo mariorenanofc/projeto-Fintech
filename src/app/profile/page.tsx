@@ -358,59 +358,56 @@ export default function ProfilePage() {
     // Busca informações de perfil do usuário atual
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-      setUserProfile(profile);
-    }
-    
-    // 1. Busca dados financeiros do casal
-    const res = await getProfileFinancialData();
-    if (res.success) {
-      setIncomes(res.incomes);
-      setFixedExpenses(res.fixedExpenses);
-      setCreditCards(res.creditCards);
-      setDebts(res.debts);
-      setReservaFinanceira(Number(res.reservaFinanceiraAtual || 0));
-      setInvestimentosTotal(Number(res.investimentosTotal || 0));
-      
-      // Sincroniza preferências de voz do DB para o localStorage
-      if (res.voicePreferences) {
-        setSelectedVoiceURI(res.voicePreferences.uri);
-        setVoiceRate(res.voicePreferences.rate || 1.0);
-        localStorage.setItem("preferredVoiceURI", res.voicePreferences.uri);
-        localStorage.setItem("preferredVoiceRate", res.voicePreferences.rate?.toString() || "1.0");
-      } else {
-        const savedVoice = localStorage.getItem("preferredVoiceURI");
-        const savedRate = localStorage.getItem("preferredVoiceRate");
-        if (savedVoice) setSelectedVoiceURI(savedVoice);
-        if (savedRate) setVoiceRate(parseFloat(savedRate));
+      // 1. Dispara todas as consultas dependentes do usuário de forma paralela
+      const [profileRes, res, partnerRes, goalsRes, stratRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("id", user.id).single(),
+        getProfileFinancialData(),
+        getLinkedPartner(),
+        getGoals(),
+        generateFinancialStrategy()
+      ]);
+
+      if (profileRes.data) {
+        setUserProfile(profileRes.data);
       }
-    } else {
-      toast.error("Erro ao buscar dados: " + res.error);
-    }
 
-    // 2. Busca parceiro de conta vinculado
-    const partnerRes = await getLinkedPartner();
-    if (partnerRes.success && partnerRes.partners && partnerRes.partners.length > 0) {
-      setPartner(partnerRes.partners[0]);
-    } else {
-      setPartner(null);
-    }
+      if (res.success) {
+        setIncomes(res.incomes);
+        setFixedExpenses(res.fixedExpenses);
+        setCreditCards(res.creditCards);
+        setDebts(res.debts);
+        setReservaFinanceira(Number(res.reservaFinanceiraAtual || 0));
+        setInvestimentosTotal(Number(res.investimentosTotal || 0));
+        
+        // Sincroniza preferências de voz do DB para o localStorage
+        if (res.voicePreferences) {
+          setSelectedVoiceURI(res.voicePreferences.uri);
+          setVoiceRate(res.voicePreferences.rate || 1.0);
+          localStorage.setItem("preferredVoiceURI", res.voicePreferences.uri);
+          localStorage.setItem("preferredVoiceRate", res.voicePreferences.rate?.toString() || "1.0");
+        } else {
+          const savedVoice = localStorage.getItem("preferredVoiceURI");
+          const savedRate = localStorage.getItem("preferredVoiceRate");
+          if (savedVoice) setSelectedVoiceURI(savedVoice);
+          if (savedRate) setVoiceRate(parseFloat(savedRate));
+        }
+      } else {
+        toast.error("Erro ao buscar dados: " + res.error);
+      }
 
-    // 3. Busca metas e sonhos do casal
-    const goalsRes = await getGoals();
-    if (goalsRes.success && goalsRes.data) {
-      setGoals(goalsRes.data);
-    }
+      if (partnerRes.success && partnerRes.partners && partnerRes.partners.length > 0) {
+        setPartner(partnerRes.partners[0]);
+      } else {
+        setPartner(null);
+      }
 
-    try {
-      const stratRes = await generateFinancialStrategy();
-      setHasStrategy(!!stratRes.hasStrategy);
-    } catch (err) {
-      console.error("Erro ao verificar estratégia:", err);
+      if (goalsRes.success && goalsRes.data) {
+        setGoals(goalsRes.data);
+      }
+
+      if (stratRes) {
+        setHasStrategy(!!stratRes.hasStrategy);
+      }
     }
 
     setLoading(false);
