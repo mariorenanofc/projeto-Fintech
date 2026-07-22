@@ -169,7 +169,7 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col md:min-h-screen max-md:h-[100dvh] px-4 py-4 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-3xl lg:px-8 max-md:overflow-hidden relative">
+    <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col md:min-h-screen max-md:h-[100dvh] px-4 py-4 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-4xl lg:px-8 max-md:overflow-hidden relative">
       
       {/* Luz de Fundo Efeito Glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-yellow-500/5 rounded-full blur-[140px] pointer-events-none" />
@@ -232,20 +232,20 @@ export default function ChatPage() {
 
       {/* Janela de Conversa Scrollable */}
       <Card className="flex-1 bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden flex flex-col max-md:min-h-0 md:min-h-[350px] z-10">
-        <CardContent className="p-4 flex-1 overflow-y-auto space-y-4 md:max-h-[500px]">
+        <CardContent className="p-4 flex-1 overflow-y-auto space-y-4 md:max-h-[500px]" data-lenis-prevent>
           {loadingHistory ? (
             <div className="space-y-4 animate-pulse">
               <div className="flex gap-2.5 max-w-[70%]">
-                <div className="w-8 h-8 rounded-full bg-zinc-800" />
-                <div className="h-10 bg-zinc-800 rounded-2xl w-full" />
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5" />
+                <div className="h-10 bg-white/5 border border-white/5 rounded-2xl w-full" />
               </div>
               <div className="flex gap-2.5 max-w-[70%] ml-auto flex-row-reverse">
-                <div className="w-8 h-8 rounded-full bg-zinc-800" />
-                <div className="h-12 bg-zinc-800 rounded-2xl w-full" />
+                <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/20" />
+                <div className="h-12 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl w-full" />
               </div>
               <div className="flex gap-2.5 max-w-[60%]">
-                <div className="w-8 h-8 rounded-full bg-zinc-800" />
-                <div className="h-8 bg-zinc-800 rounded-2xl w-full" />
+                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5" />
+                <div className="h-8 bg-white/5 border border-white/5 rounded-2xl w-full" />
               </div>
             </div>
           ) : (
@@ -257,13 +257,13 @@ export default function ChatPage() {
                 }`}
               >
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                msg.role === "user" ? "bg-zinc-800 text-zinc-350" : "bg-yellow-500 text-zinc-950 shadow-md shadow-yellow-500/10"
+                msg.role === "user" ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 font-bold" : "bg-yellow-500 text-zinc-950 shadow-md shadow-yellow-500/10"
               }`}>
                 {msg.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
               </div>
               <div className={`p-3.5 rounded-2xl text-xs leading-relaxed font-medium ${
                 msg.role === "user" 
-                  ? "bg-zinc-800 text-zinc-150 rounded-tr-none" 
+                  ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-tr-none shadow-[0_0_15px_rgba(234,179,8,0.05)]" 
                   : "bg-zinc-950/60 border border-white/5 text-zinc-350 rounded-tl-none"
               }`}>
                 {msg.role === "user" ? (
@@ -304,7 +304,7 @@ export default function ChatPage() {
       </Card>
 
       {/* Caixa de Entrada e Prompt Ideas */}
-      <div className="flex-none mt-4 max-md:pb-2 space-y-4 bg-zinc-950 z-10">
+      <div className="flex-none mt-4 max-md:pb-2 space-y-4 bg-transparent z-10">
         {/* Sugestões rápidas (Só exibe se o chat estiver ocioso) */}
         {!loading && (
           <div className="flex gap-2 overflow-x-auto pb-1.5 max-w-full">
@@ -352,20 +352,28 @@ export default function ChatPage() {
         </form>
       </div>
 
-      {/* Footer PWA (Oculto no mobile porque a tela de chat ocupa 100% da altura e input fica sticky) */}
-      <footer className="hidden md:flex mt-8 pt-5 border-t border-white/5 justify-around text-zinc-600 text-xs">
-        <Link href="/dashboard" className="flex flex-col items-center gap-1 hover:text-zinc-400 transition-colors">
-          <Coins className="w-5 h-5" />
-          <span className="text-[9px] tracking-wider uppercase font-semibold">Dashboard</span>
-        </Link>
-        <Link href="/transactions" className="flex flex-col items-center gap-1 hover:text-zinc-400 transition-colors">
-          <TrendingUp className="w-5 h-5" />
-          <span className="text-[9px] tracking-wider uppercase font-semibold">Transações</span>
-        </Link>
-        <Link href="/profile" className="flex flex-col items-center gap-1 hover:text-zinc-400 transition-colors">
-          <ShieldCheck className="w-5 h-5" />
-          <span className="text-[9px] tracking-wider uppercase font-semibold">Perfil</span>
-        </Link>
+      {/* Footer Padrão Unificado */}
+      <footer className="hidden md:block w-full border-t border-white/5 pt-8 pb-8 text-center space-y-4 mt-6 z-10">
+        <div className="flex justify-center items-center">
+          <div className="w-10 h-10 rounded-2xl bg-zinc-900 border border-yellow-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(234,179,8,0.2)]">
+            <Coins className="w-5 h-5 text-yellow-500" />
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <h4 className="text-sm font-black text-white tracking-tight">Sintonia &amp; Engenharia Financeira Familiar</h4>
+          <p className="text-xs text-zinc-400 font-medium">Plataforma de inteligência financeira conjugal e gestão de crédito de alto desempenho</p>
+        </div>
+
+        <div className="flex items-center justify-center gap-4 text-xs text-zinc-400 font-semibold flex-wrap">
+          <Link href="/dashboard" className="hover:text-yellow-400 transition-colors">Dashboard</Link>
+          <span>&bull;</span>
+          <Link href="/transactions" className="hover:text-yellow-400 transition-colors">Transações</Link>
+          <span>&bull;</span>
+          <Link href="/profile" className="hover:text-yellow-400 transition-colors">Perfil &amp; Cartões</Link>
+          <span>&bull;</span>
+          <span className="text-yellow-500 font-bold">Conselheiro IA</span>
+        </div>
       </footer>
 
     </div>
