@@ -518,6 +518,21 @@ export default function DashboardPage() {
     return acc + Math.max(0, limit - invoice);
   }, 0);
 
+  if (!mounted || loadingRealData) {
+    return (
+      <div className="flex-1 w-full bg-zinc-950 flex flex-col items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-yellow-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(234,179,8,0.3)] animate-pulse">
+            <Coins className="w-6 h-6 text-yellow-500 animate-spin [animation-duration:3s]" />
+          </div>
+          <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest animate-pulse">
+            Sincronizando Diagnóstico...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 w-full mx-auto bg-transparent flex flex-col min-h-screen px-3 py-4 xs:px-4 xs:py-6 pb-6 sm:pb-6 max-w-full xs:max-w-[480px] sm:max-w-[768px] tablet:max-w-[834px] md:max-w-[1024px] lg:max-w-[1440px] laptop:max-w-[1600px] sm:px-6 md:px-8 lg:py-8 space-y-6">
       
@@ -732,8 +747,12 @@ export default function DashboardPage() {
           <span>&bull;</span>
           <Link href="/profile" className="hover:text-yellow-400 transition-colors">Perfil &amp; Cartões</Link>
           <span>&bull;</span>
-          <Link href="/onboarding" className="hover:text-yellow-400 transition-colors">Onboarding</Link>
-          <span>&bull;</span>
+          {!strategy?.hasStrategy && (
+            <>
+              <Link href="/onboarding" className="hover:text-yellow-400 transition-colors">Onboarding</Link>
+              <span>&bull;</span>
+            </>
+          )}
           <Link href="/chat" className="hover:text-yellow-400 transition-colors">Conselheira IA</Link>
           <span>&bull;</span>
           <Link href="/politica-de-privacidade" className="hover:text-yellow-400 transition-colors">Privacidade</Link>

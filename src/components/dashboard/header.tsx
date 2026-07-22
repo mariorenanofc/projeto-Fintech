@@ -18,6 +18,7 @@ interface HeaderProps {
 export function Header({
   userProfile,
   selectedMonthStr,
+  hasStrategy,
   getReadableMonthLabel,
   handleLogout,
 }: HeaderProps) {
@@ -37,7 +38,7 @@ export function Header({
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/transactions", label: "Transações", icon: ReceiptText },
     { href: "/profile", label: "Perfil & Cartões", icon: UserCheck },
-    { href: "/onboarding", label: "Onboarding", icon: Compass },
+    ...(!hasStrategy ? [{ href: "/onboarding", label: "Onboarding", icon: Compass }] : []),
     { href: "/chat", label: "Conselheira IA", icon: MessageSquareCode },
   ];
 

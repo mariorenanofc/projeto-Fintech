@@ -1,0 +1,6 @@
+- [x] Ocultar link de Onboarding se o usuário já tiver metas/estratégia (no Header e nos footers do Dashboard, Transações e Perfil). <!-- id: 0 -->
+- [x] Criar categorias de despesas essenciais genéricas no Onboarding e Perfil (ex: Moradia & Contas, Transporte & Mobilidade). <!-- id: 1 -->
+- [x] Substituir selects nativos de Receitas, Despesas e Dívidas por um componente CustomSelect premium dourado/amarelo. <!-- id: 2 -->
+- [x] Implementar checkbox de fatura fechada, faturas futuras reativas e calculador de cronograma automático para os cartões de crédito. <!-- id: 3 -->
+- [x] Adicionar barra de progresso visual de limites e alertas de estouro de limite nos cartões no Onboarding e Perfil. <!-- id: 4 -->
+- [x] Rodar testes de compilação com `npx tsc --noEmit` para garantir integridade. <!-- id: 5 -->

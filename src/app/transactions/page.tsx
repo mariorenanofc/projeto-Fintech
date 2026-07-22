@@ -375,7 +375,20 @@ export default function TransactionsPage() {
     return `${months[month - 1]} de ${year}`;
   };
 
-  if (!mounted) return null;
+  if (!mounted || loading) {
+    return (
+      <div className="flex-1 w-full bg-zinc-950 flex flex-col items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-yellow-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(234,179,8,0.3)] animate-pulse">
+            <Coins className="w-6 h-6 text-yellow-500 animate-spin [animation-duration:3s]" />
+          </div>
+          <p className="text-xs text-zinc-400 font-bold uppercase tracking-widest animate-pulse">
+            Carregando Lançamentos...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Valores consolidados para comparação Previsto vs Realizado
   const prevIncome = strategy?.totalIncome || 0;
@@ -973,8 +986,12 @@ export default function TransactionsPage() {
           <span>&bull;</span>
           <Link href="/profile" className="hover:text-yellow-400 transition-colors">Perfil &amp; Cartões</Link>
           <span>&bull;</span>
-          <Link href="/onboarding" className="hover:text-yellow-400 transition-colors">Onboarding</Link>
-          <span>&bull;</span>
+          {!strategy?.hasStrategy && (
+            <>
+              <Link href="/onboarding" className="hover:text-yellow-400 transition-colors">Onboarding</Link>
+              <span>&bull;</span>
+            </>
+          )}
           <Link href="/chat" className="hover:text-yellow-400 transition-colors">Conselheira IA</Link>
           <span>&bull;</span>
           <Link href="/politica-de-privacidade" className="hover:text-yellow-400 transition-colors">Privacidade</Link>
