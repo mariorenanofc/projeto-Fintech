@@ -57,11 +57,9 @@ export default function LoginPage() {
 
         {/* Card Central de Login com Google OAuth */}
         <div className="w-full max-w-lg">
-          <TiltCard glowColor="rgba(234, 179, 8, 0.25)" className="p-10 sm:p-12 text-center space-y-8 relative overflow-hidden backdrop-blur-xl bg-zinc-950/90 border-[#27272A] shadow-2xl">
-            {/* Brilho Superior no Card */}
-            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-yellow-500/40 to-transparent" />
-            
-            <div className="flex flex-col items-center space-y-3">
+          <TiltCard glowColor="rgba(234, 179, 8, 0.25)" className="p-10 sm:p-12 relative overflow-hidden backdrop-blur-xl bg-zinc-950/90 border-[#27272A] shadow-2xl">
+            {/* Cabeçalho de Identificação */}
+            <div className="flex flex-col items-center space-y-3 pb-2">
               <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-yellow-500/40 flex items-center justify-center shadow-[0_0_25px_rgba(234,179,8,0.35)] mb-1">
                 <Coins className="w-7 h-7 text-yellow-400" />
               </div>
@@ -69,25 +67,33 @@ export default function LoginPage() {
               <p className="text-xs sm:text-sm text-zinc-400 font-semibold">Acesso rápido e seguro para o casal</p>
             </div>
 
-            {/* Google OAuth Login Button com espaço adequado */}
-            <div className="w-full flex justify-center py-4 my-2">
-              <AuthButton />
+            {/* Linha Divisória Dourada Suave */}
+            <div className="relative w-full h-px bg-gradient-to-r from-transparent via-yellow-500/30 to-transparent my-6">
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-yellow-500/10 to-transparent blur-[3px]" />
             </div>
 
-            {/* Aviso de Transparência do Google Calendar API */}
-            <div className="bg-zinc-900/90 p-5 sm:p-6 rounded-2xl border border-white/10 text-left space-y-2.5 mt-4 shadow-inner">
-              <span className="text-xs text-yellow-400 uppercase font-extrabold tracking-wider flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-yellow-500 shrink-0" /> Integração com Google Agenda
-              </span>
-              <p className="text-xs text-zinc-300 leading-relaxed font-normal">
-                Utilizamos permissões estritas para adicionar lembretes das contas a pagar diretamente na sua agenda pessoal, evitando atrasos e juros. Seus dados estão protegidos sob isolamento RLS.
-              </p>
-            </div>
+            {/* Conteúdo de Acesso */}
+            <div className="space-y-6">
+              {/* Google OAuth Login Button com espaço adequado */}
+              <div className="w-full flex justify-center py-2">
+                <AuthButton />
+              </div>
 
-            <div className="flex items-center justify-center gap-6 text-xs text-zinc-400 font-bold tracking-wider uppercase pt-2">
-              <span className="flex items-center gap-1.5">🔒 Criptografia SSL</span>
-              <span>&bull;</span>
-              <span className="flex items-center gap-1.5">🛡️ Supabase Auth</span>
+              {/* Aviso de Transparência do Google Calendar API */}
+              <div className="bg-zinc-900/90 p-5 sm:p-6 rounded-2xl border border-white/10 text-left space-y-2.5 shadow-inner">
+                <span className="text-xs text-yellow-400 uppercase font-extrabold tracking-wider flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-yellow-500 shrink-0" /> Integração com Google Agenda
+                </span>
+                <p className="text-xs text-zinc-300 leading-relaxed font-normal">
+                  Utilizamos permissões estritas para adicionar lembretes das contas a pagar diretamente na sua agenda pessoal, evitando atrasos e juros. Seus dados estão protegidos sob isolamento RLS.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center gap-6 text-xs text-zinc-400 font-bold tracking-wider uppercase pt-2">
+                <span className="flex items-center gap-1.5">🔒 Criptografia SSL</span>
+                <span>&bull;</span>
+                <span className="flex items-center gap-1.5">🛡️ Supabase Auth</span>
+              </div>
             </div>
           </TiltCard>
         </div>

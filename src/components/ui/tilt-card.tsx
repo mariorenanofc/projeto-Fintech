@@ -8,9 +8,10 @@ interface TiltCardProps extends HTMLMotionProps<"div"> {
   children: React.ReactNode;
   className?: string;
   glowColor?: string;
+  disableTilt?: boolean;
 }
 
-export function TiltCard({ children, className, glowColor = "rgba(234, 179, 8, 0.15)", ...props }: TiltCardProps) {
+export function TiltCard({ children, className, glowColor = "rgba(234, 179, 8, 0.15)", disableTilt = false, ...props }: TiltCardProps) {
   const ref = useRef<HTMLDivElement>(null);
 
   const x = useMotionValue(0);
@@ -43,22 +44,23 @@ export function TiltCard({ children, className, glowColor = "rgba(234, 179, 8, 0
     y.set(0);
   };
 
+  const isTilting = !disableTilt;
+
   return (
     <motion.div
       ref={ref}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{
+      onMouseMove={isTilting ? handleMouseMove : undefined}
+      onMouseLeave={isTilting ? handleMouseLeave : undefined}
+      style={isTilting ? {
         rotateY,
         rotateX,
         transformStyle: "preserve-3d",
-      }}
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-50px" }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      } : {}}
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        "relative rounded-2xl bg-[#121214]/60 border border-[#27272A] p-6 backdrop-blur-xl transition-colors duration-300 hover:border-yellow-500/30 hover:bg-[#161619]/80 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group",
+        "relative rounded-2xl bg-[#121214]/60 border border-[#27272A] p-6 backdrop-blur-md transition-colors duration-300 hover:border-yellow-500/30 hover:bg-[#161619]/80 shadow-[0_10px_30px_rgba(0,0,0,0.5)] group",
         className
       )}
       {...props}
@@ -69,7 +71,7 @@ export function TiltCard({ children, className, glowColor = "rgba(234, 179, 8, 0
           background: `radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), ${glowColor}, transparent 40%)`,
         }}
       />
-      <div style={{ transform: "translateZ(20px)" }} className="relative z-10">
+      <div style={isTilting ? { transform: "translateZ(20px)" } : {}} className="relative z-10">
         {children}
       </div>
     </motion.div>

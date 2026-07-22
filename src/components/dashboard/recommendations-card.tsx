@@ -31,7 +31,7 @@ export function RecommendationsCard({ strategy, rawCards = [], rawDebts = [], on
     : [];
 
   return (
-    <TiltCard glowColor="rgba(234, 179, 8, 0.15)" className="space-y-6">
+    <TiltCard glowColor="rgba(234, 179, 8, 0.15)" className="space-y-6" disableTilt={true}>
       {/* Header do Card com Ícone e Subtítulo */}
       <div className="flex flex-col border-b border-white/5 pb-3">
         <h3 className="text-sm font-black uppercase tracking-wider text-yellow-500 flex items-center gap-2">

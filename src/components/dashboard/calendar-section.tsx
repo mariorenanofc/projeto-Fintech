@@ -48,7 +48,7 @@ export function CalendarSection({
 
   return (
     <section className="w-full mt-6">
-      <TiltCard glowColor="rgba(234, 179, 8, 0.15)" className="space-y-4">
+      <TiltCard glowColor="rgba(234, 179, 8, 0.15)" className="space-y-4" disableTilt={true}>
         <div className="flex flex-col border-b border-white/5 pb-3">
           <div className="flex items-center gap-2">
             <CalendarIcon className="w-4 h-4 text-yellow-500" />
@@ -112,7 +112,7 @@ export function CalendarSection({
 
               <div className="flex-1 flex flex-col justify-between">
                 {selectedDateBills.length > 0 ? (
-                  <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                  <div className="space-y-3 pr-1">
                     {selectedDateBills.map((bill) => (
                       <div 
                         key={bill.id}

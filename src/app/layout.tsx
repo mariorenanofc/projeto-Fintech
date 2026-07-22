@@ -172,7 +172,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
+      className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}
     >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -182,7 +182,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdData) }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-[#0A0A0A] text-zinc-50 selection:bg-yellow-500 selection:text-zinc-950 animate-fade-in relative">
+      <body className="min-h-screen flex flex-col bg-[#0A0A0A] text-zinc-50 selection:bg-yellow-500 selection:text-zinc-950 animate-fade-in relative">
         <SmoothScrollProvider>
           <BackgroundParallaxElements />
           <PWAProvider />
