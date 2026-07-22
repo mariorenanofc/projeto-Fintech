@@ -14,12 +14,14 @@ import {
   PiggyBank,
   Pizza,
   HelpCircle,
-  RefreshCw
+  RefreshCw,
+  Heart
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getAiTokenBalance, askFinancialAdvisor, getChatHistory } from "@/actions/ai";
+import { getProfileFinancialData } from "@/actions/onboarding";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
 import { motion } from "framer-motion";
@@ -43,6 +45,7 @@ export default function ChatPage() {
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [inputMessage, setInputMessage] = useState("");
   const [outOfTokensAlert, setOutOfTokensAlert] = useState(false);
+  const [hasStrategy, setHasStrategy] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -50,6 +53,7 @@ export default function ChatPage() {
     setMounted(true);
     fetchBalance();
     fetchHistory();
+    fetchStrategyStatus();
   }, []);
 
   useEffect(() => {
@@ -86,6 +90,20 @@ export default function ChatPage() {
       setMessages([welcomeMessage]);
     }
     setLoadingHistory(false);
+  };
+
+  const fetchStrategyStatus = async () => {
+    try {
+      const res = await getProfileFinancialData();
+      if (res.success) {
+        const data = res as any;
+        if (data.strategy) {
+          setHasStrategy(!!data.strategy.hasStrategy);
+        }
+      }
+    } catch (err) {
+      console.error("Erro ao buscar status da estratégia no chat:", err);
+    }
   };
 
   const scrollToBottom = () => {
@@ -169,210 +187,221 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col md:min-h-screen max-md:h-[100dvh] px-4 py-4 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-4xl lg:px-8 max-md:overflow-hidden relative">
+    <div className="flex-1 w-full flex flex-col items-center justify-between min-h-screen relative">
       
-      {/* Luz de Fundo Efeito Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-yellow-500/5 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute top-3/4 -left-20 w-[400px] h-[400px] bg-yellow-500/5 rounded-full blur-[120px] pointer-events-none" />
+      {/* Luzes de Fundo Efeitos Glow (Enclausuradas para não estourar o scroll da página) */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-yellow-500/5 rounded-full blur-[140px]" />
+        <div className="absolute top-3/4 -left-20 w-[400px] h-[400px] bg-yellow-500/5 rounded-full blur-[120px]" />
+      </div>
 
-      {/* Header do Chat */}
-      <header className="flex-none flex flex-col gap-4 xs:flex-row xs:justify-between xs:items-center mb-4 pb-4 border-b border-white/5 z-10">
-        <div className="flex items-center gap-2.5 w-full xs:w-auto">
-          <Link href="/dashboard" className="p-2 rounded-xl bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors mr-1">
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-          <div className="w-10 h-10 rounded-xl bg-yellow-500 flex items-center justify-center shadow-lg shadow-yellow-500/20 relative overflow-hidden">
-            <Bot className="w-5.5 h-5.5 text-zinc-950" />
-          </div>
-          <div>
-            <h1 className="text-sm font-black tracking-tight text-white sm:text-base">Conselheiro IA</h1>
-            <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold">Operação de Choque</p>
-          </div>
-        </div>
+      {/* Container Principal do Chat (Estilizado em bg-zinc-950 com max-w-4xl) */}
+      <div className="w-full max-w-md md:max-w-2xl lg:max-w-4xl bg-zinc-950/60 border border-white/5 rounded-2xl flex flex-col md:h-[680px] max-md:h-[100dvh] px-4 py-4 md:px-6 relative z-10 mt-4 md:mt-8 shadow-2xl backdrop-blur-xl max-md:overflow-hidden">
         
-        {/* Filtros e tokens */}
-        <div className="flex items-center gap-2.5 w-full xs:w-auto justify-between xs:justify-end">
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={e => setSelectedMonth(e.target.value)}
-            className="bg-zinc-900 border border-white/5 rounded-xl text-zinc-200 text-xs px-2.5 py-1.5 focus:outline-none [color-scheme:dark] font-bold"
-            title="Mês de Contexto da IA"
-          />
-          {tokenBalance !== null ? (
-            <Badge variant="outline" className="border-yellow-500/20 text-yellow-400 bg-yellow-950/10 px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold">
-              <Coins className="w-3.5 h-3.5 text-yellow-500" />
-              {tokenBalance.toLocaleString()} XP
-            </Badge>
-          ) : (
-            <div className="w-20 h-7 bg-zinc-900 animate-pulse rounded-xl" />
-          )}
-        </div>
-      </header>
-
-      {/* Alerta de falta de tokens (Status 402) */}
-      {outOfTokensAlert && (
-        <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl space-y-3">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+        {/* Header do Chat */}
+        <header className="flex-none flex flex-col gap-4 xs:flex-row xs:justify-between xs:items-center mb-4 pb-4 border-b border-white/5 z-10">
+          <div className="flex items-center gap-2.5 w-full xs:w-auto">
+            <Link href="/dashboard" className="p-2 rounded-xl bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors mr-1">
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+            <div className="w-10 h-10 rounded-xl bg-yellow-500 flex items-center justify-center shadow-lg shadow-yellow-500/20 relative overflow-hidden">
+              <Bot className="w-5.5 h-5.5 text-zinc-950" />
+            </div>
             <div>
-              <h4 className="text-xs font-black text-yellow-500 uppercase tracking-wider">Saldo de Tokens Esgotado</h4>
-              <p className="text-[10px] text-zinc-450 leading-relaxed font-semibold mt-1">
-                Vocês consumiram todo o saldo de consultas da carteira conjugal. Adquira mais tokens para continuar recebendo diagnósticos estratégicos de choque.
-              </p>
+              <h1 className="text-sm font-black tracking-tight text-white sm:text-base">Conselheiro IA</h1>
+              <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-semibold">Operação de Choque</p>
             </div>
           </div>
-          <div className="flex gap-2 justify-end">
-            <Button onClick={reloadTokensSimulation} className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black h-8 rounded-lg text-[10px] px-3">
-              <RefreshCw className="w-3 h-3 mr-1" /> Simular Recarga
-            </Button>
+          
+          {/* Filtros e tokens */}
+          <div className="flex items-center gap-2.5 w-full xs:w-auto justify-between xs:justify-end">
+            <input
+              type="month"
+              value={selectedMonth}
+              onChange={e => setSelectedMonth(e.target.value)}
+              className="bg-zinc-900 border border-white/5 rounded-xl text-zinc-200 text-xs px-2.5 py-1.5 focus:outline-none [color-scheme:dark] font-bold"
+              title="Mês de Contexto da IA"
+            />
+            {tokenBalance !== null ? (
+              <Badge variant="outline" className="border-yellow-500/20 text-yellow-400 bg-yellow-950/10 px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold">
+                <Coins className="w-3.5 h-3.5 text-yellow-500" />
+                {tokenBalance.toLocaleString()} XP
+              </Badge>
+            ) : (
+              <div className="w-20 h-7 bg-zinc-900 animate-pulse rounded-xl" />
+            )}
           </div>
-        </div>
-      )}
+        </header>
 
-      {/* Janela de Conversa Scrollable */}
-      <Card className="flex-1 bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden flex flex-col max-md:min-h-0 md:min-h-[350px] z-10">
-        <CardContent className="p-4 flex-1 overflow-y-auto space-y-4 md:max-h-[500px]" data-lenis-prevent>
-          {loadingHistory ? (
-            <div className="space-y-4 animate-pulse">
-              <div className="flex gap-2.5 max-w-[70%]">
-                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5" />
-                <div className="h-10 bg-white/5 border border-white/5 rounded-2xl w-full" />
-              </div>
-              <div className="flex gap-2.5 max-w-[70%] ml-auto flex-row-reverse">
-                <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/20" />
-                <div className="h-12 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl w-full" />
-              </div>
-              <div className="flex gap-2.5 max-w-[60%]">
-                <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5" />
-                <div className="h-8 bg-white/5 border border-white/5 rounded-2xl w-full" />
+        {/* Alerta de falta de tokens (Status 402) */}
+        {outOfTokensAlert && (
+          <div className="mb-4 bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-xl space-y-3">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="text-xs font-black text-yellow-500 uppercase tracking-wider">Saldo de Tokens Esgotado</h4>
+                <p className="text-[10px] text-zinc-450 leading-relaxed font-semibold mt-1">
+                  Vocês consumiram todo o saldo de consultas da carteira conjugal. Adquira mais tokens para continuar recebendo diagnósticos estratégicos de choque.
+                </p>
               </div>
             </div>
-          ) : (
-            messages.map((msg, i) => (
-              <div 
-                key={i} 
-                className={`flex items-start gap-2.5 max-w-[85%] ${
-                  msg.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
-                }`}
-              >
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                msg.role === "user" ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 font-bold" : "bg-yellow-500 text-zinc-950 shadow-md shadow-yellow-500/10"
-              }`}>
-                {msg.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
-              </div>
-              <div className={`p-3.5 rounded-2xl text-xs leading-relaxed font-medium ${
-                msg.role === "user" 
-                  ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-tr-none shadow-[0_0_15px_rgba(234,179,8,0.05)]" 
-                  : "bg-zinc-950/60 border border-white/5 text-zinc-350 rounded-tl-none"
-              }`}>
-                {msg.role === "user" ? (
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
-                ) : (
-                  <ReactMarkdown
-                    components={{
-                      p: ({node, ...props}) => <p className="mb-3 last:mb-0" {...props} />,
-                      strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
-                      ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-3 space-y-1" {...props} />,
-                      ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-3 space-y-1" {...props} />,
-                      li: ({node, ...props}) => <li className="text-zinc-300" {...props} />
-                    }}
-                  >
-                    {msg.content}
-                  </ReactMarkdown>
-                )}
-              </div>
+            <div className="flex gap-2 justify-end">
+              <Button onClick={reloadTokensSimulation} className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black h-8 rounded-lg text-[10px] px-3">
+                <RefreshCw className="w-3 h-3 mr-1" /> Simular Recarga
+              </Button>
             </div>
-          )))}
-
-          {/* Loader de Resposta */}
-          {loading && (
-            <div className="flex items-start gap-2.5 mr-auto max-w-[80%]">
-              <div className="w-8 h-8 rounded-full bg-yellow-500 text-zinc-950 flex items-center justify-center animate-pulse">
-                <Bot className="w-4 h-4" />
-              </div>
-              <div className="p-3.5 rounded-2xl bg-zinc-950/60 border border-white/5 text-zinc-500 text-xs font-semibold rounded-tl-none flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-bounce" />
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-bounce delay-100" />
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-bounce delay-200" />
-                <span className="ml-1 uppercase text-[9px] tracking-wider font-bold">Inspecionando caixa...</span>
-              </div>
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </CardContent>
-      </Card>
-
-      {/* Caixa de Entrada e Prompt Ideas */}
-      <div className="flex-none mt-4 max-md:pb-2 space-y-4 bg-transparent z-10">
-        {/* Sugestões rápidas (Só exibe se o chat estiver ocioso) */}
-        {!loading && (
-          <div className="flex gap-2 overflow-x-auto pb-1.5 max-w-full">
-            {[
-              { text: "Posso pedir pizza hoje?", icon: <Pizza className="w-3.5 h-3.5 mr-1" /> },
-              { text: "Como renegociar o lote?", icon: <HelpCircle className="w-3.5 h-3.5 mr-1" /> },
-              { text: "Dicas para amortizar o banco", icon: <PiggyBank className="w-3.5 h-3.5 mr-1" /> }
-            ].map((sug, i) => (
-              <button
-                key={i}
-                onClick={() => handleSuggest(sug.text)}
-                className="bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-zinc-200 px-3 py-1.5 rounded-xl text-[10px] font-bold flex items-center whitespace-nowrap transition-colors"
-              >
-                {sug.icon}
-                {sug.text}
-              </button>
-            ))}
           </div>
         )}
 
-        {/* Form para envio */}
-        <form 
-          onSubmit={e => {
-            e.preventDefault();
-            handleSendMessage(inputMessage);
-          }}
-          className="flex gap-2"
-        >
-          <input
-            type="text"
-            placeholder={outOfTokensAlert ? "Saldo esgotado..." : "Pergunte ao conselheiro..."}
-            value={inputMessage}
-            onChange={e => setInputMessage(e.target.value)}
-            disabled={loading || outOfTokensAlert}
-            className="bg-zinc-900/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3.5 flex-1 text-xs disabled:opacity-50"
-            required
-          />
-          <Button 
-            type="submit" 
-            disabled={loading || !inputMessage.trim() || outOfTokensAlert}
-            className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black h-[46px] w-[46px] rounded-xl flex items-center justify-center p-0 disabled:opacity-50 flex-shrink-0"
+        {/* Janela de Conversa Scrollable */}
+        <Card className="w-full bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden flex flex-col md:h-[550px] max-md:flex-1 max-md:min-h-0 z-10">
+          <CardContent className="p-4 flex-1 overflow-y-auto space-y-4" data-lenis-prevent>
+            {loadingHistory ? (
+              <div className="space-y-4 animate-pulse">
+                <div className="flex gap-2.5 max-w-[70%]">
+                  <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5" />
+                  <div className="h-10 bg-white/5 border border-white/5 rounded-2xl w-full" />
+                </div>
+                <div className="flex gap-2.5 max-w-[70%] ml-auto flex-row-reverse">
+                  <div className="w-8 h-8 rounded-full bg-yellow-500/10 border border-yellow-500/20" />
+                  <div className="h-12 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl w-full" />
+                </div>
+                <div className="flex gap-2.5 max-w-[60%]">
+                  <div className="w-8 h-8 rounded-full bg-white/5 border border-white/5" />
+                  <div className="h-8 bg-white/5 border border-white/5 rounded-2xl w-full" />
+                </div>
+              </div>
+            ) : (
+              messages.map((msg, i) => (
+                <div 
+                  key={i} 
+                  className={`flex items-start gap-2.5 max-w-[85%] ${
+                    msg.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
+                  }`}
+                >
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                  msg.role === "user" ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 font-bold" : "bg-yellow-500 text-zinc-950 shadow-md shadow-yellow-500/10"
+                }`}>
+                  {msg.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                </div>
+                <div className={`p-3.5 rounded-2xl text-xs leading-relaxed font-medium ${
+                  msg.role === "user" 
+                    ? "bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 rounded-tr-none shadow-[0_0_15px_rgba(234,179,8,0.05)]" 
+                    : "bg-zinc-950/60 border border-white/5 text-zinc-350 rounded-tl-none"
+                }`}>
+                  {msg.role === "user" ? (
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                  ) : (
+                    <ReactMarkdown
+                      components={{
+                        p: ({node, ...props}) => <p className="mb-3 last:mb-0" {...props} />,
+                        strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />,
+                        ul: ({node, ...props}) => <ul className="list-disc pl-4 mb-3 space-y-1" {...props} />,
+                        ol: ({node, ...props}) => <ol className="list-decimal pl-4 mb-3 space-y-1" {...props} />,
+                        li: ({node, ...props}) => <li className="text-zinc-300" {...props} />
+                      }}
+                    >
+                      {msg.content}
+                    </ReactMarkdown>
+                  )}
+                </div>
+              </div>
+            )))}
+
+            {/* Loader de Resposta */}
+            {loading && (
+              <div className="flex items-start gap-2.5 mr-auto max-w-[80%]">
+                <div className="w-8 h-8 rounded-full bg-yellow-500 text-zinc-950 flex items-center justify-center animate-pulse">
+                  <Bot className="w-4 h-4" />
+                </div>
+                <div className="p-3.5 rounded-2xl bg-zinc-950/60 border border-white/5 text-zinc-505 text-xs font-semibold rounded-tl-none flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-bounce" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-bounce delay-100" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-bounce delay-200" />
+                  <span className="ml-1 uppercase text-[9px] tracking-wider font-bold">Inspecionando caixa...</span>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </CardContent>
+        </Card>
+
+        {/* Caixa de Entrada e Prompt Ideas */}
+        <div className="flex-none mt-4 max-md:pb-2 space-y-4 bg-transparent z-10">
+          {/* Sugestões rápidas (Só exibe se o chat estiver ocioso) */}
+          {!loading && (
+            <div className="flex gap-2 overflow-x-auto pb-1.5 max-w-full">
+              {[
+                { text: "Posso pedir pizza hoje?", icon: <Pizza className="w-3.5 h-3.5 mr-1" /> },
+                { text: "Como renegociar o lote?", icon: <HelpCircle className="w-3.5 h-3.5 mr-1" /> },
+                { text: "Dicas para amortizar o banco", icon: <PiggyBank className="w-3.5 h-3.5 mr-1" /> }
+              ].map((sug, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleSuggest(sug.text)}
+                  className="bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-zinc-200 px-3 py-1.5 rounded-xl text-[10px] font-bold flex items-center whitespace-nowrap transition-colors"
+                >
+                  {sug.icon}
+                  {sug.text}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Form para envio */}
+          <form 
+            onSubmit={e => {
+              e.preventDefault();
+              handleSendMessage(inputMessage);
+            }}
+            className="flex gap-2"
           >
-            <Send className="w-4 h-4" />
-          </Button>
-        </form>
+            <input
+              type="text"
+              placeholder={outOfTokensAlert ? "Saldo esgotado..." : "Pergunte ao conselheiro..."}
+              value={inputMessage}
+              onChange={e => setInputMessage(e.target.value)}
+              disabled={loading || outOfTokensAlert}
+              className="bg-zinc-900/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3.5 flex-1 text-xs disabled:opacity-50"
+              required
+            />
+            <Button 
+              type="submit" 
+              disabled={loading || !inputMessage.trim() || outOfTokensAlert}
+              className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black h-[46px] w-[46px] rounded-xl flex items-center justify-center p-0 disabled:opacity-50 flex-shrink-0"
+            >
+              <Send className="w-4 h-4" />
+            </Button>
+          </form>
+        </div>
+
       </div>
 
-      {/* Footer Padrão Unificado */}
-      <footer className="hidden md:block w-full border-t border-white/5 pt-8 pb-8 text-center space-y-4 mt-6 z-10">
-        <div className="flex justify-center items-center">
-          <div className="w-10 h-10 rounded-2xl bg-zinc-900 border border-yellow-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(234,179,8,0.2)]">
-            <Coins className="w-5 h-5 text-yellow-500" />
+      {/* Footer Padrão / Assinatura do Profile Reutilizado (100% de largura, fora do container de chat) */}
+      <footer className="hidden md:block w-full mt-12 pb-6 text-zinc-550 select-none z-10 border-t border-white/5 pt-6 bg-zinc-950/20 backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="flex flex-wrap justify-center items-center gap-x-3 gap-y-1.5 text-[10px] font-bold uppercase tracking-wider mb-3">
+            <Link href="/dashboard" className="hover:text-yellow-400 transition-colors">Dashboard</Link>
+            <span>&bull;</span>
+            <Link href="/transactions" className="hover:text-yellow-400 transition-colors">Transações</Link>
+            <span>&bull;</span>
+            <Link href="/profile" className="hover:text-yellow-400 transition-colors">Perfil</Link>
+            <span>&bull;</span>
+            {!hasStrategy && (
+              <>
+                <Link href="/onboarding" className="hover:text-yellow-400 transition-colors">Onboarding</Link>
+                <span>&bull;</span>
+              </>
+            )}
+            <span className="text-yellow-500 font-bold">Conselheiro IA</span>
+            <span>&bull;</span>
+            <Link href="/politica-de-privacidade" className="hover:text-yellow-400 transition-colors">Privacidade</Link>
           </div>
-        </div>
 
-        <div className="space-y-1">
-          <h4 className="text-sm font-black text-white tracking-tight">Sintonia &amp; Engenharia Financeira Familiar</h4>
-          <p className="text-xs text-zinc-400 font-medium">Plataforma de inteligência financeira conjugal e gestão de crédito de alto desempenho</p>
-        </div>
-
-        <div className="flex items-center justify-center gap-4 text-xs text-zinc-400 font-semibold flex-wrap">
-          <Link href="/dashboard" className="hover:text-yellow-400 transition-colors">Dashboard</Link>
-          <span>&bull;</span>
-          <Link href="/transactions" className="hover:text-yellow-400 transition-colors">Transações</Link>
-          <span>&bull;</span>
-          <Link href="/profile" className="hover:text-yellow-400 transition-colors">Perfil &amp; Cartões</Link>
-          <span>&bull;</span>
-          <span className="text-yellow-500 font-bold">Conselheiro IA</span>
+          <div className="text-[10px] text-zinc-500 pt-3 border-t border-white/5 flex flex-col sm:flex-row justify-between items-center gap-2">
+            <span>&copy; {new Date().getFullYear()} Fintech Casal. Todos os direitos reservados.</span>
+            <span className="flex items-center gap-1">Desenvolvido com <Heart className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500 animate-pulse" /> para casais de alto desempenho</span>
+          </div>
         </div>
       </footer>
 
