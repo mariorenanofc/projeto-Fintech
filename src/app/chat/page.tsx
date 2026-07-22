@@ -22,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { getAiTokenBalance, askFinancialAdvisor, getChatHistory } from "@/actions/ai";
 import { toast } from "sonner";
 import ReactMarkdown from "react-markdown";
+import { motion } from "framer-motion";
 
 interface Message {
   role: "user" | "model";
@@ -168,10 +169,14 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col md:min-h-screen max-md:h-[100dvh] px-4 py-4 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-3xl lg:px-8 max-md:overflow-hidden">
+    <div className="flex-1 w-full max-w-md mx-auto bg-zinc-950 flex flex-col md:min-h-screen max-md:h-[100dvh] px-4 py-4 sm:max-w-xl sm:px-6 md:max-w-2xl lg:max-w-3xl lg:px-8 max-md:overflow-hidden relative">
       
+      {/* Luz de Fundo Efeito Glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-yellow-500/5 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-3/4 -left-20 w-[400px] h-[400px] bg-yellow-500/5 rounded-full blur-[120px] pointer-events-none" />
+
       {/* Header do Chat */}
-      <header className="flex-none flex flex-col gap-4 xs:flex-row xs:justify-between xs:items-center mb-4 pb-4 border-b border-white/5">
+      <header className="flex-none flex flex-col gap-4 xs:flex-row xs:justify-between xs:items-center mb-4 pb-4 border-b border-white/5 z-10">
         <div className="flex items-center gap-2.5 w-full xs:w-auto">
           <Link href="/dashboard" className="p-2 rounded-xl bg-zinc-900 border border-white/5 hover:border-yellow-500/20 text-zinc-400 hover:text-yellow-500 transition-colors mr-1">
             <ArrowLeft className="w-4 h-4" />
@@ -226,7 +231,7 @@ export default function ChatPage() {
       )}
 
       {/* Janela de Conversa Scrollable */}
-      <Card className="flex-1 bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden flex flex-col max-md:min-h-0 md:min-h-[350px]">
+      <Card className="flex-1 bg-zinc-900/40 border-white/5 shadow-xl backdrop-blur-md overflow-hidden flex flex-col max-md:min-h-0 md:min-h-[350px] z-10">
         <CardContent className="p-4 flex-1 overflow-y-auto space-y-4 md:max-h-[500px]">
           {loadingHistory ? (
             <div className="space-y-4 animate-pulse">
@@ -299,7 +304,7 @@ export default function ChatPage() {
       </Card>
 
       {/* Caixa de Entrada e Prompt Ideas */}
-      <div className="flex-none mt-4 max-md:pb-2 space-y-4 bg-zinc-950">
+      <div className="flex-none mt-4 max-md:pb-2 space-y-4 bg-zinc-950 z-10">
         {/* Sugestões rápidas (Só exibe se o chat estiver ocioso) */}
         {!loading && (
           <div className="flex gap-2 overflow-x-auto pb-1.5 max-w-full">
