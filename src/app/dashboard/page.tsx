@@ -41,6 +41,7 @@ import { CelebrationModal } from "@/components/dashboard/celebration-modal";
 import { FinancialErrorBoundary } from "@/components/ui/financial-error-boundary";
 import { BankNegotiationModal } from "@/components/dashboard/bank-negotiation-modal";
 import { PrintReportModal } from "@/components/dashboard/print-report-modal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
 import { TiltCard } from "@/components/ui/tilt-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
@@ -87,6 +88,7 @@ export default function DashboardPage() {
   const [negotiationModalOpen, setNegotiationModalOpen] = useState(false);
   const [negotiationItem, setNegotiationItem] = useState<{ id: string; title: string; amount: number; type: "card" | "debt"; rawItem?: any } | null>(null);
   const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [showOnboardingSuggestion, setShowOnboardingSuggestion] = useState(false);
 
   // Garante a montagem inicial
   useEffect(() => {
@@ -198,6 +200,11 @@ export default function DashboardPage() {
             }
           }
           localStorage.setItem("casal_financial_stage", strat.financialStage);
+        }
+      } else {
+        if (mounted && !sessionStorage.getItem("onboarding_suggestion_shown")) {
+          setShowOnboardingSuggestion(true);
+          sessionStorage.setItem("onboarding_suggestion_shown", "true");
         }
       }
     } catch (error) {
@@ -859,6 +866,64 @@ export default function DashboardPage() {
         onClose={() => setCelebrationOpen(false)}
         stage={celebrationStage}
       />
+
+      {/* Modal de Sugestão de Onboarding para Primeiro Acesso */}
+      <Dialog open={showOnboardingSuggestion} onOpenChange={setShowOnboardingSuggestion}>
+        <DialogContent className="bg-zinc-950 border-white/10 text-zinc-100 w-[90vw] sm:max-w-md rounded-2xl p-6 shadow-2xl backdrop-blur-xl">
+          <DialogHeader className="flex flex-col items-center text-center space-y-2">
+            <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.25)] animate-bounce">
+              <Sparkles className="w-6 h-6 text-yellow-400" />
+            </div>
+            <DialogTitle className="text-base font-black uppercase tracking-wider text-white">
+              Sintonia Financeira
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 text-center">
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              Bem-vindos! Para desbloquear o <strong>Semáforo de Caixa</strong>, os gráficos de <strong>Ritmo de Gastos</strong>, o diagnóstico de cartões e o conselheiro IA, realize a primeira configuração do casal.
+            </p>
+
+            <div className="bg-zinc-900/40 border border-white/5 rounded-xl p-3.5 text-left space-y-2.5 text-xs">
+              <div className="flex items-start gap-2.5">
+                <span className="text-base">🚦</span>
+                <div>
+                  <h5 className="font-extrabold text-zinc-200">Semáforo de Caixa</h5>
+                  <p className="text-[10px] text-zinc-400">Status de saúde de caixa reativo com tetos diários automáticos.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="text-base">📊</span>
+                <div>
+                  <h5 className="font-extrabold text-zinc-200">Ritmo e Metas</h5>
+                  <p className="text-[10px] text-zinc-400">Controle de faturas e estimativa de sobras do mês atual.</p>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-zinc-500 font-medium">
+              💡 Leva menos de 3 minutos para preencher!
+            </p>
+          </div>
+
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setShowOnboardingSuggestion(false)}
+              className="w-full sm:flex-1 bg-transparent hover:bg-zinc-900 border-white/10 text-zinc-400 hover:text-white font-extrabold text-xs h-10 rounded-xl"
+            >
+              Explorar Primeiro
+            </Button>
+            <Link href="/onboarding" className="w-full sm:flex-1 font-black" onClick={() => setShowOnboardingSuggestion(false)}>
+              <Button
+                className="w-full bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black text-xs h-10 rounded-xl shadow-[0_0_15px_rgba(234,179,8,0.2)]"
+              >
+                Configurar Agora 🚀
+              </Button>
+            </Link>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

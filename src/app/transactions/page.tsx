@@ -579,7 +579,7 @@ export default function TransactionsPage() {
         <div className="lg:col-span-5 space-y-6">
           
           {/* Card do Formulário de Lançamento Expansível */}
-          <div ref={formRef}>
+          <div ref={formRef} className="relative z-30">
             <TiltCard 
               className={`space-y-5 transition-all duration-500 border-[#27272A] ${
                 highlightForm 
