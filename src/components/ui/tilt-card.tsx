@@ -32,14 +32,22 @@ export function TiltCard({ children, className, glowColor = "rgba(234, 179, 8, 0
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
 
-    const xPct = mouseX / width - 0.5;
-    const yPct = mouseY / height - 0.5;
+    // Atualiza variáveis CSS para o efeito de holofote (spotlight) seguir o cursor
+    ref.current.style.setProperty("--mouse-x", `${mouseX}px`);
+    ref.current.style.setProperty("--mouse-y", `${mouseY}px`);
 
-    x.set(xPct);
-    y.set(yPct);
+    if (!disableTilt) {
+      const xPct = mouseX / width - 0.5;
+      const yPct = mouseY / height - 0.5;
+      x.set(xPct);
+      y.set(yPct);
+    }
   };
 
   const handleMouseLeave = () => {
+    if (!ref.current) return;
+    ref.current.style.setProperty("--mouse-x", "50%");
+    ref.current.style.setProperty("--mouse-y", "50%");
     x.set(0);
     y.set(0);
   };
@@ -49,8 +57,8 @@ export function TiltCard({ children, className, glowColor = "rgba(234, 179, 8, 0
   return (
     <motion.div
       ref={ref}
-      onMouseMove={isTilting ? handleMouseMove : undefined}
-      onMouseLeave={isTilting ? handleMouseLeave : undefined}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       style={isTilting ? {
         rotateY,
         rotateX,

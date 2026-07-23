@@ -645,6 +645,7 @@ export default function DashboardPage() {
             <CreditCardLimitsCard 
               rawCards={rawCards}
               financeStatus={financeStatus}
+              strategy={strategy}
             />
           </FinancialErrorBoundary>
         </div>

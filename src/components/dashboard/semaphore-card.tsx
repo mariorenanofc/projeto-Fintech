@@ -45,7 +45,7 @@ export function SemaphoreCard({
     : "bg-rose-500/20 border-rose-500/40 text-rose-400 animate-pulse";
 
   return (
-    <TiltCard glowColor={glowColor} className={cardStyleClass}>
+    <TiltCard glowColor={glowColor} className={cardStyleClass} disableTilt={true}>
       <div className="flex items-center gap-3 mb-4">
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center border shadow-lg ${iconStyleClass}`}>
           <ShieldAlert className="w-6 h-6" />

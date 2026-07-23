@@ -95,7 +95,7 @@ export function FlowSummary({
     : 0;
 
   return (
-    <TiltCard glowColor="rgba(234, 179, 8, 0.15)" className="relative overflow-hidden space-y-6 flex-grow flex flex-col h-full">
+    <TiltCard glowColor="rgba(234, 179, 8, 0.15)" className="relative overflow-hidden space-y-6 flex-grow flex flex-col h-full" disableTilt={true}>
       <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-2xl pointer-events-none" />
       
       <div className="flex justify-between items-center border-b border-white/5 pb-3">
