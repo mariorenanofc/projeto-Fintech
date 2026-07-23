@@ -40,6 +40,8 @@ import { FinancialErrorBoundary } from "@/components/ui/financial-error-boundary
 import { Header } from "@/components/dashboard/header";
 import { TiltCard } from "@/components/ui/tilt-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { Calendar } from "@/components/ui/calendar";
+import { ptBR } from "date-fns/locale";
 
 export default function TransactionsPage() {
   const [mounted, setMounted] = useState(false);
@@ -58,6 +60,7 @@ export default function TransactionsPage() {
   const [loadingForecast, setLoadingForecast] = useState(false);
   const [highlightForm, setHighlightForm] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   // Refs para autofoco e rolagem automática
   const formRef = useRef<HTMLDivElement>(null);
@@ -358,6 +361,23 @@ export default function TransactionsPage() {
       paymentMethod: "pix",
       creditCardId: ""
     });
+    setShowDatePicker(false);
+  };
+
+  // Formata a data YYYY-MM-DD para DD/MM/YYYY
+  const formatInputDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const [year, month, day] = dateStr.split("-");
+    return `${day}/${month}/${year}`;
+  };
+
+  const handleDateSelectFromPicker = (date: Date | undefined) => {
+    if (!date) return;
+    const localOffset = date.getTimezoneOffset() * 60000;
+    const localDate = new Date(date.getTime() - localOffset);
+    const formatted = localDate.toISOString().substring(0, 10);
+    setForm({ ...form, date: formatted });
+    setShowDatePicker(false);
   };
 
   const handleLogout = async () => {
@@ -618,14 +638,30 @@ export default function TransactionsPage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Tipo de Lançamento</label>
-                          <select
-                            value={form.type}
-                            onChange={e => setForm({ ...form, type: e.target.value as any })}
-                            className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
-                          >
-                            <option value="expense">Saída (Despesa)</option>
-                            <option value="income">Entrada (Receita)</option>
-                          </select>
+                          <div className="flex bg-zinc-950 border border-white/5 p-1 rounded-xl w-full h-11">
+                            <button
+                              type="button"
+                              onClick={() => setForm({ ...form, type: "expense" })}
+                              className={`flex-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1 ${
+                                form.type === "expense" 
+                                  ? "bg-rose-500/20 text-rose-400 border border-rose-500/10 shadow-sm" 
+                                  : "text-zinc-500 hover:text-zinc-300"
+                              }`}
+                            >
+                              Gasto
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setForm({ ...form, type: "income" })}
+                              className={`flex-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1 ${
+                                form.type === "income" 
+                                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/10 shadow-sm" 
+                                  : "text-zinc-500 hover:text-zinc-300"
+                              }`}
+                            >
+                              Receita
+                            </button>
+                          </div>
                         </div>
                         <div>
                           <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Destinação</label>
@@ -655,15 +691,36 @@ export default function TransactionsPage() {
                             required
                           />
                         </div>
-                        <div>
+                        <div className="relative">
                           <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Data da Transação</label>
-                          <input
-                            type="date"
-                            value={form.date}
-                            onChange={e => setForm({ ...form, date: e.target.value })}
-                            className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-300 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 [color-scheme:dark] font-bold"
-                            required
-                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowDatePicker(!showDatePicker)}
+                            className="flex items-center justify-between bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none px-3 w-full text-xs h-11 font-bold text-left"
+                          >
+                            <span className="flex items-center gap-2">
+                              <CalendarIcon className="w-3.5 h-3.5 text-zinc-500" />
+                              {formatInputDate(form.date) || "Selecione..."}
+                            </span>
+                          </button>
+                          
+                          {showDatePicker && (
+                            <>
+                              {/* Overlay de fechar */}
+                              <div className="fixed inset-0 z-40" onClick={() => setShowDatePicker(false)} />
+                              
+                              {/* Popover do Calendário */}
+                              <div className="absolute right-0 top-full mt-2 z-50 bg-zinc-950 border border-white/10 rounded-2xl p-3 shadow-2xl animate-fade-in">
+                                <Calendar
+                                  mode="single"
+                                  selected={form.date ? new Date(form.date + "T12:00:00") : undefined}
+                                  onSelect={handleDateSelectFromPicker}
+                                  locale={ptBR}
+                                  className="text-zinc-100"
+                                />
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
 

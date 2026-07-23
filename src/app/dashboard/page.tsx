@@ -524,6 +524,28 @@ export default function DashboardPage() {
     return acc + Math.max(0, limit - invoice);
   }, 0);
 
+  // Gera uma lista com 7 meses (3 meses antes, o atual, e 3 meses depois)
+  const generateMonths = () => {
+    const monthsList = [];
+    const [currYear, currMonth] = selectedMonthStr.split("-").map(Number);
+    const date = new Date(currYear, currMonth - 1, 1);
+
+    for (let i = -3; i <= 3; i++) {
+      const d = new Date(date.getFullYear(), date.getMonth() + i, 1);
+      const yearStr = d.getFullYear();
+      const monthStr = String(d.getMonth() + 1).padStart(2, "0");
+      const monthLabel = d.toLocaleString("pt-BR", { month: "short" }).toUpperCase().replace(".", "");
+      const yearShort = String(yearStr).substring(2);
+      monthsList.push({
+        value: `${yearStr}-${monthStr}`,
+        label: `${monthLabel}/${yearShort}`,
+      });
+    }
+    return monthsList;
+  };
+
+  const monthsCarousel = generateMonths();
+
   if (!mounted || loadingRealData) {
     return (
       <div className="flex-1 w-full bg-zinc-950 flex flex-col items-center justify-center min-h-screen">
@@ -565,9 +587,56 @@ export default function DashboardPage() {
         </h1>
       </section>
 
+      {/* Seletor de Mês Horizontal Carrossel (Estilo TaskLine - Largura Total) */}
+      <div className="w-full space-y-2.5">
+        <span className="text-[10px] font-black uppercase tracking-widest text-zinc-500 block px-1">Navegar por Mês</span>
+        <div className="flex gap-2 overflow-x-auto sm:overflow-x-visible pb-1.5 w-full no-scrollbar select-none scroll-smooth sm:grid sm:grid-cols-7 sm:gap-2.5">
+          {monthsCarousel.map((item) => {
+            const isActive = item.value === selectedMonthStr;
+            return (
+              <button
+                key={item.value}
+                onClick={() => setSelectedMonthStr(item.value)}
+                className={`flex-shrink-0 sm:flex-shrink w-[105px] sm:w-auto p-3 rounded-xl border text-center transition-all duration-300 flex flex-col justify-between items-center gap-1.5 ${
+                  isActive
+                    ? "bg-yellow-500/10 border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)]"
+                    : "bg-[#121214]/40 border-white/5 hover:border-zinc-800 hover:bg-[#161619]/60"
+                }`}
+              >
+                <span className={`text-[10px] font-black tracking-wider transition-colors ${
+                  isActive ? "text-yellow-500" : "text-zinc-400"
+                }`}>
+                  {item.label}
+                </span>
+
+                {isActive ? (
+                  <div className="flex flex-col items-center">
+                    <span className="text-[9px] font-bold text-emerald-400">
+                      R$ {(displayDisposable / 1000).toFixed(1)}k
+                    </span>
+                    <span className="text-[7px] text-zinc-550 flex items-center gap-0.5">
+                      ▲ {(displayIncome / 1000).toFixed(1)}k
+                    </span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center">
+                    <span className="text-[9px] font-bold text-zinc-555">
+                      R$ --
+                    </span>
+                    <span className="text-[7px] text-zinc-650">
+                      Ver dados
+                    </span>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* 4 Cards de Métricas Chave com Contadores Animados Reais (Count-Up) */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
-        <TiltCard glowColor="rgba(16, 185, 129, 0.2)">
+        <TiltCard glowColor="rgba(16, 185, 129, 0.2)" disableTilt={true}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-extrabold text-emerald-400 uppercase tracking-wider">Receita Prevista</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
@@ -580,7 +649,7 @@ export default function DashboardPage() {
           <span className="text-[10px] text-zinc-400 mt-2 block">100% liquidadas no mês</span>
         </TiltCard>
 
-        <TiltCard glowColor="rgba(244, 63, 94, 0.2)">
+        <TiltCard glowColor="rgba(244, 63, 94, 0.2)" disableTilt={true}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-extrabold text-rose-400 uppercase tracking-wider">Saídas Previstas</span>
             <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
@@ -593,7 +662,7 @@ export default function DashboardPage() {
           <span className="text-[10px] text-zinc-400 mt-2 block">Essenciais + Dívidas + Cartões</span>
         </TiltCard>
 
-        <TiltCard glowColor="rgba(234, 179, 8, 0.2)">
+        <TiltCard glowColor="rgba(234, 179, 8, 0.2)" disableTilt={true}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-extrabold text-yellow-400 uppercase tracking-wider">Sobra Líquida</span>
             <div className="w-8 h-8 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
@@ -608,7 +677,7 @@ export default function DashboardPage() {
           </span>
         </TiltCard>
 
-        <TiltCard glowColor="rgba(6, 182, 212, 0.2)">
+        <TiltCard glowColor="rgba(6, 182, 212, 0.2)" disableTilt={true}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-extrabold text-cyan-400 uppercase tracking-wider">Limite Total Livre</span>
             <div className="w-8 h-8 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
@@ -708,6 +777,9 @@ export default function DashboardPage() {
             openConfirmModal={openConfirmModal}
             handleUndoPayment={handleUndoPayment}
             onMonthChange={handleCalendarMonthChange}
+            transactions={transactions}
+            onRefresh={() => loadDashboardData(selectedMonthStr)}
+            selectedMonthStr={selectedMonthStr}
           />
         </FinancialErrorBoundary>
       </div>
