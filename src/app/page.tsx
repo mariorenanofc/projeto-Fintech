@@ -9,14 +9,14 @@ import { Coins, ShieldAlert, Sparkles, CalendarRange, Heart, Bot, TrendingUp, Lo
 export default function LoginPage() {
   return (
     <div className="flex-1 w-full min-h-screen bg-transparent flex flex-col items-center justify-between px-4 py-8 relative overflow-hidden">
-      
+
       {/* Luz de Fundo Efeito Glow Micro1 */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-yellow-500/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-3/4 -left-20 w-[400px] h-[400px] bg-yellow-500/5 rounded-full blur-[120px] pointer-events-none" />
 
       {/* Outer Container */}
       <div className="w-full max-w-6xl mx-auto flex flex-col items-center z-10 space-y-12">
-        
+
         {/* Top Header Logo */}
         <header className="w-full flex justify-between items-center py-2">
           <div className="flex items-center gap-3">
@@ -42,7 +42,7 @@ export default function LoginPage() {
         {/* Hero Section */}
         <section className="text-center space-y-4 max-w-3xl pt-4">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/30 text-yellow-400 text-xs font-black backdrop-blur-md shadow-[0_0_15px_rgba(234,179,8,0.15)] animate-pulse">
-            <Sparkles className="w-4 h-4 text-yellow-400" /> PLATAFORMA DE SINTONIA FINANCEIRA PARA CASAIS ⚡
+            <Sparkles className="w-4 h-4 text-yellow-400" /> SISTEMA DE ORGANIZAÇÃO FINANCEIRA PARA CASAL ⚡
           </div>
           <h1 className="text-3xl sm:text-6xl font-black tracking-tight text-white leading-tight">
             Sintonia, Orçamento &amp; <br />
@@ -51,7 +51,7 @@ export default function LoginPage() {
             </span>
           </h1>
           <p className="text-xs sm:text-base text-zinc-300 font-medium max-w-2xl mx-auto leading-relaxed">
-            Eliminem o estresse financeiro a dois. Acompanhem o semáforo de gastos, planejem reservas e sincronizem automaticamente as contas no Google Calendar.
+            O Fintech Casal é o melhor sistema financeiro para casal. Simplifiquem a organização financeira para casal e a conciliação de contas. Acompanhem o semáforo de gastos, planejem metas e sincronizem com o Google Calendar.
           </p>
         </section>
 
@@ -100,7 +100,7 @@ export default function LoginPage() {
 
         {/* Grade de Funcionalidades em 3D Tilt Cards */}
         <section className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-          
+
           <TiltCard glowColor="rgba(234, 179, 8, 0.15)">
             <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400 mb-3">
               <ShieldAlert className="w-5 h-5 text-yellow-400" />
@@ -141,6 +141,44 @@ export default function LoginPage() {
             </p>
           </TiltCard>
 
+        </section>
+
+        {/* Seção Explicativa SEO: O que é o Fintech Casal e Benefícios */}
+        <section className="w-full max-w-4xl bg-zinc-950/40 border border-white/5 rounded-3xl p-8 sm:p-10 backdrop-blur-md space-y-6 text-left">
+          <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-yellow-500" />
+            Organização Financeira para Casal: Como o Fintech Casal Transforma sua Relação
+          </h2>
+          <p className="text-xs sm:text-sm text-zinc-350 leading-relaxed font-normal">
+            O <b>Fintech Casal</b> é um <b>sistema financeiro para casal</b> desenvolvido exclusivamente para unificar a gestão e o planejamento de despesas conjugais. Acreditamos que a <b>conciliação financeira para casal</b> não se trata apenas de somar saldos, mas de criar sintonia e foco em torno de sonhos compartilhados.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+            <div className="space-y-2.5">
+              <h3 className="text-xs font-black text-yellow-500 uppercase tracking-widest">Benefícios da Conciliação Financeira</h3>
+              <ul className="space-y-2 text-xs text-zinc-400 font-medium">
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-500 font-bold shrink-0">&bull;</span>
+                  <span><strong>Planejamento Estrutural:</strong> Definição clara de tetos de gastos diários por meio do nosso exclusivo Semáforo Financeiro.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-500 font-bold shrink-0">&bull;</span>
+                  <span><strong>Transparência Total:</strong> Visualização conjunta de faturas de cartão de crédito e contas fixas do casal sem atritos.</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-500 font-bold shrink-0">&bull;</span>
+                  <span><strong>Metas Compartilhadas:</strong> Criação de reservas financeiras de emergência e investimentos em conjunto para metas de médio e longo prazo.</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="space-y-2.5">
+              <h3 className="text-xs font-black text-yellow-500 uppercase tracking-widest">Por que usar um Sistema Financeiro de Casal?</h3>
+              <p className="text-xs text-zinc-400 leading-relaxed font-medium">
+                Planilhas tradicionais costumam ser complexas e acabam abandonadas. O Fintech Casal simplifica a <b>organização financeira para casal</b> integrando inteligência artificial, sincronização com o Google Calendar para alerta de vencimento de contas e algoritmos matemáticos baseados na Lei do Superendividamento (Lei 14.690/23) para renegociação de dívidas.
+              </p>
+            </div>
+          </div>
         </section>
 
         {/* Footer com Links Requeridos pelo Google OAuth */}
