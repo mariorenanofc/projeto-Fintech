@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { AudioExplainerButton } from "@/components/ui/audio-explainer";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { BankSelect, getBankLogoUrl } from "@/components/ui/bank-select";
 import { 
   saveOnboardingData, 
   generateFinancialStrategy, 
@@ -572,7 +573,16 @@ export default function OnboardingPage() {
                 {cardActions.map((action, idx) => (
                   <div key={idx} className="bg-zinc-950/60 p-4 rounded-xl border border-white/5 space-y-3">
                     <div className="flex justify-between items-center border-b border-white/5 pb-2">
-                      <span className="text-xs font-black text-zinc-100">{action.cardName}</span>
+                      <div className="flex items-center gap-2">
+                        {getBankLogoUrl(action.cardName) && (
+                          <img
+                            src={getBankLogoUrl(action.cardName)}
+                            alt={action.cardName}
+                            className="w-5 h-5 rounded object-contain bg-zinc-900 border border-white/5 p-0.5"
+                          />
+                        )}
+                        <span className="text-xs font-black text-zinc-100">{action.cardName}</span>
+                      </div>
                       <div className="text-right flex gap-3">
                         <div>
                           <span className="text-[9px] text-zinc-550 block">Fatura Atual:</span>
@@ -972,13 +982,10 @@ export default function OnboardingPage() {
 
                       <div className="grid grid-cols-1 gap-3">
                         <div>
-                          <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Instituição / Banco do Cartão</label>
-                          <input
-                            type="text"
-                            placeholder="Ex: Nubank, Itaú, Inter"
+                          <label className="text-[9px] text-zinc-550 uppercase tracking-wider font-bold block mb-1">Instituição / Emissor do Cartão</label>
+                          <BankSelect
                             value={item.name}
-                            onChange={(e) => handleCardChange(index, "name", e.target.value)}
-                            className="bg-zinc-950/80 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/50 focus:outline-none p-3 w-full text-xs"
+                            onChange={(val) => handleCardChange(index, "name", val)}
                           />
                         </div>
                         

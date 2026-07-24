@@ -48,6 +48,7 @@ import { addTransaction } from "@/actions/transactions";
 import { TiltCard } from "@/components/ui/tilt-card";
 import { Header } from "@/components/dashboard/header";
 import { cn } from "@/lib/utils";
+import { BankSelect, getBankLogoUrl } from "@/components/ui/bank-select";
 
 // Helper para obter o mês formatado em PT-BR
 function getMonthLabelPT(monthStr: string) {
@@ -1467,14 +1468,10 @@ export default function ProfilePage() {
                       {activeTab === "cards" && (
                         <form onSubmit={handleSaveCard} className="space-y-4">
                           <div>
-                            <label className="text-[9px] text-zinc-400 uppercase tracking-wider font-extrabold block mb-1">Instituição / Nome do Cartão</label>
-                            <input
-                              type="text"
-                              placeholder="Ex: Nubank, Neon"
+                            <label className="text-[9px] text-zinc-400 uppercase tracking-wider font-extrabold block mb-1">Instituição / Emissor do Cartão</label>
+                            <BankSelect
                               value={cardForm.name}
-                              onChange={e => setCardForm({ ...cardForm, name: e.target.value })}
-                              className="bg-zinc-950/80 border border-[#27272A] rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs"
-                              required
+                              onChange={val => setCardForm({ ...cardForm, name: val })}
                             />
                           </div>
 
@@ -2080,13 +2077,26 @@ export default function ProfilePage() {
                           return (
                             <div key={idx} className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 space-y-3 hover:border-yellow-500/20 transition-colors">
                               <div className="flex justify-between items-center">
-                                <div>
-                                  <h4 className="text-xs font-black text-zinc-200">{item.name}</h4>
-                                  <div className="flex gap-2 items-center mt-0.5">
-                                    <span className="text-[9px] text-zinc-550 font-semibold">Limite: R$ {limitTotal.toFixed(2)}</span>
-                                    <span className="text-[9px] text-yellow-500/80 font-mono font-semibold">
-                                      &bull; Corte: Dia {item.closingDay || 5} | Venc: Dia {item.dueDay || 15}
-                                    </span>
+                                <div className="flex items-center gap-3">
+                                  {getBankLogoUrl(item.name) ? (
+                                    <img
+                                      src={getBankLogoUrl(item.name)}
+                                      alt={item.name}
+                                      className="w-8 h-8 rounded-lg object-contain bg-zinc-900 border border-white/5 p-0.5 flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-500 flex-shrink-0">
+                                      <CreditCard className="w-4 h-4" />
+                                    </div>
+                                  )}
+                                  <div>
+                                    <h4 className="text-xs font-black text-zinc-200">{item.name}</h4>
+                                    <div className="flex gap-2 items-center mt-0.5">
+                                      <span className="text-[9px] text-zinc-550 font-semibold">Limite: R$ {limitTotal.toFixed(2)}</span>
+                                      <span className="text-[9px] text-yellow-500/80 font-mono font-semibold">
+                                        &bull; Corte: Dia {item.closingDay || 5} | Venc: Dia {item.dueDay || 15}
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
                                 <div className="flex gap-2">
