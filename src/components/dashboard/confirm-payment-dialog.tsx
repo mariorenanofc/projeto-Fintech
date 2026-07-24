@@ -11,6 +11,7 @@ interface ConfirmPaymentDialogProps {
   actualAmountPaid: number;
   setActualAmountPaid: (amount: number) => void;
   onConfirm: () => void;
+  isDuplicate?: boolean;
 }
 
 export function ConfirmPaymentDialog({
@@ -20,6 +21,7 @@ export function ConfirmPaymentDialog({
   actualAmountPaid,
   setActualAmountPaid,
   onConfirm,
+  isDuplicate = false,
 }: ConfirmPaymentDialogProps) {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -33,6 +35,11 @@ export function ConfirmPaymentDialog({
             Você está confirmando o pagamento de <strong>{bill?.title}</strong>. 
             Ajuste o valor abaixo se você pagou um valor diferente do planejado (isso nos ajuda a calcular sua economia).
           </DialogDescription>
+          {isDuplicate && (
+            <div className="bg-amber-500/10 border border-amber-500/20 text-yellow-500 p-3 rounded-xl text-[10px] font-semibold mt-3 animate-pulse leading-relaxed">
+              ⚠️ Atenção: Já existe um lançamento com a descrição &ldquo;{bill?.title}&rdquo; registrado neste mês. Confirmar novamente gerará uma contagem duplicada.
+            </div>
+          )}
         </DialogHeader>
         <div className="py-4">
           <label className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mb-2 block">

@@ -173,9 +173,14 @@ export default function TransactionsPage() {
         
         const filteredIncomes = (rawRes.incomes || [])
           .filter((inc: any) => {
-            return !currentTransactions.some(
-              t => t.type === "income" && t.description.toLowerCase().trim() === inc.title.toLowerCase().trim()
-            );
+            return !currentTransactions.some(t => {
+              const cleanDesc = t.description
+                .replace(/^\[Individual\]\s*/i, "")
+                .replace(/^\[Cartão:[^\]]+\]\s*/i, "")
+                .toLowerCase()
+                .trim();
+              return t.type === "income" && cleanDesc === inc.title.toLowerCase().trim();
+            });
           })
           .map((inc: any) => ({
             id: inc.id,
@@ -231,9 +236,14 @@ export default function TransactionsPage() {
         });
 
         const filteredExpenses = expList.filter((exp: any) => {
-          return !currentTransactions.some(
-            t => t.type === "expense" && t.description.toLowerCase().trim() === exp.title.toLowerCase().trim()
-          );
+          return !currentTransactions.some(t => {
+            const cleanDesc = t.description
+              .replace(/^\[Individual\]\s*/i, "")
+              .replace(/^\[Cartão:[^\]]+\]\s*/i, "")
+              .toLowerCase()
+              .trim();
+            return t.type === "expense" && cleanDesc === exp.title.toLowerCase().trim();
+          });
         });
 
         setPendingIncomes(filteredIncomes);
@@ -442,7 +452,14 @@ export default function TransactionsPage() {
       individualExpensesByUser[name] = (individualExpensesByUser[name] || 0) + Number(t.amount);
     }
   });
-
+  const isDuplicateDescription = form.description.trim().length > 2 && transactions.some(t => {
+    if (editId && t.id === editId) return false;
+    const cleanDescForm = form.description.replace(/^\[Individual\]\s*/i, "").replace(/^\[Cartão:[^\]]+\]\s*/i, "").trim().toLowerCase();
+    const cleanDescTx = t.description.replace(/^\[Individual\]\s*/i, "").replace(/^\[Cartão:[^\]]+\]\s*/i, "").trim().toLowerCase();
+    const formMonth = form.date?.substring(0, 7);
+    const txMonth = t.date?.substring(0, 7);
+    return cleanDescForm === cleanDescTx && formMonth === txMonth;
+  });
   const categories = [
     "Moradia", "Alimentação", "Transporte", "Lazer", "Saúde", 
     "Educação", "Cartão", "Lote/Terreno", "Empréstimo", "Aporte na Reserva", "Investimento", "Outros"
@@ -738,6 +755,11 @@ export default function TransactionsPage() {
                           className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
                           required
                         />
+                        {isDuplicateDescription && (
+                          <span className="text-[10px] text-yellow-500 font-extrabold block mt-1.5 animate-pulse bg-yellow-500/10 border border-yellow-500/20 px-3 py-1.5 rounded-lg">
+                            ⚠️ Atenção: Já existe um lançamento com esta descrição neste mês. Salvar novamente duplicará a contagem.
+                          </span>
+                        )}
                       </div>
 
                       {/* Categoria e Forma Pagamento */}

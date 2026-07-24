@@ -336,7 +336,7 @@ export default function DashboardPage() {
           amount: invVal,
           dueDate: `${currentYearMonth}${String(dueDay).padStart(2, '0')}`,
           status: "pending",
-          category: "Cartão de Crédito"
+          category: "Cartão"
         });
       }
     });
@@ -344,8 +344,12 @@ export default function DashboardPage() {
     // Cruza com transações pagas
     return generatedBills.map(bill => {
       const tx = transactions.find(t => {
-        const desc = t.description.replace(/^\[Individual\]\s*/, "");
-        return desc === bill.title && t.category === bill.category;
+        const cleanDesc = t.description
+          .replace(/^\[Individual\]\s*/i, "")
+          .replace(/^\[Cartão:[^\]]+\]\s*/i, "")
+          .toLowerCase()
+          .trim();
+        return cleanDesc === bill.title.toLowerCase().trim();
       });
       if (tx) {
         bill.status = "paid";
@@ -868,14 +872,24 @@ export default function DashboardPage() {
       </footer>
 
       {/* Modal de Confirmação de Pagamento */}
-      <ConfirmPaymentDialog 
-        isOpen={confirmModalOpen}
-        onClose={() => setConfirmModalOpen(false)}
-        bill={billToConfirm}
-        actualAmountPaid={actualAmountPaid}
-        setActualAmountPaid={setActualAmountPaid}
-        onConfirm={handleConfirmPayment}
-      />
+      {(() => {
+        const isBillDuplicate = !!billToConfirm && transactions.some(t => {
+          const cleanDescForm = billToConfirm.title.replace(/^\[Individual\]\s*/i, "").trim().toLowerCase();
+          const cleanDescTx = t.description.replace(/^\[Individual\]\s*/i, "").replace(/^\[Cartão:[^\]]+\]\s*/i, "").trim().toLowerCase();
+          return cleanDescForm === cleanDescTx;
+        });
+        return (
+          <ConfirmPaymentDialog 
+            isOpen={confirmModalOpen}
+            onClose={() => setConfirmModalOpen(false)}
+            bill={billToConfirm}
+            actualAmountPaid={actualAmountPaid}
+            setActualAmountPaid={setActualAmountPaid}
+            onConfirm={handleConfirmPayment}
+            isDuplicate={isBillDuplicate}
+          />
+        );
+      })()}
 
       {/* Modal de Conquista / Subida de Estágio Financeiro */}
       <CelebrationModal 
