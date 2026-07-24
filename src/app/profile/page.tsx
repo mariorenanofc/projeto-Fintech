@@ -2533,16 +2533,30 @@ export default function ProfilePage() {
 
       {/* Widget do Pluggy Connect Overlay */}
       {mounted && pluggyToken && (
-        <PluggyConnect
-          connectToken={pluggyToken}
-          includeSandbox={true}
-          onSuccess={handlePluggySuccess}
-          onError={(err) => {
-            console.error("Erro no PluggyConnect:", err);
-            toast.error("Integração cancelada ou interrompida.");
-            setPluggyToken("");
-          }}
-        />
+        <div className="fixed inset-0 z-[9999] bg-zinc-950/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="relative w-full max-w-lg h-[90vh] md:h-[650px] bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <button
+              onClick={() => setPluggyToken("")}
+              className="absolute top-3.5 right-3.5 z-[100] w-8 h-8 rounded-full bg-zinc-950/80 border border-white/10 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-bold text-sm transition-all shadow-md"
+              title="Fechar Conexão"
+            >
+              ✕
+            </button>
+            <div className="flex-1 w-full h-full">
+              <PluggyConnect
+                connectToken={pluggyToken}
+                includeSandbox={true}
+                onSuccess={handlePluggySuccess}
+                onError={(err: any) => {
+                  console.error("Erro no PluggyConnect:", err);
+                  const errMsg = err?.message || "Conexão cancelada ou interrompida.";
+                  toast.error(`Falha: ${errMsg}`);
+                  setPluggyToken("");
+                }}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
     </div>
