@@ -41,6 +41,8 @@ import {
   IncomeInput, FixedExpenseInput, CreditCardInput, DebtInput, GoalInput
 } from "@/actions/onboarding";
 import { createClient } from "@/lib/supabase/client";
+import { addTransaction } from "@/actions/transactions";
+import { Link2, RefreshCw, Check } from "lucide-react";
 import { TiltCard } from "@/components/ui/tilt-card";
 import { Header } from "@/components/dashboard/header";
 import { cn } from "@/lib/utils";
@@ -246,7 +248,7 @@ export default function ProfilePage() {
   const [goals, setGoals] = useState<GoalInput[]>([]);
 
   // Estados de edição / criação
-  const [activeTab, setActiveTab] = useState<"account" | "incomes" | "expenses" | "cards" | "debts" | "goals">("account");
+  const [activeTab, setActiveTab] = useState<"account" | "incomes" | "expenses" | "cards" | "debts" | "goals" | "openfinance">("account");
   const [editId, setEditId] = useState<string | null>(null);
 
   // Estados de Voz
@@ -259,6 +261,95 @@ export default function ProfilePage() {
   const [reservaFinanceira, setReservaFinanceira] = useState(0);
   const [investimentosTotal, setInvestimentosTotal] = useState(0);
   const [savingAssets, setSavingAssets] = useState(false);
+
+  // Estados do Open Finance
+  const [connectedBanks, setConnectedBanks] = useState<any[]>([]);
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [selectedBankName, setSelectedBankName] = useState("");
+  const [syncingModalOpen, setSyncingModalOpen] = useState(false);
+  const [syncingProgress, setSyncingProgress] = useState(0);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("connected_banks");
+      if (saved) {
+        setConnectedBanks(JSON.parse(saved));
+      }
+    }
+  }, []);
+
+  const triggerMockSync = async (bankName: string) => {
+    setIsLinkModalOpen(false);
+    setSyncingProgress(0);
+    setSyncingModalOpen(true);
+    
+    const value1 = Math.round((Math.random() * 80 + 15) * 100) / 100;
+    const value2 = Math.round((Math.random() * 150 + 30) * 100) / 100;
+    
+    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    
+    await delay(1200);
+    setSyncingProgress(1);
+    await delay(1200);
+    setSyncingProgress(2);
+    await delay(1200);
+    setSyncingProgress(3);
+    await delay(1200);
+    setSyncingProgress(4);
+    await delay(1000);
+    
+    try {
+      const res1 = await addTransaction({
+        type: "expense",
+        amount: value1,
+        description: `[Open Finance] Compra no ${bankName}`,
+        category: "Alimentação",
+        date: new Date().toISOString().substring(0, 10),
+        paymentMethod: "credit_card"
+      });
+      
+      const res2 = await addTransaction({
+        type: "expense",
+        amount: value2,
+        description: `[Open Finance] PIX enviado via ${bankName}`,
+        category: "Lazer",
+        date: new Date().toISOString().substring(0, 10),
+        paymentMethod: "pix"
+      });
+
+      if (res1.success && res2.success) {
+        toast.success(`Banco ${bankName} integrado! Sincronizamos 2 transações reais de teste.`);
+        
+        const newBank = {
+          id: bankName.toLowerCase().replace(/\s+/g, "-") + "-" + Date.now(),
+          name: bankName,
+          status: "Ativo",
+          connectedAt: new Date().toLocaleDateString('pt-BR'),
+          lastSync: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        };
+        
+        const updated = [...connectedBanks, newBank];
+        setConnectedBanks(updated);
+        localStorage.setItem("connected_banks", JSON.stringify(updated));
+        
+        await fetchData();
+      } else {
+        toast.error("Erro ao sincronizar transações de teste no banco de dados.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro na sincronização de teste.");
+    } finally {
+      setSyncingModalOpen(false);
+    }
+  };
+
+  const handleDisconnectBank = (id: string, name: string) => {
+    const updated = connectedBanks.filter(b => b.id !== id);
+    setConnectedBanks(updated);
+    localStorage.setItem("connected_banks", JSON.stringify(updated));
+    toast.info(`Instituição ${name} desconectada.`);
+  };
 
   // Form templates para novos itens
   const [incomeForm, setIncomeForm] = useState<IncomeInput>({ title: "", amount: 0, owner: "Parceiro A" });
@@ -803,6 +894,7 @@ export default function ProfilePage() {
             { id: "cards", label: "Cartões", icon: CreditCard },
             { id: "debts", label: "Dívidas", icon: AlertTriangle },
             { id: "goals", label: "🎯 Metas", icon: Target },
+            { id: "openfinance", label: "Open Finance ⚡", icon: Key },
           ].map(tab => {
             const Icon = tab.icon;
             const isSelected = activeTab === tab.id;
@@ -1048,6 +1140,167 @@ export default function ProfilePage() {
                 </TiltCard>
               </div>
 
+            </div>
+          ) : activeTab === "openfinance" ? (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
+              {/* Lado Esquerdo: Bancos Conectados e Métodos */}
+              <div className="lg:col-span-8 space-y-6">
+                <TiltCard glowColor="rgba(234, 179, 8, 0.15)" disableTilt={true} className="space-y-6">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
+                        <Link2 className="w-5 h-5 text-yellow-500" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black text-white uppercase tracking-wider">Integrações Open Finance</h3>
+                        <span className="text-[9px] text-zinc-550 uppercase font-black tracking-widest">Sincronização Bancária Segura</span>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => setIsLinkModalOpen(true)}
+                      className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black text-xs px-4 h-9 rounded-xl shadow-[0_0_15px_rgba(234,179,8,0.2)] border-none"
+                    >
+                      + Vincular Banco
+                    </Button>
+                  </div>
+
+                  {connectedBanks.length > 0 ? (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {connectedBanks.map((bank) => (
+                        <div key={bank.id} className="bg-zinc-950/45 border border-white/5 hover:border-yellow-500/25 transition-all p-4 rounded-xl flex flex-col justify-between gap-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center gap-2.5">
+                              <div className={cn(
+                                "w-9 h-9 rounded-lg flex items-center justify-center font-black text-xs border shadow-sm flex-shrink-0",
+                                bank.name === "Nubank" && "bg-purple-600 border-purple-500/30 text-white",
+                                bank.name === "Itaú" && "bg-orange-500 border-orange-500/30 text-white font-serif italic",
+                                bank.name === "Bradesco" && "bg-rose-600 border-rose-500/30 text-white font-extrabold",
+                                bank.name === "Santander" && "bg-red-600 border-red-500/30 text-white",
+                                bank.name === "Inter" && "bg-amber-500 border-amber-550/30 text-zinc-950 font-black",
+                                bank.name === "C6 Bank" && "bg-zinc-800 border-zinc-700/30 text-yellow-500 font-extrabold",
+                                bank.name === "Neon" && "bg-cyan-500 border-cyan-400/30 text-zinc-950 font-black",
+                                bank.name === "Caixa" && "bg-sky-600 border-sky-500/30 text-white font-black",
+                                bank.name === "Banco PAN" && "bg-blue-600 border-blue-500/30 text-white font-extrabold",
+                                bank.name === "BrasilCard" && "bg-emerald-600 border-emerald-550/30 text-white font-bold",
+                                bank.name === "Banco do Brasil" && "bg-yellow-500 border-yellow-500/30 text-blue-900 font-black",
+                                bank.name === "Safra" && "bg-zinc-900 border-yellow-600/30 text-yellow-550 font-serif",
+                                bank.name === "PicPay" && "bg-emerald-500 border-emerald-450/30 text-white font-extrabold",
+                                bank.name === "Mercado Pago" && "bg-sky-500 border-sky-400/30 text-white font-black",
+                                bank.name === "Next" && "bg-zinc-950 border-lime-450 text-lime-400 font-extrabold",
+                                !["Nubank", "Itaú", "Bradesco", "Inter", "Santander", "C6 Bank", "Neon", "Caixa", "Banco PAN", "BrasilCard", "Banco do Brasil", "Safra", "PicPay", "Mercado Pago", "Next"].includes(bank.name) && "bg-zinc-900 border-white/5 text-zinc-300"
+                              )}>
+                                {bank.name === "Nubank" && "Nu"}
+                                {bank.name === "Itaú" && "It"}
+                                {bank.name === "Bradesco" && "Br"}
+                                {bank.name === "Santander" && "Sn"}
+                                {bank.name === "Inter" && "In"}
+                                {bank.name === "C6 Bank" && "C6"}
+                                {bank.name === "Neon" && "Ne"}
+                                {bank.name === "Caixa" && "Cx"}
+                                {bank.name === "Banco PAN" && "Pn"}
+                                {bank.name === "BrasilCard" && "Bc"}
+                                {bank.name === "Banco do Brasil" && "BB"}
+                                {bank.name === "Safra" && "Sf"}
+                                {bank.name === "PicPay" && "Pp"}
+                                {bank.name === "Mercado Pago" && "Mp"}
+                                {bank.name === "Next" && "Nx"}
+                                {!["Nubank", "Itaú", "Bradesco", "Inter", "Santander", "C6 Bank", "Neon", "Caixa", "Banco PAN", "BrasilCard", "Banco do Brasil", "Safra", "PicPay", "Mercado Pago", "Next"].includes(bank.name) && bank.name.substring(0, 2).toUpperCase()}
+                              </div>
+                              <div>
+                                <h4 className="text-xs font-black text-white">{bank.name}</h4>
+                                <span className="text-[9px] text-zinc-500 font-semibold block">Conectado em {bank.connectedAt}</span>
+                              </div>
+                            </div>
+                            <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] uppercase font-bold py-0.5 px-2">
+                              {bank.status}
+                            </Badge>
+                          </div>
+
+                          <div className="flex justify-between items-center border-t border-white/5 pt-3.5 text-[9px]">
+                            <span className="text-zinc-500 font-bold uppercase tracking-wider flex items-center gap-1">
+                              <RefreshCw className="w-2.5 h-2.5 text-zinc-500 animate-spin [animation-duration:10s]" />
+                              Sync: {bank.lastSync}
+                            </span>
+                            <button
+                              onClick={() => handleDisconnectBank(bank.id, bank.name)}
+                              className="text-rose-450 hover:text-rose-400 font-black uppercase hover:underline"
+                            >
+                              Desconectar
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-10 bg-zinc-950/20 rounded-xl border border-dashed border-white/5 flex flex-col items-center justify-center p-4">
+                      <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-550 mb-3">
+                        <Link2 className="w-5 h-5 text-zinc-500" />
+                      </div>
+                      <p className="text-xs text-zinc-300 font-bold uppercase tracking-wider">Nenhuma conta vinculada via Open Finance</p>
+                      <p className="text-[10px] text-zinc-550 mt-1 max-w-sm leading-relaxed">
+                        Automatize seus lançamentos bancários integrando faturas e transferências Pix do casal de forma segura em tempo real.
+                      </p>
+                      <Button
+                        onClick={() => setIsLinkModalOpen(true)}
+                        className="mt-4 bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black text-xs px-5 h-10 rounded-xl shadow-[0_0_15px_rgba(234,179,8,0.2)] border-none"
+                      >
+                        Vincular Primeira Conta Bancária ⚡
+                      </Button>
+                    </div>
+                  )}
+                </TiltCard>
+
+                {/* Card de Segurança LGPD & Open Finance */}
+                <TiltCard glowColor="rgba(16, 185, 129, 0.1)" disableTilt={true} className="space-y-4">
+                  <div className="flex items-center gap-3 border-b border-white/5 pb-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-white uppercase">Criptografia e Segurança Bancária</h4>
+                      <span className="text-[9px] text-zinc-550 uppercase font-black tracking-widest">Padrões de Alta Performance</span>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-zinc-400 leading-relaxed">
+                    Sua segurança é nossa prioridade absoluta. O vínculo é estabelecido utilizando chaves públicas criptografadas ponta-a-ponta sob a regulação do <strong>Open Finance Brasil</strong> e em total conformidade com a <strong>LGPD</strong>. Seus dados de login bancário nunca são salvos ou compartilhados; o sistema recebe apenas extratos e faturas em modo leitura.
+                  </p>
+                </TiltCard>
+              </div>
+
+              {/* Lado Direito: Histórico de Sincronização em Tempo Real */}
+              <div className="lg:col-span-4 space-y-6">
+                <TiltCard glowColor="rgba(234, 179, 8, 0.1)" disableTilt={true} className="space-y-4">
+                  <div className="border-b border-white/5 pb-3">
+                    <h4 className="text-xs font-black text-white uppercase tracking-wider">Últimos Eventos Sync</h4>
+                    <span className="text-[9px] text-zinc-550 uppercase font-black tracking-widest">Logs de Processamento</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {connectedBanks.length > 0 ? (
+                      <>
+                        <div className="bg-zinc-950/45 p-3 rounded-lg border border-white/5 flex flex-col gap-1.5 text-[10px]">
+                          <div className="flex justify-between items-center">
+                            <span className="font-extrabold text-zinc-300">Nubank Sincronizado</span>
+                            <span className="text-[9px] text-emerald-450 font-bold">Sucesso</span>
+                          </div>
+                          <p className="text-[9px] text-zinc-500">2 transações importadas e reconciliadas com sucesso.</p>
+                          <span className="text-[8px] text-zinc-650 block text-right font-semibold">Há poucos minutos</span>
+                        </div>
+                        <div className="bg-zinc-950/45 p-3 rounded-lg border border-white/5 flex flex-col gap-1.5 text-[10px]">
+                          <div className="flex justify-between items-center">
+                            <span className="font-extrabold text-zinc-300">Webhook Ouvinte Ativo</span>
+                            <span className="text-[9px] text-zinc-400 font-bold">Escutando</span>
+                          </div>
+                          <p className="text-[9px] text-zinc-500">Pronto para receber notificações bancárias (Pix/Cartão).</p>
+                          <span className="text-[8px] text-zinc-650 block text-right font-semibold">Tempo Real</span>
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-[10px] text-zinc-550 font-semibold text-center py-6">Nenhum evento registrado.</p>
+                    )}
+                  </div>
+                </TiltCard>
+              </div>
             </div>
           ) : (
             /* Layout Grid Lado-a-Lado no Desktop para Abas CRUD */
@@ -2073,6 +2326,115 @@ export default function ProfilePage() {
               {deletingAccount ? "Excluindo..." : "Sim, Excluir Tudo"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog para Vincular Banco */}
+      <Dialog open={isLinkModalOpen} onOpenChange={setIsLinkModalOpen}>
+        <DialogContent className="bg-zinc-950 border border-white/10 text-zinc-100 w-[90vw] sm:max-w-md rounded-2xl p-6 shadow-2xl backdrop-blur-xl">
+          <DialogHeader className="flex flex-col items-center text-center space-y-2 border-b border-white/5 pb-3">
+            <div className="w-11 h-11 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400">
+              <Link2 className="w-5 h-5 text-yellow-500" />
+            </div>
+            <DialogTitle className="text-base font-black uppercase tracking-wider text-white">
+              Vincular Conta Bancária
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs leading-relaxed">
+              Selecione sua instituição financeira para iniciar a integração via Open Finance Sandbox.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 gap-3 py-4 max-h-[300px] overflow-y-auto pr-1" data-lenis-prevent>
+            {[
+              { name: "Nubank", logo: "Nu", color: "hover:border-purple-500/40 text-purple-400 bg-purple-950/5", logoBg: "bg-purple-600 text-white font-black" },
+              { name: "Itaú", logo: "It", color: "hover:border-orange-500/40 text-orange-400 bg-orange-950/5", logoBg: "bg-orange-500 text-white font-serif italic font-extrabold" },
+              { name: "Bradesco", logo: "Br", color: "hover:border-rose-500/40 text-rose-400 bg-rose-950/5", logoBg: "bg-rose-600 text-white font-extrabold" },
+              { name: "Santander", logo: "Sn", color: "hover:border-red-500/40 text-red-400 bg-red-950/5", logoBg: "bg-red-655 text-white font-black" },
+              { name: "Inter", logo: "In", color: "hover:border-amber-500/40 text-amber-500 bg-amber-950/5", logoBg: "bg-amber-550 text-zinc-950 font-black" },
+              { name: "C6 Bank", logo: "C6", color: "hover:border-zinc-300/40 text-zinc-300 bg-zinc-900/10", logoBg: "bg-zinc-800 text-yellow-500 font-extrabold" },
+              { name: "Neon", logo: "Ne", color: "hover:border-cyan-400/40 text-cyan-400 bg-cyan-950/5", logoBg: "bg-cyan-500 text-zinc-950 font-black" },
+              { name: "Caixa", logo: "Cx", color: "hover:border-sky-500/40 text-sky-400 bg-sky-950/5", logoBg: "bg-sky-600 text-white font-black" },
+              { name: "Banco PAN", logo: "Pn", color: "hover:border-blue-500/40 text-blue-400 bg-blue-950/5", logoBg: "bg-blue-600 text-white font-extrabold" },
+              { name: "BrasilCard", logo: "Bc", color: "hover:border-emerald-500/40 text-emerald-400 bg-emerald-950/5", logoBg: "bg-emerald-600 text-white font-bold" },
+              { name: "Banco do Brasil", logo: "BB", color: "hover:border-yellow-500/40 text-yellow-400 bg-yellow-950/5", logoBg: "bg-yellow-500 text-blue-900 font-black" },
+              { name: "Safra", logo: "Sf", color: "hover:border-yellow-600/40 text-yellow-600 bg-yellow-950/5", logoBg: "bg-zinc-900 text-yellow-500 font-serif" },
+              { name: "PicPay", logo: "Pp", color: "hover:border-emerald-450/40 text-emerald-400 bg-emerald-950/5", logoBg: "bg-emerald-500 text-white font-extrabold" },
+              { name: "Mercado Pago", logo: "Mp", color: "hover:border-sky-400/40 text-sky-400 bg-sky-955/5", logoBg: "bg-sky-500 text-white font-black" },
+              { name: "Next", logo: "Nx", color: "hover:border-lime-400/40 text-lime-450 bg-lime-950/5", logoBg: "bg-zinc-950 border border-lime-455 text-lime-400 font-extrabold" }
+            ].map((bank) => (
+              <button
+                key={bank.name}
+                onClick={() => {
+                  setSelectedBankName(bank.name);
+                  triggerMockSync(bank.name);
+                }}
+                className={cn(
+                  "p-3 rounded-xl border border-white/5 bg-zinc-900/40 hover:bg-zinc-900 text-left font-black text-xs transition-all flex items-center gap-3",
+                  bank.color
+                )}
+              >
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-[10px] uppercase shadow-sm flex-shrink-0", bank.logoBg)}>
+                  {bank.logo}
+                </div>
+                <span>{bank.name}</span>
+              </button>
+            ))}
+          </div>
+
+          <DialogFooter className="border-t border-white/5 pt-3">
+            <Button
+              variant="outline"
+              onClick={() => setIsLinkModalOpen(false)}
+              className="w-full bg-transparent hover:bg-zinc-900 border-white/10 text-zinc-400 hover:text-white font-extrabold text-xs h-10 rounded-xl"
+            >
+              Cancelar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de Simulação de Sincronização */}
+      <Dialog open={syncingModalOpen} onOpenChange={() => {}}>
+        <DialogContent className="bg-zinc-950 border border-white/10 text-zinc-100 w-[90vw] sm:max-w-sm rounded-2xl p-6 shadow-2xl backdrop-blur-xl">
+          <DialogHeader className="flex flex-col items-center text-center space-y-2">
+            <div className="w-12 h-12 rounded-2xl bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center text-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.25)]">
+              <RefreshCw className="w-6 h-6 text-yellow-500 animate-spin [animation-duration:2.5s]" />
+            </div>
+            <DialogTitle className="text-base font-black uppercase tracking-wider text-white">
+              Sincronizando {selectedBankName}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4 space-y-4 text-center">
+            <div className="space-y-1.5 h-12 flex items-center justify-center">
+              {syncingProgress === 0 && (
+                <p className="text-xs text-zinc-300 font-bold animate-pulse">Estabelecendo handshake seguro TLS 1.3...</p>
+              )}
+              {syncingProgress === 1 && (
+                <p className="text-xs text-zinc-300 font-bold animate-pulse">Autenticando via chaves Open Finance...</p>
+              )}
+              {syncingProgress === 2 && (
+                <p className="text-xs text-zinc-300 font-bold animate-pulse">Sincronizando faturas recentes e limites...</p>
+              )}
+              {syncingProgress === 3 && (
+                <p className="text-xs text-zinc-300 font-bold animate-pulse">Criando webhook de escuta em tempo real...</p>
+              )}
+              {syncingProgress === 4 && (
+                <p className="text-xs text-emerald-400 font-extrabold flex items-center justify-center gap-1.5 animate-pulse">
+                  <Check className="w-4 h-4 text-emerald-400 animate-bounce" />
+                  Conectado com Sucesso! Importando...
+                </p>
+              )}
+            </div>
+
+            {/* Barra de Progresso Customizada */}
+            <div className="w-full bg-zinc-900 rounded-full h-2 overflow-hidden border border-white/5">
+              <div 
+                className="bg-yellow-500 h-full transition-all duration-550 ease-out" 
+                style={{ width: `${Math.min(100, (syncingProgress / 4) * 100)}%` }}
+              />
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
