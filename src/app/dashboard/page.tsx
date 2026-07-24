@@ -46,6 +46,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { TiltCard } from "@/components/ui/tilt-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 
+const parseSchedule = (schedule: any): any[] => {
+  if (!schedule) return [];
+  if (Array.isArray(schedule)) return schedule;
+  if (typeof schedule === "string") {
+    try {
+      const parsed = JSON.parse(schedule);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      console.error("Erro ao parsear cronograma:", e);
+    }
+  }
+  return [];
+};
+
 export default function DashboardPage() {
   const [mounted, setMounted] = useState(false);
   const [loadingRealData, setLoadingRealData] = useState(true);
@@ -527,8 +541,11 @@ export default function DashboardPage() {
 
   const totalCardLimitFree = rawCards.reduce((acc: number, c: any) => {
     const limit = Number(c.total_limit || c.totalLimit || 0);
-    const invoice = Number(c.current_invoice || c.currentInvoice || 0);
-    return acc + Math.max(0, limit - invoice);
+    const schedule = parseSchedule(c.invoices_schedule || c.invoicesSchedule || []);
+    const totalUsed = schedule.length > 0
+      ? schedule.reduce((sum: number, sch: any) => sum + Number(sch.amount || 0), 0)
+      : Number(c.current_invoice || c.currentInvoice || 0);
+    return acc + (limit - totalUsed);
   }, 0);
 
   // Gera uma lista com 7 meses (3 meses antes, o atual, e 3 meses depois)
