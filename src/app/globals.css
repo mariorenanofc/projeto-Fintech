@@ -136,42 +136,8 @@ body.scrolling-down .fixed.bottom-6 {
   pointer-events: none;
 }
 
-/* Menu de Rodapé (Footer PWA) */
-footer.border-t {
-  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Em dispositivos móveis (horizontal e vertical), controlamos a exibição do footer menu pelo scroll */
-@media (max-width: 768px) {
-  footer.border-t {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background-color: rgba(9, 9, 11, 0.96);
-    backdrop-filter: blur(16px);
-    z-index: 40;
-    margin-top: 0 !important;
-    padding-bottom: env(safe-area-inset-bottom, 16px);
-    padding-top: 12px;
-    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
-    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Quando o usuário NÃO está rolando para baixo (parado ou rolando para cima), ocultamos o footer para abrir espaço */
-  body:not(.scrolling-down) footer.border-t {
-    transform: translateY(100%);
-    opacity: 0;
-    pointer-events: none;
-  }
-
-  /* Quando rolar para baixo, exibe o footer menu para navegação rápida */
-  body.scrolling-down footer.border-t {
-    transform: translateY(0);
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
+/* Menu de Rodapé (Footer PWA desativado para fluxo padrão) */
+/* O footer agora flui naturalmente no final da página em todos os dispositivos */
 
 @supports (--webkit-touch-callout: none) {
 
