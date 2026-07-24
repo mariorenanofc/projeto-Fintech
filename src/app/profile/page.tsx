@@ -21,7 +21,10 @@ import {
   Users,
   CreditCard,
   Key,
-  Loader2
+  Loader2,
+  Link2,
+  RefreshCw,
+  Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -42,16 +45,9 @@ import {
 } from "@/actions/onboarding";
 import { createClient } from "@/lib/supabase/client";
 import { addTransaction } from "@/actions/transactions";
-import { Link2, RefreshCw, Check } from "lucide-react";
-import dynamic from "next/dynamic";
 import { TiltCard } from "@/components/ui/tilt-card";
 import { Header } from "@/components/dashboard/header";
 import { cn } from "@/lib/utils";
-
-const PluggyConnect = dynamic(
-  () => import("react-pluggy-connect").then((mod) => mod.PluggyConnect),
-  { ssr: false }
-);
 
 // Helper para obter o mês formatado em PT-BR
 function getMonthLabelPT(monthStr: string) {
@@ -274,77 +270,7 @@ export default function ProfilePage() {
   const [selectedBankName, setSelectedBankName] = useState("");
   const [syncingModalOpen, setSyncingModalOpen] = useState(false);
   const [syncingProgress, setSyncingProgress] = useState(0);
-  const [pluggyToken, setPluggyToken] = useState<string>("");
 
-  const handleStartRealConnection = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/connect-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" }
-      });
-      const data = await res.json();
-      
-      if (data.accessToken) {
-        setPluggyToken(data.accessToken);
-        setIsLinkModalOpen(false);
-      } else {
-        toast.error("Não foi possível gerar a chave de conexão segura da Pluggy.");
-      }
-    } catch (err) {
-      toast.error("Erro ao comunicar com o servidor para obter chaves.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePluggySuccess = async (itemData: any) => {
-    try {
-      setLoading(true);
-      const supabase = createClient();
-      const userRes = await supabase.auth.getUser();
-      const user = userRes.data.user;
-
-      if (!user) {
-        toast.error("Usuário não autenticado.");
-        return;
-      }
-
-      const { error } = await supabase.from("bank_connections").insert({
-        user_id: user.id,
-        family_group_id: userProfile?.family_group_id || user.user_metadata?.family_group_id,
-        item_id: itemData.item.id,
-        bank_name: itemData.item.connector.name,
-        status: "Ativo"
-      });
-
-      if (error) {
-        console.error("Erro ao salvar conexão bancária no Supabase:", error);
-        toast.warning("Banco conectado, mas houve um erro ao registrar localmente. Suas transações ainda serão recebidas.");
-      } else {
-        toast.success(`Banco ${itemData.item.connector.name} conectado com sucesso via Open Finance!`);
-      }
-
-      const newBank = {
-        id: itemData.item.id,
-        name: itemData.item.connector.name,
-        status: "Ativo",
-        connectedAt: new Date().toLocaleDateString('pt-BR'),
-        lastSync: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-      };
-      const updated = [...connectedBanks, newBank];
-      setConnectedBanks(updated);
-      localStorage.setItem("connected_banks", JSON.stringify(updated));
-
-      await fetchData();
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao finalizar a conexão.");
-    } finally {
-      setPluggyToken("");
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -2417,61 +2343,45 @@ export default function ProfilePage() {
               Vincular Conta Bancária
             </DialogTitle>
             <DialogDescription className="text-zinc-400 text-xs leading-relaxed">
-              Escolha entre a conexão real via Open Finance ou a simulação sandbox.
+              Selecione sua instituição financeira para iniciar a integração via Open Finance Sandbox.
             </DialogDescription>
           </DialogHeader>
-
-          {/* Opção Oficial com Pluggy */}
-          <div className="py-3 border-b border-white/5 space-y-2">
-            <h4 className="text-[9px] text-zinc-400 uppercase tracking-wider font-extrabold">🚀 Conexão Oficial (Produção/Homologação)</h4>
-            <Button
-              onClick={handleStartRealConnection}
-              className="w-full bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-zinc-950 font-black text-xs h-11 rounded-xl shadow-[0_0_15px_rgba(234,179,8,0.2)] flex items-center justify-center gap-2 border-none transition-all"
-            >
-              <Link2 className="w-4 h-4 text-zinc-950 animate-pulse" />
-              Conectar Conta via Open Finance
-            </Button>
-          </div>
           
-          {/* Opção Simulada */}
-          <div className="space-y-2 pt-3">
-            <h4 className="text-[9px] text-zinc-400 uppercase tracking-wider font-extrabold">🧪 Simulador Rápido (Sandbox local)</h4>
-            <div className="grid grid-cols-2 gap-2.5 max-h-[200px] overflow-y-auto pr-1" data-lenis-prevent>
-              {[
-                { name: "Nubank", logo: "Nu", color: "hover:border-purple-500/40 text-purple-400 bg-purple-950/5", logoBg: "bg-purple-600 text-white font-black" },
-                { name: "Itaú", logo: "It", color: "hover:border-orange-500/40 text-orange-400 bg-orange-950/5", logoBg: "bg-orange-500 text-white font-serif italic font-extrabold" },
-                { name: "Bradesco", logo: "Br", color: "hover:border-rose-500/40 text-rose-400 bg-rose-950/5", logoBg: "bg-rose-600 text-white font-extrabold" },
-                { name: "Santander", logo: "Sn", color: "hover:border-red-500/40 text-red-400 bg-red-950/5", logoBg: "bg-red-655 text-white font-black" },
-                { name: "Inter", logo: "In", color: "hover:border-amber-500/40 text-amber-500 bg-amber-950/5", logoBg: "bg-amber-550 text-zinc-950 font-black" },
-                { name: "C6 Bank", logo: "C6", color: "hover:border-zinc-300/40 text-zinc-300 bg-zinc-900/10", logoBg: "bg-zinc-800 text-yellow-500 font-extrabold" },
-                { name: "Neon", logo: "Ne", color: "hover:border-cyan-400/40 text-cyan-400 bg-cyan-950/5", logoBg: "bg-cyan-500 text-zinc-950 font-black" },
-                { name: "Caixa", logo: "Cx", color: "hover:border-sky-500/40 text-sky-400 bg-sky-950/5", logoBg: "bg-sky-600 text-white font-black" },
-                { name: "Banco PAN", logo: "Pn", color: "hover:border-blue-500/40 text-blue-400 bg-blue-950/5", logoBg: "bg-blue-600 text-white font-extrabold" },
-                { name: "BrasilCard", logo: "Bc", color: "hover:border-emerald-500/40 text-emerald-400 bg-emerald-950/5", logoBg: "bg-emerald-600 text-white font-bold" },
-                { name: "Banco do Brasil", logo: "BB", color: "hover:border-yellow-500/40 text-yellow-400 bg-yellow-950/5", logoBg: "bg-yellow-500 text-blue-900 font-black" },
-                { name: "Safra", logo: "Sf", color: "hover:border-yellow-600/40 text-yellow-600 bg-yellow-950/5", logoBg: "bg-zinc-900 text-yellow-500 font-serif" },
-                { name: "PicPay", logo: "Pp", color: "hover:border-emerald-450/40 text-emerald-400 bg-emerald-950/5", logoBg: "bg-emerald-500 text-white font-extrabold" },
-                { name: "Mercado Pago", logo: "Mp", color: "hover:border-sky-400/40 text-sky-400 bg-sky-955/5", logoBg: "bg-sky-500 text-white font-black" },
-                { name: "Next", logo: "Nx", color: "hover:border-lime-400/40 text-lime-450 bg-lime-950/5", logoBg: "bg-zinc-955 border border-lime-455 text-lime-400 font-extrabold" }
-              ].map((bank) => (
-                <button
-                  key={bank.name}
-                  onClick={() => {
-                    setSelectedBankName(bank.name);
-                    triggerMockSync(bank.name);
-                  }}
-                  className={cn(
-                    "p-2.5 rounded-xl border border-white/5 bg-zinc-900/40 hover:bg-zinc-900 text-left font-black text-xs transition-all flex items-center gap-2.5",
-                    bank.color
-                  )}
-                >
-                  <div className={cn("w-7 h-7 rounded-lg flex items-center justify-center text-[10px] uppercase shadow-sm flex-shrink-0", bank.logoBg)}>
-                    {bank.logo}
-                  </div>
-                  <span>{bank.name}</span>
-                </button>
-              ))}
-            </div>
+          <div className="grid grid-cols-2 gap-3 py-4 max-h-[300px] overflow-y-auto pr-1" data-lenis-prevent>
+            {[
+              { name: "Nubank", logo: "Nu", color: "hover:border-purple-500/40 text-purple-400 bg-purple-950/5", logoBg: "bg-purple-600 text-white font-black" },
+              { name: "Itaú", logo: "It", color: "hover:border-orange-500/40 text-orange-400 bg-orange-950/5", logoBg: "bg-orange-500 text-white font-serif italic font-extrabold" },
+              { name: "Bradesco", logo: "Br", color: "hover:border-rose-500/40 text-rose-400 bg-rose-950/5", logoBg: "bg-rose-600 text-white font-extrabold" },
+              { name: "Santander", logo: "Sn", color: "hover:border-red-500/40 text-red-400 bg-red-950/5", logoBg: "bg-red-655 text-white font-black" },
+              { name: "Inter", logo: "In", color: "hover:border-amber-500/40 text-amber-500 bg-amber-950/5", logoBg: "bg-amber-550 text-zinc-950 font-black" },
+              { name: "C6 Bank", logo: "C6", color: "hover:border-zinc-300/40 text-zinc-300 bg-zinc-900/10", logoBg: "bg-zinc-800 text-yellow-500 font-extrabold" },
+              { name: "Neon", logo: "Ne", color: "hover:border-cyan-400/40 text-cyan-400 bg-cyan-950/5", logoBg: "bg-cyan-500 text-zinc-950 font-black" },
+              { name: "Caixa", logo: "Cx", color: "hover:border-sky-500/40 text-sky-400 bg-sky-950/5", logoBg: "bg-sky-600 text-white font-black" },
+              { name: "Banco PAN", logo: "Pn", color: "hover:border-blue-500/40 text-blue-400 bg-blue-950/5", logoBg: "bg-blue-600 text-white font-extrabold" },
+              { name: "BrasilCard", logo: "Bc", color: "hover:border-emerald-500/40 text-emerald-400 bg-emerald-950/5", logoBg: "bg-emerald-600 text-white font-bold" },
+              { name: "Banco do Brasil", logo: "BB", color: "hover:border-yellow-500/40 text-yellow-400 bg-yellow-950/5", logoBg: "bg-yellow-500 text-blue-900 font-black" },
+              { name: "Safra", logo: "Sf", color: "hover:border-yellow-600/40 text-yellow-600 bg-yellow-950/5", logoBg: "bg-zinc-900 text-yellow-500 font-serif" },
+              { name: "PicPay", logo: "Pp", color: "hover:border-emerald-450/40 text-emerald-400 bg-emerald-950/5", logoBg: "bg-emerald-500 text-white font-extrabold" },
+              { name: "Mercado Pago", logo: "Mp", color: "hover:border-sky-400/40 text-sky-400 bg-sky-955/5", logoBg: "bg-sky-500 text-white font-black" },
+              { name: "Next", logo: "Nx", color: "hover:border-lime-400/40 text-lime-450 bg-lime-950/5", logoBg: "bg-zinc-955 border border-lime-455 text-lime-400 font-extrabold" }
+            ].map((bank) => (
+              <button
+                key={bank.name}
+                onClick={() => {
+                  setSelectedBankName(bank.name);
+                  triggerMockSync(bank.name);
+                }}
+                className={cn(
+                  "p-3 rounded-xl border border-white/5 bg-zinc-900/40 hover:bg-zinc-900 text-left font-black text-xs transition-all flex items-center gap-3",
+                  bank.color
+                )}
+              >
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-[10px] uppercase shadow-sm flex-shrink-0", bank.logoBg)}>
+                  {bank.logo}
+                </div>
+                <span>{bank.name}</span>
+              </button>
+            ))}
           </div>
 
           <DialogFooter className="border-t border-white/5 pt-3">
@@ -2531,33 +2441,7 @@ export default function ProfilePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Widget do Pluggy Connect Overlay */}
-      {mounted && pluggyToken && (
-        <div className="fixed inset-0 z-[9999] bg-zinc-950/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="relative w-full max-w-lg h-[90vh] md:h-[650px] bg-zinc-900 border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col">
-            <button
-              onClick={() => setPluggyToken("")}
-              className="absolute top-3.5 right-3.5 z-[100] w-8 h-8 rounded-full bg-zinc-950/80 border border-white/10 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center font-bold text-sm transition-all shadow-md"
-              title="Fechar Conexão"
-            >
-              ✕
-            </button>
-            <div className="flex-1 w-full h-full">
-              <PluggyConnect
-                connectToken={pluggyToken}
-                includeSandbox={true}
-                onSuccess={handlePluggySuccess}
-                onError={(err: any) => {
-                  console.error("Erro no PluggyConnect:", err);
-                  const errMsg = err?.message || "Conexão cancelada ou interrompida.";
-                  toast.error(`Falha: ${errMsg}`);
-                  setPluggyToken("");
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
+
 
     </div>
   );
