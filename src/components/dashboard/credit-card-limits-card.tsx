@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { TiltCard } from "@/components/ui/tilt-card";
 import { CreditCard, CalendarDays } from "lucide-react";
 import { FinancialStrategyResult } from "@/actions/onboarding";
+import { getBankLogoUrl } from "@/components/ui/bank-select";
 
 interface CreditCardLimitsCardProps {
   rawCards: any[];
@@ -71,7 +72,16 @@ export function CreditCardLimitsCard({ rawCards = [], strategy = null }: CreditC
               return (
                 <div key={card.id || idx} className="space-y-1.5 animate-fade-in">
                   <div className="flex items-center justify-between text-xs font-bold">
-                    <span className="text-zinc-200">{cleanName}</span>
+                    <div className="flex items-center gap-2">
+                      {getBankLogoUrl(card.name) && (
+                        <img
+                          src={getBankLogoUrl(card.name)}
+                          alt={cleanName}
+                          className="w-4 h-4 rounded object-contain bg-zinc-950 border border-white/5 p-0.5 flex-shrink-0"
+                        />
+                      )}
+                      <span className="text-zinc-200">{cleanName}</span>
+                    </div>
                     <span className="text-emerald-400">R$ {availableLimit.toFixed(2)} livre</span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-zinc-950 border border-white/5 overflow-hidden">
@@ -109,7 +119,16 @@ export function CreditCardLimitsCard({ rawCards = [], strategy = null }: CreditC
               return (
                 <div key={card.id || idx} className="bg-zinc-900/30 border border-white/5 rounded-xl p-3 space-y-2">
                   <div className="flex justify-between items-center text-xs font-bold border-b border-white/5 pb-1.5">
-                    <span className="text-zinc-200">{cleanName}</span>
+                    <div className="flex items-center gap-2">
+                      {getBankLogoUrl(card.name) && (
+                        <img
+                          src={getBankLogoUrl(card.name)}
+                          alt={cleanName}
+                          className="w-4 h-4 rounded object-contain bg-zinc-950 border border-white/5 p-0.5 flex-shrink-0"
+                        />
+                      )}
+                      <span className="text-zinc-200">{cleanName}</span>
+                    </div>
                     <span className={`text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full font-black border ${
                       isClosed 
                         ? "bg-rose-500/10 text-rose-450 border-rose-500/20" 
@@ -151,7 +170,16 @@ export function CreditCardLimitsCard({ rawCards = [], strategy = null }: CreditC
               return (
                 <div key={idx} className="bg-zinc-900/30 border border-white/5 rounded-xl p-3 space-y-2">
                   <div className="flex justify-between items-center text-xs font-bold border-b border-white/5 pb-1.5">
-                    <span className="text-zinc-200">{cleanName}</span>
+                    <div className="flex items-center gap-2">
+                      {getBankLogoUrl(action.cardName) && (
+                        <img
+                          src={getBankLogoUrl(action.cardName)}
+                          alt={cleanName}
+                          className="w-4 h-4 rounded object-contain bg-zinc-950 border border-white/5 p-0.5 flex-shrink-0"
+                        />
+                      )}
+                      <span className="text-zinc-200">{cleanName}</span>
+                    </div>
                     <span className={`text-[9px] uppercase tracking-wider px-2 py-0.5 rounded-full font-black border ${
                       action.requiresNegotiation 
                         ? "bg-rose-500/10 text-rose-450 border-rose-500/20" 

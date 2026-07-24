@@ -23,6 +23,7 @@ import { ptBR } from "date-fns/locale";
 import { Bill } from "@/types";
 import { TiltCard } from "@/components/ui/tilt-card";
 import { deleteTransaction } from "@/actions/transactions";
+import { getBankLogoUrl } from "@/components/ui/bank-select";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -347,13 +348,28 @@ export function CalendarSection({
               
               {selectedDateBills.length > 0 ? (
                 <div className="space-y-2">
-                  {selectedDateBills.map((bill) => (
-                    <div key={bill.id} className="bg-zinc-900/40 border border-white/5 p-3 rounded-xl flex items-center justify-between">
-                      <div>
-                        <span className="text-[8px] text-zinc-500 uppercase font-bold block">{bill.category}</span>
-                        <strong className="text-xs font-bold text-zinc-200 block">{bill.title}</strong>
-                        <span className="text-[9px] text-zinc-400">R$ {bill.amount.toFixed(2)}</span>
-                      </div>
+                  {selectedDateBills.map((bill) => {
+                    const logoUrl = bill.category === "Cartão de Crédito" ? getBankLogoUrl(bill.title) : "";
+                    return (
+                      <div key={bill.id} className="bg-zinc-900/40 border border-white/5 p-3 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          {logoUrl ? (
+                            <img
+                              src={logoUrl}
+                              alt={bill.title}
+                              className="w-7 h-7 rounded object-contain bg-zinc-950 border border-white/5 p-0.5 shrink-0"
+                            />
+                          ) : (
+                            <div className="h-7 px-1 bg-zinc-950 border border-white/5 rounded text-[8px] font-bold text-zinc-500 uppercase flex items-center justify-center shrink-0">
+                              {bill.category.substring(0, 3)}
+                            </div>
+                          )}
+                          <div>
+                            <span className="text-[8px] text-zinc-550 uppercase font-bold block">{bill.category}</span>
+                            <strong className="text-xs font-bold text-zinc-200 block">{bill.title}</strong>
+                            <span className="text-[9px] text-zinc-400">R$ {bill.amount.toFixed(2)}</span>
+                          </div>
+                        </div>
                       <div>
                         {bill.status === "pending" ? (
                           <div className="flex gap-1.5">
@@ -381,7 +397,8 @@ export function CalendarSection({
                         )}
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
                 </div>
               ) : (
                 <div className="text-center py-6 text-zinc-500 text-[10px] bg-zinc-950/20 rounded-xl border border-dashed border-white/5">

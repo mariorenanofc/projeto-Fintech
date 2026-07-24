@@ -3,6 +3,7 @@ import { TiltCard } from "@/components/ui/tilt-card";
 import { Button } from "@/components/ui/button";
 import { Info, AlertTriangle, Calculator, ShieldCheck, Zap } from "lucide-react";
 import { FinancialStrategyResult } from "@/actions/onboarding";
+import { getBankLogoUrl } from "@/components/ui/bank-select";
 
 interface RecommendationsCardProps {
   strategy: FinancialStrategyResult | null;
@@ -133,9 +134,18 @@ export function RecommendationsCard({ strategy, rawCards = [], rawDebts = [], on
                   const cleanCardName = act.cardName.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
                   return (
                     <div key={`card-crit-${i}`} className="bg-zinc-900/60 p-3 rounded-lg border border-white/5 flex justify-between items-center text-xs">
-                      <div>
-                        <span className="text-zinc-200 font-bold block">{cleanCardName}</span>
-                        <span className="text-[10px] text-zinc-400 font-semibold">Pagamento integral da fatura atual.</span>
+                      <div className="flex items-center gap-2">
+                        {getBankLogoUrl(act.cardName) && (
+                          <img
+                            src={getBankLogoUrl(act.cardName)}
+                            alt={cleanCardName}
+                            className="w-5 h-5 rounded object-contain bg-zinc-950 border border-white/5 p-0.5 flex-shrink-0"
+                          />
+                        )}
+                        <div>
+                          <span className="text-zinc-200 font-bold block">{cleanCardName}</span>
+                          <span className="text-[10px] text-zinc-400 font-semibold">Pagamento integral da fatura atual.</span>
+                        </div>
                       </div>
                       <span className="text-rose-400 font-black whitespace-nowrap ml-2 text-sm">R$ {act.currentInvoice.toFixed(2)}</span>
                     </div>
@@ -184,8 +194,17 @@ export function RecommendationsCard({ strategy, rawCards = [], rawDebts = [], on
                 return (
                   <div key={`card-neg-${i}`} className="bg-yellow-500/5 border border-yellow-500/15 p-4 rounded-xl flex flex-col justify-between space-y-3">
                     <div>
-                      <div className="flex justify-between items-center text-xs mb-1.5">
-                        <span className="text-white font-extrabold">{cleanCardName}</span>
+                      <div className="flex justify-between items-center text-xs mb-1.5 border-b border-white/5 pb-1.5 mb-1.5">
+                        <div className="flex items-center gap-2">
+                          {getBankLogoUrl(act.cardName) && (
+                            <img
+                              src={getBankLogoUrl(act.cardName)}
+                              alt={cleanCardName}
+                              className="w-5 h-5 rounded object-contain bg-zinc-950 border border-white/5 p-0.5 flex-shrink-0"
+                            />
+                          )}
+                          <span className="text-white font-extrabold">{cleanCardName}</span>
+                        </div>
                         <span className="text-yellow-400 font-black">R$ {act.currentInvoice.toFixed(2)}</span>
                       </div>
                       <p className="text-[10px] text-zinc-300 leading-relaxed font-medium">{act.recommendation}</p>
