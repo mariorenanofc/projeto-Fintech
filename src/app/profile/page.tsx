@@ -250,7 +250,7 @@ export default function ProfilePage() {
   const [goals, setGoals] = useState<GoalInput[]>([]);
 
   // Estados de edição / criação
-  const [activeTab, setActiveTab] = useState<"account" | "incomes" | "expenses" | "cards" | "debts" | "goals" | "openfinance">("account");
+  const [activeTab, setActiveTab] = useState<"account" | "incomes" | "expenses" | "cards" | "debts" | "goals">("account");
   const [editId, setEditId] = useState<string | null>(null);
 
   // Estados de Voz
@@ -897,7 +897,6 @@ export default function ProfilePage() {
             { id: "cards", label: "Cartões", icon: CreditCard },
             { id: "debts", label: "Dívidas", icon: AlertTriangle },
             { id: "goals", label: "🎯 Metas", icon: Target },
-            { id: "openfinance", label: "Open Finance ⚡", icon: Key },
           ].map(tab => {
             const Icon = tab.icon;
             const isSelected = activeTab === tab.id;
@@ -1144,7 +1143,7 @@ export default function ProfilePage() {
               </div>
 
             </div>
-          ) : activeTab === "openfinance" ? (
+          ) : activeTab === ("openfinance" as any) ? (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start w-full">
               {/* Lado Esquerdo: Bancos Conectados e Métodos */}
               <div className="lg:col-span-8 space-y-6">
