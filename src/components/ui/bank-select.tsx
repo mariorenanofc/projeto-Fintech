@@ -34,6 +34,11 @@ export const BANK_OPTIONS: BankOption[] = [
   { id: "banrisul", name: "Banrisul", logo: "/icons-bank/banrisul.webp" },
   { id: "sicoob", name: "Sicoob", logo: "/icons-bank/sicoob.webp" },
   { id: "sicredi", name: "Sicredi", logo: "/icons-bank/sicredi.webp" },
+  { id: "shopee", name: "Shopee (SParcelado)", logo: "/icons-bank/shopee.webp" },
+  { id: "shein", name: "SHEIN", logo: "/icons-bank/shein.webp" },
+  { id: "casasbahia", name: "Casas Bahia (Carnê)", logo: "/icons-bank/casasbahia.webp" },
+  { id: "magalu", name: "Magalu (Carnê)", logo: "/icons-bank/magalu.webp" },
+  { id: "mercadolivre", name: "Mercado Livre (Crédito)", logo: "/icons-bank/mercadolivre.webp" },
 ];
 
 // Helper para obter o logo do banco a partir do nome
@@ -45,7 +50,12 @@ export const getBankLogoUrl = (bankName: string): string => {
     (b) => 
       name.includes(b.id) || 
       b.name.toLowerCase().includes(name) ||
-      name.includes(b.name.toLowerCase())
+      name.includes(b.name.toLowerCase()) ||
+      (b.id === "casasbahia" && (name.includes("casas") || name.includes("bahia") || name.includes("carne") || name.includes("carnê"))) ||
+      (b.id === "mercadolivre" && (name.includes("mercado livre") || name.includes("meli") || name.includes("mercado credito") || name.includes("mercado crédito") || name.includes("mercadolivre"))) ||
+      (b.id === "shopee" && (name.includes("shopee") || name.includes("sparcelado"))) ||
+      (b.id === "shein" && name.includes("shein")) ||
+      (b.id === "magalu" && (name.includes("magalu") || name.includes("magazine luiza") || name.includes("luiza")))
   );
   
   return found ? found.logo : "";
