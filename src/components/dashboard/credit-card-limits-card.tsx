@@ -7,6 +7,20 @@ import { CreditCard, CalendarDays } from "lucide-react";
 import { FinancialStrategyResult } from "@/actions/onboarding";
 import { getBankLogoUrl } from "@/components/ui/bank-select";
 
+const parseSchedule = (schedule: any): any[] => {
+  if (!schedule) return [];
+  if (Array.isArray(schedule)) return schedule;
+  if (typeof schedule === "string") {
+    try {
+      const parsed = JSON.parse(schedule);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) {
+      console.error("Erro ao parsear cronograma:", e);
+    }
+  }
+  return [];
+};
+
 interface CreditCardLimitsCardProps {
   rawCards: any[];
   financeStatus: "red" | "yellow" | "green";
@@ -64,10 +78,13 @@ export function CreditCardLimitsCard({ rawCards = [], strategy = null }: CreditC
           <div className="space-y-3.5">
             {rawCards.map((card, idx) => {
               const cleanName = (card.name || "").replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
-              const currentInv = Number(card.current_invoice || card.currentInvoice || 0);
+              const schedule = parseSchedule(card.invoices_schedule || card.invoicesSchedule || []);
+              const totalUsed = schedule.length > 0
+                ? schedule.reduce((sum: number, sch: any) => sum + Number(sch.amount || 0), 0)
+                : Number(card.current_invoice || card.currentInvoice || 0);
               const limitTotal = Number(card.total_limit || card.totalLimit || 1);
-              const limitUsedPercent = limitTotal > 0 ? Math.min(100, Math.round((currentInv / limitTotal) * 100)) : 0;
-              const availableLimit = Math.max(0, limitTotal - currentInv);
+              const limitUsedPercent = limitTotal > 0 ? Math.min(100, Math.round((totalUsed / limitTotal) * 100)) : 0;
+              const availableLimit = limitTotal - totalUsed;
 
               return (
                 <div key={card.id || idx} className="space-y-1.5 animate-fade-in">
@@ -82,7 +99,9 @@ export function CreditCardLimitsCard({ rawCards = [], strategy = null }: CreditC
                       )}
                       <span className="text-zinc-200">{cleanName}</span>
                     </div>
-                    <span className="text-emerald-400">R$ {availableLimit.toFixed(2)} livre</span>
+                    <span className={availableLimit >= 0 ? "text-emerald-400" : "text-rose-450"}>
+                      R$ {availableLimit.toFixed(2)} {availableLimit >= 0 ? "livre" : "ultrapassado"}
+                    </span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-zinc-950 border border-white/5 overflow-hidden">
                     <motion.div

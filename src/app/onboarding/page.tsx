@@ -77,11 +77,14 @@ function generateCardSchedule(
     }
   }
 
-  let dueMonth = closingMonth + 1;
+  let dueMonth = closingMonth;
   let dueYear = closingYear;
-  if (dueMonth > 12) {
-    dueMonth = 1;
-    dueYear += 1;
+  if (dueDay < closingDay) {
+    dueMonth = closingMonth + 1;
+    if (dueMonth > 12) {
+      dueMonth = 1;
+      dueYear += 1;
+    }
   }
 
   const currentInvoiceMonth = `${dueYear}-${String(dueMonth).padStart(2, '0')}`;
@@ -137,11 +140,14 @@ function getFutureMonths(
     }
   }
 
-  let dueMonth = closingMonth + 1;
+  let dueMonth = closingMonth;
   let dueYear = closingYear;
-  if (dueMonth > 12) {
-    dueMonth = 1;
-    dueYear += 1;
+  if (dueDay < closingDay) {
+    dueMonth = closingMonth + 1;
+    if (dueMonth > 12) {
+      dueMonth = 1;
+      dueYear += 1;
+    }
   }
 
   const list: { month: string; label: string }[] = [];

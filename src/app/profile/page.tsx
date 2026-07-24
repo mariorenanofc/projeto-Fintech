@@ -86,11 +86,14 @@ function generateCardSchedule(
     }
   }
 
-  let dueMonth = closingMonth + 1;
+  let dueMonth = closingMonth;
   let dueYear = closingYear;
-  if (dueMonth > 12) {
-    dueMonth = 1;
-    dueYear += 1;
+  if (dueDay < closingDay) {
+    dueMonth = closingMonth + 1;
+    if (dueMonth > 12) {
+      dueMonth = 1;
+      dueYear += 1;
+    }
   }
 
   const currentInvoiceMonth = `${dueYear}-${String(dueMonth).padStart(2, '0')}`;
@@ -146,11 +149,14 @@ function getFutureMonths(
     }
   }
 
-  let dueMonth = closingMonth + 1;
+  let dueMonth = closingMonth;
   let dueYear = closingYear;
-  if (dueMonth > 12) {
-    dueMonth = 1;
-    dueYear += 1;
+  if (dueDay < closingDay) {
+    dueMonth = closingMonth + 1;
+    if (dueMonth > 12) {
+      dueMonth = 1;
+      dueYear += 1;
+    }
   }
 
   const list: { month: string; label: string }[] = [];
@@ -369,6 +375,9 @@ export default function ProfilePage() {
   // Schedule sub-editors
   const [tempScheduleMonth, setTempScheduleMonth] = useState("");
   const [tempScheduleAmount, setTempScheduleAmount] = useState(0);
+
+  const [isLimitExceededModalOpen, setIsLimitExceededModalOpen] = useState(false);
+  const [pendingCardSavePayload, setPendingCardSavePayload] = useState<any>(null);
 
   // Confirmar exclusão dialog
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -683,19 +692,32 @@ export default function ProfilePage() {
   };
 
   // --- Operações CRUD Cartões ---
+  const executeSaveCard = async (payload: any) => {
+    setLoading(true);
+    if (editId) {
+      const res = await updateCreditCard(editId, payload);
+      if (res.success) {
+        setEditId(null);
+        setCardForm({ name: "", totalLimit: 0, currentInvoice: 0, nextInvoice: 0, invoicesSchedule: [] });
+        await fetchData();
+        toast.success("Cartão atualizado com sucesso!");
+      } else toast.error(res.error);
+    } else {
+      const res = await addCreditCard(payload);
+      if (res.success) {
+        setCardForm({ name: "", totalLimit: 0, currentInvoice: 0, nextInvoice: 0, invoicesSchedule: [] });
+        await fetchData();
+        toast.success("Cartão cadastrado com sucesso!");
+      } else toast.error(res.error);
+    }
+  };
+
   const handleSaveCard = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!cardForm.name || cardForm.totalLimit <= 0) return;
 
-    // Validação de limite total acumulado
     const futureSum = (cardForm.futureInvoices || []).reduce((acc: number, f: any) => acc + Number(f.amount || 0), 0);
     const totalAccumulatedInvoice = Number(cardForm.currentInvoice || 0) + futureSum;
-    if (totalAccumulatedInvoice > cardForm.totalLimit) {
-      toast.error(`A soma das faturas do cartão ${cardForm.name} ultrapassa o limite total do cartão! Por favor ajuste.`);
-      return;
-    }
-
-    setLoading(true);
 
     const schedule = generateCardSchedule(
       cardForm.currentInvoice || 0,
@@ -713,21 +735,11 @@ export default function ProfilePage() {
       invoicesSchedule: schedule
     };
 
-    if (editId) {
-      const res = await updateCreditCard(editId, payload);
-      if (res.success) {
-        setEditId(null);
-        setCardForm({ name: "", totalLimit: 0, currentInvoice: 0, nextInvoice: 0, invoicesSchedule: [] });
-        await fetchData();
-        toast.success("Cartão atualizado com sucesso!");
-      } else toast.error(res.error);
+    if (totalAccumulatedInvoice > cardForm.totalLimit) {
+      setPendingCardSavePayload(payload);
+      setIsLimitExceededModalOpen(true);
     } else {
-      const res = await addCreditCard(payload);
-      if (res.success) {
-        setCardForm({ name: "", totalLimit: 0, currentInvoice: 0, nextInvoice: 0, invoicesSchedule: [] });
-        await fetchData();
-        toast.success("Cartão cadastrado com sucesso!");
-      } else toast.error(res.error);
+      await executeSaveCard(payload);
     }
   };
 
@@ -2069,10 +2081,13 @@ export default function ProfilePage() {
                           <p className="text-xs text-zinc-500 text-center py-10">Nenhum cartão cadastrado.</p>
                         )}
                         {activeTab === "cards" && creditCards.map((item, idx) => {
-                          const currentInv = Number(item.current_invoice || 0);
+                          const schedule = parseSchedule(item.invoices_schedule || item.invoicesSchedule || []);
+                          const totalUsed = schedule.length > 0
+                            ? schedule.reduce((sum: number, sch: any) => sum + Number(sch.amount || 0), 0)
+                            : Number(item.current_invoice || 0);
                           const limitTotal = Number(item.total_limit || 1);
-                          const limitUsedPercent = Math.min(100, Math.round((currentInv / limitTotal) * 100));
-                          const availableLimit = Math.max(0, limitTotal - currentInv);
+                          const limitUsedPercent = limitTotal > 0 ? Math.min(100, Math.round((totalUsed / limitTotal) * 100)) : 0;
+                          const availableLimit = limitTotal - totalUsed;
 
                           return (
                             <div key={idx} className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 space-y-3 hover:border-yellow-500/20 transition-colors">
@@ -2113,7 +2128,9 @@ export default function ProfilePage() {
                               <div className="space-y-1.5 pt-1 border-t border-white/5">
                                 <div className="flex justify-between items-center text-[9px]">
                                   <span className="text-zinc-400 font-bold uppercase">Uso ({limitUsedPercent}%)</span>
-                                  <span className="text-emerald-400 font-bold">R$ {availableLimit.toFixed(2)} disponível</span>
+                                  <span className={`font-bold ${availableLimit >= 0 ? "text-emerald-400" : "text-rose-450"}`}>
+                                    R$ {availableLimit.toFixed(2)} {availableLimit >= 0 ? "disponível" : "ultrapassado"}
+                                  </span>
                                 </div>
                                 <div className="w-full bg-zinc-950 h-2 rounded-full overflow-hidden border border-[#27272A]">
                                   <div 
@@ -2336,6 +2353,47 @@ export default function ProfilePage() {
               className="flex-1 bg-rose-500 hover:bg-rose-600 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)] h-11 rounded-xl font-bold border-none"
             >
               {deletingAccount ? "Excluindo..." : "Sim, Excluir Tudo"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Limite Ultrapassado */}
+      <Dialog open={isLimitExceededModalOpen} onOpenChange={setIsLimitExceededModalOpen}>
+        <DialogContent className="bg-zinc-950 border border-white/10 shadow-2xl sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-100 flex items-center gap-2 text-lg font-black uppercase tracking-wider text-yellow-500">
+              <AlertTriangle className="w-5 h-5 text-yellow-500 animate-pulse" />
+              Limite Ultrapassado
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs mt-3 leading-relaxed">
+              A soma de todas as faturas planejadas (atual e parcelas futuras) ultrapassa o limite total definido para este cartão. 
+              <br/><br/>
+              Isso geralmente indica que você está pagando juros de parcelamento ou taxas de financiamento. Deseja prosseguir com o salvamento mesmo assim?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsLimitExceededModalOpen(false);
+                setPendingCardSavePayload(null);
+              }}
+              className="flex-1 bg-zinc-900 text-zinc-300 border-white/10 hover:bg-zinc-800 hover:text-white h-11 rounded-xl font-bold"
+            >
+              Revisar Valores
+            </Button>
+            <Button 
+              onClick={async () => {
+                setIsLimitExceededModalOpen(false);
+                if (pendingCardSavePayload) {
+                  await executeSaveCard(pendingCardSavePayload);
+                  setPendingCardSavePayload(null);
+                }
+              }}
+              className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-zinc-950 shadow-[0_0_15px_rgba(234,179,8,0.2)] h-11 rounded-xl font-bold border-none"
+            >
+              Salvar assim mesmo
             </Button>
           </DialogFooter>
         </DialogContent>
