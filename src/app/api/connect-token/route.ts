@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     const { apiKey } = await authRes.json();
 
     // 2. Solicitar o Connect Token para o Widget
-    const tokenRes = await fetch("https://api.pluggy.ai/connect_tokens", {
+    const tokenRes = await fetch("https://api.pluggy.ai/connect_token", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
