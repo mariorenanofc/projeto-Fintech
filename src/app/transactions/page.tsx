@@ -8,6 +8,7 @@ import {
   Edit2, 
   Save, 
   ShieldCheck, 
+  CreditCard, 
   TrendingUp, 
   Plus, 
   ArrowLeft,
@@ -41,6 +42,7 @@ import { Header } from "@/components/dashboard/header";
 import { TiltCard } from "@/components/ui/tilt-card";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { Calendar } from "@/components/ui/calendar";
+import { getBankLogoUrl } from "@/components/ui/bank-select";
 import { ptBR } from "date-fns/locale";
 
 export default function TransactionsPage() {
@@ -72,6 +74,7 @@ export default function TransactionsPage() {
   });
 
   const [userCreditCards, setUserCreditCards] = useState<any[]>([]);
+  const [isCardDropdownOpen, setIsCardDropdownOpen] = useState(false);
 
   // Estados de Edição / Cadastro
   const [editId, setEditId] = useState<string | null>(null);
@@ -766,28 +769,83 @@ export default function TransactionsPage() {
                         </div>
                       </div>
 
-                      {/* Seleção de Cartão de Crédito */}
+                      {/* Seleção de Cartão de Crédito Customizada com Logos WebP */}
                       {form.paymentMethod === "credit_card" && (
-                        <div className="animate-fade-in">
+                        <div className="animate-fade-in relative">
                           <label className="text-[9px] text-yellow-500 uppercase font-black block mb-1">Qual Cartão de Crédito?</label>
-                          <select
-                            value={form.creditCardId || ""}
-                            onChange={e => {
-                              const selectedId = e.target.value;
-                              const cardObj = userCreditCards.find(c => c.id === selectedId);
-                              setForm({
-                                ...form,
-                                creditCardId: selectedId,
-                                creditCardName: cardObj?.name || ""
-                              });
-                            }}
-                            className="bg-zinc-950 border border-yellow-500/30 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-bold"
+                          
+                          <button
+                            type="button"
+                            onClick={() => setIsCardDropdownOpen(!isCardDropdownOpen)}
+                            className="bg-zinc-950 border border-yellow-500/30 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none px-3.5 w-full text-xs h-11 font-bold flex justify-between items-center text-left hover:bg-zinc-900/40 transition-colors"
                           >
-                            <option value="">Selecione o cartão...</option>
-                            {userCreditCards.map(c => (
-                              <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                          </select>
+                            <div className="flex items-center gap-2">
+                              {form.creditCardId && getBankLogoUrl(form.creditCardName || "") ? (
+                                <img
+                                  src={getBankLogoUrl(form.creditCardName || "")}
+                                  alt={form.creditCardName}
+                                  className="w-5 h-5 rounded object-contain bg-zinc-900 border border-white/5 p-0.5"
+                                />
+                              ) : (
+                                <div className="w-5 h-5 rounded bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-550">
+                                  <CreditCard className="w-3.5 h-3.5" />
+                                </div>
+                              )}
+                              <span>
+                                {form.creditCardId
+                                  ? (form.creditCardName || "").replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "")
+                                  : "Selecione o cartão..."}
+                              </span>
+                            </div>
+                            <span className="text-[10px] text-zinc-500">▼</span>
+                          </button>
+                          
+                          {isCardDropdownOpen && (
+                            <>
+                              <div className="fixed inset-0 z-40" onClick={() => setIsCardDropdownOpen(false)} />
+                              <div className="absolute left-0 right-0 mt-1.5 bg-zinc-950 border border-white/10 rounded-xl shadow-2xl p-1.5 z-50 max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-1 duration-150">
+                                {userCreditCards.map((c) => {
+                                  const cleanName = c.name.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
+                                  const isSel = c.id === form.creditCardId;
+                                  return (
+                                    <button
+                                      key={c.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setForm({
+                                          ...form,
+                                          creditCardId: c.id,
+                                          creditCardName: c.name
+                                        });
+                                        setIsCardDropdownOpen(false);
+                                      }}
+                                      className={`w-full text-left p-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-between ${
+                                        isSel
+                                          ? "bg-yellow-500/10 text-yellow-400"
+                                          : "text-zinc-400 hover:bg-yellow-500 hover:text-zinc-950"
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        {getBankLogoUrl(c.name) ? (
+                                          <img
+                                            src={getBankLogoUrl(c.name)}
+                                            alt={cleanName}
+                                            className="w-5 h-5 rounded object-contain bg-zinc-900 border border-white/5 p-0.5"
+                                          />
+                                        ) : (
+                                          <div className="w-5 h-5 rounded bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-550">
+                                            <CreditCard className="w-3 h-3" />
+                                          </div>
+                                        )}
+                                        <span>{cleanName}</span>
+                                      </div>
+                                      {isSel && <Check className="w-3.5 h-3.5 text-yellow-400" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </>
+                          )}
                         </div>
                       )}
 
@@ -942,29 +1000,55 @@ export default function TransactionsPage() {
                     <Loader2 className="w-6 h-6 animate-spin text-yellow-500" />
                   </div>
                 ) : transactions.length > 0 ? (
-                  transactions.map((item, idx) => (
-                    <div key={idx} className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 flex justify-between items-center hover:border-white/10 transition-colors">
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <Badge className="bg-zinc-900 text-zinc-400 border border-white/5 text-[8px] uppercase font-bold py-0.5 px-2">{item.category}</Badge>
-                          {item.description.startsWith("[Individual]") ? (
-                            <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-[8px] uppercase font-bold py-0.5 px-2">Pessoal</Badge>
+                  transactions.map((item, idx) => {
+                    const cardMatch = item.description.match(/\[Cartão:\s*([^\]]+)\]/);
+                    const cardName = cardMatch ? cardMatch[1] : null;
+                    const cleanDescription = item.description
+                      .replace(/^\[Individual\]\s*/, "")
+                      .replace(/^\[Cartão:[^\]]+\]\s*/, "");
+                    const logoUrl = cardName ? getBankLogoUrl(cardName) : null;
+
+                    return (
+                      <div key={idx} className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 flex justify-between items-center hover:border-white/10 transition-colors">
+                        <div className="flex items-center gap-3">
+                          {logoUrl ? (
+                            <img
+                              src={logoUrl}
+                              alt={cardName || "Cartão"}
+                              className="w-8 h-8 rounded-lg object-contain bg-zinc-900 border border-white/5 p-0.5 shrink-0"
+                            />
                           ) : (
-                            <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] uppercase font-bold py-0.5 px-2">Conjunto</Badge>
+                            <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-550 shrink-0">
+                              <DollarSign className="w-4 h-4" />
+                            </div>
                           )}
-                          {item.profiles?.full_name && (
-                            <span className="text-[9px] text-zinc-500 font-bold block">
-                              por {item.profiles.full_name.split(" ")[0]}
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <Badge className="bg-zinc-900 text-zinc-400 border border-white/5 text-[8px] uppercase font-bold py-0.5 px-2">{item.category}</Badge>
+                              {item.description.startsWith("[Individual]") ? (
+                                <Badge className="bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 text-[8px] uppercase font-bold py-0.5 px-2">Pessoal</Badge>
+                              ) : (
+                                <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[8px] uppercase font-bold py-0.5 px-2">Conjunto</Badge>
+                              )}
+                              {cardName && (
+                                <Badge className="bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 text-[8px] uppercase font-bold py-0.5 px-2">
+                                  💳 {cardName.replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "")}
+                                </Badge>
+                              )}
+                              {item.profiles?.full_name && (
+                                <span className="text-[9px] text-zinc-550 font-bold block">
+                                  por {item.profiles.full_name.split(" ")[0]}
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="text-xs font-black text-white mt-2">
+                              {cleanDescription}
+                            </h4>
+                            <span className="text-[9px] text-zinc-550 font-semibold block mt-1">
+                              {new Date(item.date + "T00:00:00").toLocaleDateString('pt-BR')}
                             </span>
-                          )}
+                          </div>
                         </div>
-                        <h4 className="text-xs font-black text-white mt-2">
-                          {item.description.replace(/^\[Individual\]\s*/, "")}
-                        </h4>
-                        <span className="text-[9px] text-zinc-550 font-semibold block mt-1">
-                          {new Date(item.date + "T00:00:00").toLocaleDateString('pt-BR')}
-                        </span>
-                      </div>
                       <div className="flex items-center gap-3">
                         <span className={`text-xs font-black font-mono ${item.type === "income" ? "text-emerald-400" : "text-rose-400"}`}>
                           {item.type === "income" ? "+" : "-"} R$ {Number(item.amount).toFixed(2)}
@@ -979,8 +1063,9 @@ export default function TransactionsPage() {
                         </div>
                       </div>
                     </div>
-                  ))
-                ) : (
+                  );
+                })
+              ) : (
                   <div className="text-center py-10 bg-zinc-950/20 rounded-xl border border-dashed border-white/5">
                     <Info className="w-6 h-6 text-zinc-500 mx-auto mb-2" />
                     <p className="text-xs text-zinc-400 font-semibold">Nenhuma transação registrada neste mês.</p>
