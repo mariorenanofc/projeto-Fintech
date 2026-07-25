@@ -14,7 +14,8 @@ import {
   Heart, 
   Printer, 
   Bot, 
-  Loader2 
+  Loader2,
+  PlusCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -617,6 +618,15 @@ export default function DashboardPage() {
             Fluxo de Caixa Conjugal
           </span>
         </h1>
+
+        <div className="pt-2">
+          <Link href="/transactions?open=true">
+            <Button className="bg-yellow-500 hover:bg-yellow-400 text-zinc-950 font-black text-xs px-6 h-11 rounded-xl shadow-[0_0_15px_rgba(234,179,8,0.25)] flex items-center gap-2 mx-auto">
+              <PlusCircle className="w-4 h-4 text-zinc-950" />
+              Lançar Movimentação Real
+            </Button>
+          </Link>
+        </div>
       </section>
 
       {/* Seletor de Mês Horizontal Carrossel (Estilo TaskLine - Largura Total) */}

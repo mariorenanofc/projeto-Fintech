@@ -96,6 +96,20 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("open") === "true") {
+        setIsFormOpen(true);
+        setTimeout(() => {
+          if (formRef.current) {
+            formRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+          if (amountInputRef.current) {
+            amountInputRef.current.focus();
+          }
+        }, 300);
+      }
+    }
   }, []);
 
   // Carrega perfil do usuário
