@@ -90,6 +90,10 @@ export default function TransactionsPage() {
     creditCardId: ""
   });
 
+  // Estados para confirmação de duplicidade
+  const [showDuplicateDialog, setShowDuplicateDialog] = useState(false);
+  const [pendingPayload, setPendingPayload] = useState<any>(null);
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -177,6 +181,9 @@ export default function TransactionsPage() {
               const cleanDesc = t.description
                 .replace(/^\[Individual\]\s*/i, "")
                 .replace(/^\[Cartão:[^\]]+\]\s*/i, "")
+                .replace(/^\[PIX\]\s*/i, "")
+                .replace(/^\[Dinheiro\]\s*/i, "")
+                .replace(/^\[Transferência\]\s*/i, "")
                 .toLowerCase()
                 .trim();
               return t.type === "income" && cleanDesc === inc.title.toLowerCase().trim();
@@ -240,6 +247,9 @@ export default function TransactionsPage() {
             const cleanDesc = t.description
               .replace(/^\[Individual\]\s*/i, "")
               .replace(/^\[Cartão:[^\]]+\]\s*/i, "")
+              .replace(/^\[PIX\]\s*/i, "")
+              .replace(/^\[Dinheiro\]\s*/i, "")
+              .replace(/^\[Transferência\]\s*/i, "")
               .toLowerCase()
               .trim();
             return t.type === "expense" && cleanDesc === exp.title.toLowerCase().trim();
@@ -291,6 +301,34 @@ export default function TransactionsPage() {
     }, 100);
   };
 
+  const executeSave = async (payload: any) => {
+    setLoading(true);
+    if (editId) {
+      const res = await updateTransaction(editId, payload);
+      if (res.success) {
+        setEditId(null);
+        resetForm();
+        setIsFormOpen(false);
+        await fetchData(selectedMonth);
+        toast.success("Transação atualizada com sucesso!");
+      } else {
+        toast.error(res.error);
+        setLoading(false);
+      }
+    } else {
+      const res = await addTransaction(payload);
+      if (res.success) {
+        resetForm();
+        setIsFormOpen(false);
+        await fetchData(selectedMonth);
+        toast.success("Transação registrada com sucesso!");
+      } else {
+        toast.error(res.error);
+        setLoading(false);
+      }
+    }
+  };
+
   const handleSaveTransaction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.description || form.amount <= 0 || !form.date) return;
@@ -304,28 +342,21 @@ export default function TransactionsPage() {
       description: finalDescription
     };
 
-    setLoading(true);
-    if (editId) {
-      const res = await updateTransaction(editId, payload);
-      if (res.success) {
-        setEditId(null);
-        resetForm();
-        setIsFormOpen(false);
-        await fetchData(selectedMonth);
-        toast.success("Transação atualizada com sucesso!");
-      } else {
-        toast.error(res.error);
-      }
-    } else {
-      const res = await addTransaction(payload);
-      if (res.success) {
-        resetForm();
-        setIsFormOpen(false);
-        await fetchData(selectedMonth);
-        toast.success("Transação registrada com sucesso!");
-      } else {
-        toast.error(res.error);
-      }
+    // Validar duplicidade
+    if (!editId && isDuplicateDescription) {
+      setPendingPayload(payload);
+      setShowDuplicateDialog(true);
+      return;
+    }
+
+    await executeSave(payload);
+  };
+
+  const handleConfirmDuplicateSave = async () => {
+    setShowDuplicateDialog(false);
+    if (pendingPayload) {
+      await executeSave(pendingPayload);
+      setPendingPayload(null);
     }
   };
 
@@ -454,11 +485,26 @@ export default function TransactionsPage() {
   });
   const isDuplicateDescription = form.description.trim().length > 2 && transactions.some(t => {
     if (editId && t.id === editId) return false;
-    const cleanDescForm = form.description.replace(/^\[Individual\]\s*/i, "").replace(/^\[Cartão:[^\]]+\]\s*/i, "").trim().toLowerCase();
-    const cleanDescTx = t.description.replace(/^\[Individual\]\s*/i, "").replace(/^\[Cartão:[^\]]+\]\s*/i, "").trim().toLowerCase();
+    
+    const cleanDesc = (desc: string) => desc
+      .replace(/^\[Individual\]\s*/i, "")
+      .replace(/^\[Cartão:[^\]]+\]\s*/i, "")
+      .replace(/^\[PIX\]\s*/i, "")
+      .replace(/^\[Dinheiro\]\s*/i, "")
+      .replace(/^\[Transferência\]\s*/i, "")
+      .trim()
+      .toLowerCase();
+
+    const cleanDescForm = cleanDesc(form.description);
+    const cleanDescTx = cleanDesc(t.description);
+    
     const formMonth = form.date?.substring(0, 7);
     const txMonth = t.date?.substring(0, 7);
-    return cleanDescForm === cleanDescTx && formMonth === txMonth;
+    
+    const isSameDesc = cleanDescForm === cleanDescTx && formMonth === txMonth;
+    const isSameValAndDate = Number(t.amount) === Number(form.amount) && t.date === form.date && t.type === form.type;
+    
+    return isSameDesc || isSameValAndDate;
   });
   const categories = [
     "Moradia", "Alimentação", "Transporte", "Lazer", "Saúde", 
@@ -1147,6 +1193,40 @@ export default function TransactionsPage() {
               className="flex-1 bg-rose-500 hover:bg-rose-600 text-white shadow-[0_0_15px_rgba(244,63,94,0.3)] h-11 rounded-xl font-bold border-none"
             >
               Excluir
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Confirmação de Transação Duplicada */}
+      <Dialog open={showDuplicateDialog} onOpenChange={(open) => !open && setShowDuplicateDialog(false)}>
+        <DialogContent className="bg-zinc-950 border border-white/10 shadow-2xl sm:max-w-md rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-100 flex items-center gap-2 text-lg">
+              <Info className="w-5 h-5 text-yellow-500 animate-pulse" />
+              Lançamento Duplicado Detectado
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-sm mt-1.5 leading-relaxed">
+              Já existe uma movimentação idêntica (mesma descrição neste período, ou mesmo valor nesta data) registrada. Deseja realmente salvar este lançamento duplicado?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-6 flex gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowDuplicateDialog(false);
+                setPendingPayload(null);
+                setLoading(false);
+              }}
+              className="flex-1 bg-zinc-900 text-zinc-300 border-white/10 hover:bg-zinc-800 hover:text-white h-11 rounded-xl font-bold"
+            >
+              Não, Cancelar
+            </Button>
+            <Button 
+              onClick={handleConfirmDuplicateSave}
+              className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-zinc-950 shadow-[0_0_15px_rgba(234,179,8,0.3)] h-11 rounded-xl font-bold border-none"
+            >
+              Sim, Salvar
             </Button>
           </DialogFooter>
         </DialogContent>
