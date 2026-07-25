@@ -273,22 +273,6 @@ export function FloatingTools() {
 
   return (
     <>
-      {/* 1. Balão Flutuante do Chat IA (Canto Inferior Esquerdo) */}
-      {showChatBubble && (
-        <div className={`fixed left-6 z-[9990] group transition-all duration-300 ${isVisible ? 'bottom-6 translate-y-0 opacity-100' : 'bottom-0 translate-y-full opacity-0 pointer-events-none'}`}>
-          <Button
-            onClick={() => router.push("/chat")}
-            className="w-14 h-14 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 shadow-xl shadow-yellow-500/20 flex items-center justify-center p-0 border border-yellow-400/20 animate-pulse transition-transform hover:scale-110"
-            title="Abrir Conselheiro IA"
-          >
-            <MessageSquare className="w-6 h-6 text-zinc-950 fill-zinc-950" />
-          </Button>
-          <span className="absolute bottom-16 left-0 bg-zinc-900 border border-white/10 text-yellow-500 text-[10px] font-black uppercase tracking-wider py-1 px-2.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-md shadow-black/50">
-            Conselheiro IA 🤖
-          </span>
-        </div>
-      )}
-
       {/* 2. Botão Flutuante da Calculadora (Canto Inferior Direito) */}
       <div className={`fixed right-6 z-[9990] group transition-all duration-300 ${isVisible || isCalcOpen ? 'bottom-6 translate-y-0 opacity-100' : 'bottom-0 translate-y-full opacity-0 pointer-events-none'} ${isChat ? 'max-md:hidden' : ''}`}>
         <Button
