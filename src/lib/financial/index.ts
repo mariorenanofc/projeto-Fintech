@@ -5,3 +5,5 @@ export * from "./schedules";
 export * from "./types";
 export * from "./debts";
 export * from "./cash-flow";
+export * from "./goals";
+export * from "./planned-vs-realized";

@@ -134,6 +134,27 @@ Implementado em 25/07/2026:
 
 Verificação em 25/07/2026: Sincronização de banco remoto via CLI (`supabase db push`) concluída com sucesso. Todos os 25 testes unitários passando. TypeScript check compilando com sucesso total.
 
+### Fase 5 - Concluída
+
+Implementado em 25/07/2026:
+
+- `src/lib/financial/goals.ts`: criadas a função pura `projectGoalTimeline` para prever a quantidade de meses restantes até a conclusão de cada meta (com fallbacks para pausada, aporte nulo ou já completa) e a função `validateGoalAllocations` para garantir que as alocações ativas não ultrapassem 100%.
+- `supabase/migrations/20260726030000_goals_allocation.sql`: altera a tabela `goals` adicionando colunas para prioridade, aporte mensal planejado, percentual de alocação, data alvo e status. Cria a tabela `goal_transactions` com RLS, índices e uma trigger `trg_update_goal_current_amount` para manter a integridade do saldo `current_amount` com base nas movimentações.
+- `src/actions/goals.ts`: cria as Server Actions `getGoals`, `addGoal`, `updateGoal`, `deleteGoal` e `addGoalTransaction`, integrando validações de teto acumulado de alocação de 100% e cálculo dinâmico de prazos.
+- `src/lib/financial/financial.test.ts`: adicionados 5 testes unitários testando a previsão de prazos sob aportes ativos/nulos/pausados, metas completas, e validação lógica de teto de alocação (soma <= 100%).
+
+Verificação em 25/07/2026: Sincronização de banco remoto via CLI (`supabase db push`) concluída com sucesso. Todos os 30 testes unitários passando. TypeScript check compilando com sucesso total.
+
+### Fase 6 - Concluída
+
+Implementado em 25/07/2026:
+
+- `src/lib/financial/planned-vs-realized.ts`: criada a função pura `comparePlannedVersusRealized` para cruzar categorias orçadas em `fixed_expenses` com o gasto real obtido de saídas da conta, faturas de cartão de crédito cobradas na competência de análise e parcelas de dívida vencidas no mês. Determina o percentual de gasto e sinaliza visualmente o status (`ok`, `warning` ou `over`).
+- `src/actions/planned-vs-realized.ts`: cria a Server Action `getPlannedVersusRealized` consolidando gastos diretos, parcelas de faturas e parcelas de dívidas no respectivo mês de análise, trazendo uma visão granular das transações em cada categoria.
+- `src/lib/financial/financial.test.ts`: adicionados 2 testes unitários verificando a comparação correta (ok, warning, over) e o tratamento especial de estouro imediato para gastos em categorias não planejadas (planejado = 0 e realizado > 0).
+
+Verificação em 25/07/2026: Sincronização de banco remoto via CLI concluída. Todos os 32 testes unitários passando. TypeScript check compilando com sucesso total.
+
 ### Fase 0: Fundacao e contrato de dados
 
 Objetivo: eliminar ambiguidades antes de alterar indicadores.

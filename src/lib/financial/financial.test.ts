@@ -13,7 +13,10 @@ import {
   calculateLateCharges,
   getInvoiceCycleForPurchase,
   getInvoiceDatesForBillingMonth,
-  calculateDailyCashFlow
+  calculateDailyCashFlow,
+  projectGoalTimeline,
+  validateGoalAllocations,
+  comparePlannedVersusRealized
 } from "./index";
 
 describe("Financial Layer - money.ts", () => {
@@ -360,5 +363,136 @@ describe("Financial Layer - cash-flow.ts", () => {
     // Dia 3: saldo +50
     expect(result.dailyData[2].balanceAfter).toBe(50);
     expect(result.dailyData[2].isNegative).toBe(false);
+  });
+});
+
+describe("Financial Layer - goals.ts", () => {
+  it("should calculate months to target correctly", () => {
+    // Alvo: R$ 5.000, Atual: R$ 2.000, Aporte: R$ 300/mês -> Restam R$ 3.000 -> 10 meses
+    const result = projectGoalTimeline({
+      targetAmount: 5000,
+      currentAmount: 2000,
+      monthlyContribution: 300,
+      status: "active"
+    });
+
+    expect(result.remainingAmount).toBe(3000);
+    expect(result.monthsToTarget).toBe(10);
+    expect(result.isCompleted).toBe(false);
+  });
+
+  it("should return zero months to target if status is completed", () => {
+    const result = projectGoalTimeline({
+      targetAmount: 5000,
+      currentAmount: 2000,
+      monthlyContribution: 300,
+      status: "completed"
+    });
+
+    expect(result.remainingAmount).toBe(0);
+    expect(result.monthsToTarget).toBe(0);
+    expect(result.isCompleted).toBe(true);
+  });
+
+  it("should return zero months to target if current exceeds or equals target", () => {
+    const result = projectGoalTimeline({
+      targetAmount: 5000,
+      currentAmount: 5200,
+      monthlyContribution: 300,
+      status: "active"
+    });
+
+    expect(result.remainingAmount).toBe(0);
+    expect(result.monthsToTarget).toBe(0);
+    expect(result.isCompleted).toBe(true);
+  });
+
+  it("should return Infinity months to target if monthly contribution is 0 or paused", () => {
+    // Caso A: Aporte 0
+    const resA = projectGoalTimeline({
+      targetAmount: 5000,
+      currentAmount: 2000,
+      monthlyContribution: 0,
+      status: "active"
+    });
+    expect(resA.monthsToTarget).toBe(Infinity);
+
+    // Caso B: Pausado
+    const resB = projectGoalTimeline({
+      targetAmount: 5000,
+      currentAmount: 2000,
+      monthlyContribution: 300,
+      status: "paused"
+    });
+    expect(resB.monthsToTarget).toBe(Infinity);
+  });
+
+  it("should validate goal allocations correctly (sum <= 100)", () => {
+    expect(validateGoalAllocations([60, 40])).toBe(true);
+    expect(validateGoalAllocations([60, 41])).toBe(false);
+    expect(validateGoalAllocations([30, 20, 50])).toBe(true);
+    expect(validateGoalAllocations([0, 0])).toBe(true);
+  });
+});
+
+describe("Financial Layer - planned-vs-realized.ts", () => {
+  it("should categorize compare correctly with ok, warning, and over status", () => {
+    const planned = [
+      { category: "Alimentação", amount: 500 },
+      { category: "Transporte", amount: 200 },
+      { category: "Lazer", amount: 150 }
+    ];
+
+    const direct = [
+      { id: "1", category: "Alimentação", amount: 350, description: "Supermercado", date: "2026-08-05" }, // 70% -> ok
+      { id: "2", category: "Transporte", amount: 180, description: "Combustível", date: "2026-08-10" } // 90% -> warning
+    ];
+
+    const card = [
+      { id: "3", category: "Lazer", amount: 200, description: "Restaurante", date: "2026-08-12" } // 133.33% -> over
+    ];
+
+    const result = comparePlannedVersusRealized({
+      plannedExpenses: planned,
+      directTransactions: direct,
+      cardInstallments: card,
+      debtInstallments: []
+    });
+
+    // Lazer deve vir primeiro por ser 'over'
+    expect(result[0].category).toBe("Lazer");
+    expect(result[0].planned).toBe(150);
+    expect(result[0].actual).toBe(200);
+    expect(result[0].status).toBe("over");
+    expect(result[0].percent).toBe(133.33);
+
+    // Transporte deve vir em segundo por ser 'warning'
+    expect(result[1].category).toBe("Transporte");
+    expect(result[1].planned).toBe(200);
+    expect(result[1].actual).toBe(180);
+    expect(result[1].status).toBe("warning");
+
+    // Alimentação deve vir em terceiro por ser 'ok'
+    expect(result[2].category).toBe("Alimentação");
+    expect(result[2].planned).toBe(500);
+    expect(result[2].actual).toBe(350);
+    expect(result[2].status).toBe("ok");
+  });
+
+  it("should handle cases where there is actual spend but no planned budget", () => {
+    const result = comparePlannedVersusRealized({
+      plannedExpenses: [],
+      directTransactions: [
+        { id: "1", category: "Extras", amount: 80, description: "Gasto surpresa", date: "2026-08-15" }
+      ],
+      cardInstallments: [],
+      debtInstallments: []
+    });
+
+    expect(result[0].category).toBe("Extras");
+    expect(result[0].planned).toBe(0);
+    expect(result[0].actual).toBe(80);
+    expect(result[0].percent).toBe(100);
+    expect(result[0].status).toBe("over");
   });
 });
