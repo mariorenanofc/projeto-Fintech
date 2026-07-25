@@ -857,11 +857,11 @@ export default function TransactionsPage() {
                           </div>
                         </div>
                         <div>
-                          <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Destinação</label>
+                          <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">Destinação</label>
                           <select
                             value={formOwnership}
                             onChange={e => setFormOwnership(e.target.value as any)}
-                            className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
+                            className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-base md:text-xs h-11 font-semibold"
                           >
                             <option value="shared">Conjunto (Compartilhado)</option>
                             <option value="individual">Individual (Pessoal)</option>
@@ -872,24 +872,25 @@ export default function TransactionsPage() {
                       {/* Valor e Data */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Valor (R$)</label>
+                          <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">Valor (R$)</label>
                           <input
                             ref={amountInputRef}
                             type="number"
+                            inputMode="decimal"
                             step="0.01"
                             placeholder="0.00"
                             value={form.amount || ""}
                             onChange={e => setForm({ ...form, amount: Number(e.target.value) })}
-                            className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-bold font-mono"
+                            className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-base md:text-xs h-11 font-bold font-mono"
                             required
                           />
                         </div>
                         <div className="relative">
-                          <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Data da Transação</label>
+                          <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">Data da Transação</label>
                           <button
                             type="button"
                             onClick={() => setShowDatePicker(!showDatePicker)}
-                            className="flex items-center justify-between bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none px-3 w-full text-xs h-11 font-bold text-left"
+                            className="flex items-center justify-between bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none px-3 w-full text-base md:text-xs h-11 font-bold text-left"
                           >
                             <span className="flex items-center gap-2">
                               <CalendarIcon className="w-3.5 h-3.5 text-zinc-500" />
@@ -919,13 +920,15 @@ export default function TransactionsPage() {
 
                       {/* Descrição */}
                       <div>
-                        <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Descrição do Lançamento</label>
+                        <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">Descrição do Lançamento</label>
                         <input
                           type="text"
+                          autoCapitalize="sentences"
+                          autoCorrect="off"
                           placeholder="Ex: Mercado Mensal, Combustível, PIX"
                           value={form.description}
                           onChange={e => setForm({ ...form, description: e.target.value })}
-                          className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
+                          className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-base md:text-xs h-11 font-semibold"
                           required
                         />
                         {isDuplicateDescription && (
@@ -938,11 +941,11 @@ export default function TransactionsPage() {
                       {/* Categoria e Forma Pagamento */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Categoria</label>
+                          <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">Categoria</label>
                           <select
                             value={form.category}
                             onChange={e => setForm({ ...form, category: e.target.value })}
-                            className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
+                            className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-base md:text-xs h-11 font-semibold"
                           >
                             {(form.type === "income" 
                               ? ["Salário", "Pró-labore", "Rendimentos / Investimentos", "Reembolsos", "Outros"]
@@ -956,13 +959,13 @@ export default function TransactionsPage() {
                           </select>
                         </div>
                         <div>
-                          <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">
+                          <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">
                             {form.type === "income" ? "Forma de Recebimento" : "Forma de Pagamento"}
                           </label>
                           <select
                             value={form.paymentMethod || "pix"}
                             onChange={e => setForm({ ...form, paymentMethod: e.target.value as any })}
-                            className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
+                            className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-base md:text-xs h-11 font-semibold"
                           >
                             <option value="pix">PIX</option>
                             <option value="money">Dinheiro à Vista</option>
@@ -977,12 +980,12 @@ export default function TransactionsPage() {
                       {/* Seleção de Cartão de Crédito Customizada com Logos WebP */}
                       {form.paymentMethod === "credit_card" && (
                         <div className="animate-fade-in relative">
-                          <label className="text-[9px] text-yellow-500 uppercase font-black block mb-1">Qual Cartão de Crédito?</label>
+                          <label className="text-[10px] text-yellow-500 font-bold uppercase block mb-1">Qual Cartão de Crédito?</label>
                           
                           <button
                             type="button"
                             onClick={() => setIsCardDropdownOpen(!isCardDropdownOpen)}
-                            className="bg-zinc-950 border border-yellow-500/30 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none px-3.5 w-full text-xs h-11 font-bold flex justify-between items-center text-left hover:bg-zinc-900/40 transition-colors"
+                            className="bg-zinc-950 border border-yellow-500/30 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none px-3.5 w-full text-base md:text-xs h-11 font-bold flex justify-between items-center text-left hover:bg-zinc-900/40 transition-colors"
                           >
                             <div className="flex items-center gap-2">
                               {form.creditCardId && getBankLogoUrl(form.creditCardName || "") ? (

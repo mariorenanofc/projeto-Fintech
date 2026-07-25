@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { motion } from "framer-motion";
 import {
   Coins,
   TrendingUp,
@@ -665,7 +666,12 @@ export default function DashboardPage() {
       </div>
 
       {/* 4 Cards de Métricas Chave com Contadores Animados Reais (Count-Up) */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
+      <motion.section 
+        initial={{ opacity: 0, y: 25 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left"
+      >
         <TiltCard glowColor="rgba(16, 185, 129, 0.2)" disableTilt={true}>
           <div className="flex items-center justify-between mb-3">
             <span className="text-[11px] font-extrabold text-emerald-400 uppercase tracking-wider">Receita Prevista</span>
@@ -719,13 +725,19 @@ export default function DashboardPage() {
           </div>
           <span className="text-[10px] text-zinc-400 mt-2 block">Disponível em {rawCards.length} cartões</span>
         </TiltCard>
-      </section>
+      </motion.section>
 
       {/* Grid Principal de 2 Colunas (Equilibradas em Altura) */}
       <div className="flex-1 flex flex-col gap-6 tablet:grid tablet:grid-cols-12 tablet:gap-6 lg:gap-8 tablet:items-stretch h-full">
 
         {/* COLUNA ESQUERDA (tablet:col-span-5): Semáforo e Limites de Crédito Reais */}
-        <div className="flex flex-col gap-6 tablet:col-span-5 h-full justify-between space-y-2">
+        <motion.div 
+          initial={{ opacity: 0, x: -35 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: false, amount: 0.1 }}
+          transition={{ type: "spring", stiffness: 100, damping: 18, delay: 0.1 }}
+          className="flex flex-col gap-6 tablet:col-span-5 h-full justify-between space-y-2"
+        >
           {/* 1. Card do Semáforo */}
           <FinancialErrorBoundary fallbackTitle="Semáforo Indisponível" onReset={() => loadDashboardData(selectedMonthStr)}>
             <SemaphoreCard
@@ -748,10 +760,16 @@ export default function DashboardPage() {
               currentMonth={selectedMonthStr as `${number}-${string}`}
             />
           </FinancialErrorBoundary>
-        </div>
+        </motion.div>
 
         {/* COLUNA DIREITA (tablet:col-span-7): Painel Estratégico (Nosso Fluxo & Sonhos ✨) */}
-        <div className="flex flex-col gap-6 tablet:col-span-7 h-full flex-grow">
+        <motion.div 
+          initial={{ opacity: 0, x: 35 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: false, amount: 0.1 }}
+          transition={{ type: "spring", stiffness: 100, damping: 18, delay: 0.15 }}
+          className="flex flex-col gap-6 tablet:col-span-7 h-full flex-grow"
+        >
           <FinancialErrorBoundary fallbackTitle="Fluxo Financeiro Indisponível" onReset={() => loadDashboardData(selectedMonthStr)}>
             <FlowSummary
               loadingRealData={loadingRealData}
@@ -776,11 +794,18 @@ export default function DashboardPage() {
               }}
             />
           </FinancialErrorBoundary>
-        </div>
+        </motion.div>
       </div>
 
       {/* SEÇÃO LARGURA TOTAL 100% 1: Engenharia Financeira & IA 💡 (Plano de Resgate Priorizado) */}
-      <div className="w-full pt-2">
+      <motion.div 
+        initial={{ opacity: 0.4, scale: 0.97, y: 30 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0.4, scale: 0.97, y: -30 }}
+        viewport={{ once: false, amount: 0.15 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="w-full pt-2"
+      >
         <FinancialErrorBoundary fallbackTitle="Diagnóstico Indisponível">
           <RecommendationsCard
             strategy={strategy}
@@ -792,10 +817,17 @@ export default function DashboardPage() {
             }}
           />
         </FinancialErrorBoundary>
-      </div>
+      </motion.div>
 
       {/* SEÇÃO LARGURA TOTAL 100% 2: Nosso Calendário de Vencimentos 📅 */}
-      <div className="w-full pt-2">
+      <motion.div 
+        initial={{ opacity: 0.4, scale: 0.97, y: 30 }}
+        whileInView={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0.4, scale: 0.97, y: -30 }}
+        viewport={{ once: false, amount: 0.15 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="w-full pt-2"
+      >
         <FinancialErrorBoundary fallbackTitle="Agenda e Vencimentos Indisponíveis" onReset={() => loadDashboardData(selectedMonthStr)}>
           <CalendarSection
             selectedDate={selectedDate}
@@ -813,7 +845,7 @@ export default function DashboardPage() {
             selectedMonthStr={selectedMonthStr}
           />
         </FinancialErrorBoundary>
-      </div>
+      </motion.div>
 
       {/* MODAL DE SIMULAÇÃO DE RENEGOCIAÇÃO BANCÁRIA */}
       <BankNegotiationModal

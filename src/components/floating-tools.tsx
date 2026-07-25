@@ -25,6 +25,7 @@ import { addTransaction } from "@/actions/transactions";
 import { getProfileFinancialData } from "@/actions/onboarding";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
+import { motion } from "framer-motion";
 
 export function FloatingTools() {
   const pathname = usePathname();
@@ -383,21 +384,38 @@ export function FloatingTools() {
     <>
       {/* 1. Botão Flutuante de Novo Lançamento Rápido (Canto Inferior Esquerdo) */}
       {showChatBubble && (
-        <div className={`fixed left-6 z-[9990] group transition-all duration-300 ${isVisible ? 'bottom-6 translate-y-0 opacity-100' : 'bottom-0 translate-y-full opacity-0 pointer-events-none'}`}>
-          <Button
+        <motion.div 
+          className="fixed left-6 z-[9990] group bottom-8 sm:bottom-6"
+          initial={{ opacity: 0, scale: 0.5, y: 50 }}
+          animate={{ 
+            opacity: isVisible ? 1 : 0, 
+            scale: isVisible ? 1 : 0.5, 
+            y: isVisible ? 0 : 50 
+          }}
+          transition={{ type: "spring", stiffness: 260, damping: 22 }}
+        >
+          <motion.button
             onClick={() => {
               resetQuickForm();
               setQuickLaunchOpen(true);
             }}
-            className="w-14 h-14 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 shadow-xl shadow-yellow-500/20 flex items-center justify-center p-0 border border-yellow-400/20 transition-transform hover:scale-110 active:scale-95 animate-pulse"
+            whileHover={{ scale: 1.12 }}
+            whileTap={{ scale: 0.95 }}
+            className="w-14 h-14 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 shadow-xl shadow-yellow-500/20 flex items-center justify-center p-0 border border-yellow-400/20 transition-colors duration-300"
             title="Novo Lançamento Rápido"
           >
-            <PlusCircle className="w-7 h-7 text-zinc-950" />
-          </Button>
-          <span className="absolute bottom-16 left-0 bg-zinc-900 border border-white/10 text-yellow-500 text-[10px] font-black uppercase tracking-wider py-1 px-2.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-md shadow-black/50">
+            <motion.div
+              whileHover={{ rotate: 180 }}
+              transition={{ type: "spring", stiffness: 220, damping: 13 }}
+              className="flex items-center justify-center"
+            >
+              <PlusCircle className="w-7 h-7 text-zinc-950" />
+            </motion.div>
+          </motion.button>
+          <span className="absolute bottom-18 left-0 bg-zinc-900 border border-white/10 text-yellow-500 text-[10px] font-black uppercase tracking-wider py-1 px-2.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap shadow-md shadow-black/50">
             Novo Lançamento ✍️
           </span>
-        </div>
+        </motion.div>
       )}
 
       {/* 2. Botão Flutuante da Calculadora (Canto Inferior Direito) */}
@@ -591,11 +609,11 @@ export function FloatingTools() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Destinação</label>
+                  <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">Destinação</label>
                   <select
                     value={formOwnership}
                     onChange={e => setFormOwnership(e.target.value as any)}
-                    className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
+                    className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-base md:text-xs h-11 font-semibold"
                   >
                     <option value="shared">Conjunto (Compartilhado)</option>
                     <option value="individual">Individual (Pessoal)</option>
@@ -606,24 +624,25 @@ export function FloatingTools() {
               {/* Valor e Data */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Valor (R$)</label>
+                  <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">Valor (R$)</label>
                   <input
                     type="number"
+                    inputMode="decimal"
                     step="0.01"
                     placeholder="0.00"
                     value={quickForm.amount || ""}
                     onChange={e => setQuickForm({ ...quickForm, amount: Number(e.target.value) })}
-                    className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-bold font-mono"
+                    className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-base md:text-xs h-11 font-bold font-mono"
                     required
                     autoFocus
                   />
                 </div>
                 <div className="relative">
-                  <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Data da Transação</label>
+                  <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">Data da Transação</label>
                   <button
                     type="button"
                     onClick={() => setShowDatePicker(!showDatePicker)}
-                    className="flex items-center justify-between bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none px-3 w-full text-xs h-11 font-bold text-left"
+                    className="flex items-center justify-between bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none px-3 w-full text-base md:text-xs h-11 font-bold text-left"
                   >
                     <span className="flex items-center gap-2">
                       <CalendarIcon className="w-3.5 h-3.5 text-zinc-500" />
@@ -650,13 +669,15 @@ export function FloatingTools() {
 
               {/* Descrição */}
               <div>
-                <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Descrição</label>
+                <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">Descrição</label>
                 <input
                   type="text"
+                  autoCapitalize="sentences"
+                  autoCorrect="off"
                   placeholder="Ex: Supermercado, Salário, Internet"
                   value={quickForm.description}
                   onChange={e => setQuickForm({ ...quickForm, description: e.target.value })}
-                  className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
+                  className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-base md:text-xs h-11 font-semibold"
                   required
                 />
               </div>
@@ -664,11 +685,11 @@ export function FloatingTools() {
               {/* Categoria e Forma de Pagamento */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Categoria</label>
+                  <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">Categoria</label>
                   <select
                     value={quickForm.category}
                     onChange={e => setQuickForm({ ...quickForm, category: e.target.value })}
-                    className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
+                    className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-base md:text-xs h-11 font-semibold"
                   >
                     {(quickForm.type === "income"
                       ? ["Salário", "Pró-labore", "Rendimentos / Investimentos", "Reembolsos", "Outros"]
@@ -682,13 +703,13 @@ export function FloatingTools() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">
+                  <label className="text-[10px] text-zinc-300 font-bold uppercase block mb-1">
                     {quickForm.type === "income" ? "Forma de Recebimento" : "Forma de Pagamento"}
                   </label>
                   <select
                     value={quickForm.paymentMethod || "pix"}
                     onChange={e => setQuickForm({ ...quickForm, paymentMethod: e.target.value as any })}
-                    className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
+                    className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-base md:text-xs h-11 font-semibold"
                   >
                     <option value="pix">PIX</option>
                     <option value="money">Dinheiro à Vista</option>
@@ -703,12 +724,12 @@ export function FloatingTools() {
               {/* Seleção de Cartão de Crédito Rápido */}
               {quickForm.type === "expense" && quickForm.paymentMethod === "credit_card" && (
                 <div className="animate-fade-in relative">
-                  <label className="text-[9px] text-yellow-500 uppercase font-black block mb-1">Qual Cartão de Crédito?</label>
+                  <label className="text-[10px] text-yellow-500 font-bold uppercase block mb-1">Qual Cartão de Crédito?</label>
 
                   <button
                     type="button"
                     onClick={() => setIsCardDropdownOpen(!isCardDropdownOpen)}
-                    className="bg-zinc-950 border border-yellow-500/30 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none px-3.5 w-full text-xs h-11 font-bold flex justify-between items-center text-left hover:bg-zinc-900/40 transition-colors"
+                    className="bg-zinc-950 border border-yellow-500/30 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none px-3.5 w-full text-base md:text-xs h-11 font-bold flex justify-between items-center text-left hover:bg-zinc-900/40 transition-colors"
                   >
                     <div className="flex items-center gap-2">
                       {quickForm.creditCardId && getBankLogoUrl(creditCards.find(c => c.id === quickForm.creditCardId)?.name || "") ? (
