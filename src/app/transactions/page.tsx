@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Calendar as CalendarIcon,
   Info,
+  ChevronLeft,
   ChevronRight,
   TrendingDown,
   Sparkles,
@@ -72,6 +73,23 @@ export default function TransactionsPage() {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     return new Date().toISOString().substring(0, 7);
   });
+
+  // Seletor de Mês Personalizado (Estilizado)
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(() => {
+    const yearStr = new Date().toISOString().substring(0, 4);
+    return parseInt(yearStr) || new Date().getFullYear();
+  });
+
+  // Sincroniza o pickerYear quando o selectedMonth mudar
+  useEffect(() => {
+    if (selectedMonth) {
+      const year = parseInt(selectedMonth.substring(0, 4));
+      if (!isNaN(year)) {
+        setPickerYear(year);
+      }
+    }
+  }, [selectedMonth]);
 
   const [userCreditCards, setUserCreditCards] = useState<any[]>([]);
   const [isCardDropdownOpen, setIsCardDropdownOpen] = useState(false);
@@ -551,15 +569,99 @@ export default function TransactionsPage() {
           </div>
         </div>
 
-        {/* Seletor de Mês Integrado */}
-        <div className="bg-zinc-900/60 p-1.5 rounded-2xl border border-white/10 flex items-center gap-2 backdrop-blur-md">
-          <span className="text-[10px] text-zinc-400 uppercase font-black px-2 tracking-wider">Mês de Referência:</span>
-          <input
-            type="month"
-            value={selectedMonth}
-            onChange={e => setSelectedMonth(e.target.value)}
-            className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 text-xs px-3 py-2 focus:outline-none [color-scheme:dark] font-bold"
-          />
+        {/* Seletor de Mês Integrado Personalizado */}
+        <div className="relative">
+          <div className="bg-zinc-900/60 p-1.5 rounded-2xl border border-white/10 flex items-center gap-2 backdrop-blur-md">
+            <span className="text-[10px] text-zinc-400 uppercase font-black px-2 tracking-wider">Mês de Referência:</span>
+            <button
+              type="button"
+              onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
+              className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 text-xs px-3.5 py-2 focus:outline-none hover:bg-zinc-900 hover:border-yellow-500/30 transition-all font-bold flex items-center gap-2"
+            >
+              <CalendarIcon className="w-3.5 h-3.5 text-yellow-500" />
+              <span>{getReadableMonthLabel(selectedMonth)}</span>
+            </button>
+          </div>
+
+          {isMonthPickerOpen && (
+            <>
+              <div className="fixed inset-0 z-[999]" onClick={() => setIsMonthPickerOpen(false)} />
+              <div className="absolute right-0 top-full mt-2 z-[1000] w-[260px] bg-zinc-950 border border-white/10 rounded-2xl p-4 shadow-2xl backdrop-blur-md animate-fade-in text-zinc-200">
+                {/* Header do Seletor: Ano com navegação */}
+                <div className="flex justify-between items-center mb-3 pb-2 border-b border-white/5">
+                  <button
+                    type="button"
+                    onClick={() => setPickerYear(prev => prev - 1)}
+                    className="p-1.5 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs font-black text-yellow-500 font-mono tracking-wider">{pickerYear}</span>
+                  <button
+                    type="button"
+                    onClick={() => setPickerYear(prev => prev + 1)}
+                    className="p-1.5 rounded-lg hover:bg-white/5 text-zinc-400 hover:text-white transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Grade de Meses (4 colunas, 3 linhas) */}
+                <div className="grid grid-cols-4 gap-2 text-center text-xs">
+                  {["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"].map((monthLabel, idx) => {
+                    const monthNum = idx + 1;
+                    const monthStr = String(monthNum).padStart(2, '0');
+                    const targetMonthStr = `${pickerYear}-${monthStr}`;
+                    const isSelected = selectedMonth === targetMonthStr;
+                    const isCurrentMonth = new Date().toISOString().substring(0, 7) === targetMonthStr;
+
+                    return (
+                      <button
+                        key={monthLabel}
+                        type="button"
+                        onClick={() => {
+                          setSelectedMonth(targetMonthStr);
+                          setIsMonthPickerOpen(false);
+                        }}
+                        className={`py-2 rounded-lg font-black uppercase text-[10px] tracking-wider transition-all ${
+                          isSelected
+                            ? "bg-yellow-500 text-zinc-950 shadow-lg shadow-yellow-500/20"
+                            : isCurrentMonth
+                            ? "bg-yellow-500/10 text-yellow-500 border border-yellow-500/20"
+                            : "bg-zinc-900/40 border border-white/5 hover:border-yellow-500/30 text-zinc-350 hover:text-white"
+                        }`}
+                      >
+                        {monthLabel}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Footer do Seletor */}
+                <div className="flex justify-between items-center mt-3 pt-2 border-t border-white/5 text-[9px] font-black uppercase tracking-wider">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentMonthStr = new Date().toISOString().substring(0, 7);
+                      setSelectedMonth(currentMonthStr);
+                      setPickerYear(new Date().getFullYear());
+                      setIsMonthPickerOpen(false);
+                    }}
+                    className="text-zinc-500 hover:text-white transition-colors"
+                  >
+                    Este mês
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsMonthPickerOpen(false)}
+                    className="text-yellow-500 hover:text-yellow-400 transition-colors"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </section>
 

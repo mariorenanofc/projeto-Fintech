@@ -2,25 +2,25 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { 
-  Coins, 
-  TrendingUp, 
-  TrendingDown, 
-  CreditCard, 
-  Activity, 
-  ShieldCheck, 
-  Sparkles, 
-  ArrowRight, 
-  Heart, 
-  Printer, 
-  Bot, 
+import {
+  Coins,
+  TrendingUp,
+  TrendingDown,
+  CreditCard,
+  Activity,
+  ShieldCheck,
+  Sparkles,
+  ArrowRight,
+  Heart,
+  Printer,
+  Bot,
   Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
-import { 
-  getProfileFinancialData, 
-  generateFinancialStrategy, 
+import {
+  getProfileFinancialData,
+  generateFinancialStrategy,
   FinancialStrategyResult,
   getGoals,
   GoalInput
@@ -66,7 +66,7 @@ export default function DashboardPage() {
 
   // Estado do Semáforo Financeiro: 'green' | 'yellow' | 'red'
   const [financeStatus, setFinanceStatus] = useState<"green" | "yellow" | "red">("green");
-  
+
   // Estado do Calendário (Dia selecionado)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
 
@@ -120,7 +120,7 @@ export default function DashboardPage() {
   // Canal do Supabase Realtime para sincronização automática no Dashboard
   useEffect(() => {
     if (!mounted) return;
-    
+
     const supabase = createClient();
     const channel = supabase
       .channel("realtime-dashboard")
@@ -146,7 +146,7 @@ export default function DashboardPage() {
   const loadDashboardData = async (monthStr: string) => {
     try {
       setLoadingRealData(true);
-      
+
       // Busca perfil do usuário, dados financeiros, transações, estratégia e metas em paralelo
       const supabase = createClient();
       const [
@@ -199,7 +199,7 @@ export default function DashboardPage() {
       // Define status de finanças com base no motor de transição de estágios
       if (strat.hasStrategy) {
         setFinanceStatus(strat.financialStage);
-        
+
         // Gamificação / Detecção de Subida de Fase
         if (mounted) {
           const prevStage = localStorage.getItem("casal_financial_stage");
@@ -207,7 +207,7 @@ export default function DashboardPage() {
             const stagesOrder = { red: 1, yellow: 2, green: 3 };
             const currentRank = stagesOrder[strat.financialStage];
             const prevRank = stagesOrder[prevStage as "red" | "yellow" | "green"] || 1;
-            
+
             if (currentRank > prevRank) {
               setCelebrationStage(strat.financialStage as "yellow" | "green");
               setCelebrationOpen(true);
@@ -238,7 +238,7 @@ export default function DashboardPage() {
       let dueDay = 15;
       const titleStr = exp.title || "";
       const match = titleStr.match(/\[due:(\d+)\]/);
-      
+
       if (match) {
         dueDay = parseInt(match[1]);
       } else {
@@ -394,7 +394,7 @@ export default function DashboardPage() {
     if (!billToConfirm) return;
     setLoadingRealData(true);
     setConfirmModalOpen(false);
-    
+
     const res = await addTransaction({
       type: "expense",
       amount: actualAmountPaid,
@@ -522,15 +522,15 @@ export default function DashboardPage() {
   // Valores de Exibição das Métricas Principais (Utiliza Previsão do Onboarding/Estratégia se ainda não houver lançamentos reais no mês)
   const displayIncome = realIncome > 0 ? realIncome : prevIncome;
   const displayExpenses = (realEssentials + realCommitments) > 0 ? (realEssentials + realCommitments) : (prevEssentials + prevCommitments);
-  const displayDisposable = (realIncome > 0 || realEssentials > 0 || realCommitments > 0) 
-    ? realDisposable 
+  const displayDisposable = (realIncome > 0 || realEssentials > 0 || realCommitments > 0)
+    ? realDisposable
     : (strategy?.remainingCashResidue !== undefined ? strategy.remainingCashResidue : prevDisposable);
 
   // Reserva Livre real (o valor alocado para lazer/desejos do casal)
   const reservaLivreCasal = strategy?.hasStrategy
-    ? (displayDisposable > 0 
-        ? Math.min(strategy.lazerTravaValue, displayDisposable) 
-        : 0)
+    ? (displayDisposable > 0
+      ? Math.min(strategy.lazerTravaValue, displayDisposable)
+      : 0)
     : 0;
 
   const tetoDiario = strategy?.hasStrategy && reservaLivreCasal > 0
@@ -595,9 +595,9 @@ export default function DashboardPage() {
 
   return (
     <div className="flex-1 w-full mx-auto bg-transparent flex flex-col min-h-screen px-3 py-4 xs:px-4 xs:py-6 pb-6 sm:pb-6 max-w-full xs:max-w-[480px] sm:max-w-[768px] tablet:max-w-[834px] md:max-w-[1024px] lg:max-w-[1440px] laptop:max-w-[1600px] sm:px-6 md:px-8 lg:py-8 space-y-6">
-      
+
       {/* Header do App */}
-      <Header 
+      <Header
         userProfile={userProfile}
         selectedMonthStr={selectedMonthStr}
         hasStrategy={!!strategy?.hasStrategy}
@@ -629,15 +629,13 @@ export default function DashboardPage() {
               <button
                 key={item.value}
                 onClick={() => setSelectedMonthStr(item.value)}
-                className={`flex-shrink-0 sm:flex-shrink w-[105px] sm:w-auto p-3 rounded-xl border text-center transition-all duration-300 flex flex-col justify-between items-center gap-1.5 ${
-                  isActive
+                className={`flex-shrink-0 sm:flex-shrink w-[105px] sm:w-auto p-3 rounded-xl border text-center transition-all duration-300 flex flex-col justify-between items-center gap-1.5 ${isActive
                     ? "bg-yellow-500/10 border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)]"
                     : "bg-[#121214]/40 border-white/5 hover:border-zinc-800 hover:bg-[#161619]/60"
-                }`}
+                  }`}
               >
-                <span className={`text-[10px] font-black tracking-wider transition-colors ${
-                  isActive ? "text-yellow-500" : "text-zinc-400"
-                }`}>
+                <span className={`text-[10px] font-black tracking-wider transition-colors ${isActive ? "text-yellow-500" : "text-zinc-400"
+                  }`}>
                   {item.label}
                 </span>
 
@@ -725,12 +723,12 @@ export default function DashboardPage() {
 
       {/* Grid Principal de 2 Colunas (Equilibradas em Altura) */}
       <div className="flex-1 flex flex-col gap-6 tablet:grid tablet:grid-cols-12 tablet:gap-6 lg:gap-8 tablet:items-stretch h-full">
-        
+
         {/* COLUNA ESQUERDA (tablet:col-span-5): Semáforo e Limites de Crédito Reais */}
         <div className="flex flex-col gap-6 tablet:col-span-5 h-full justify-between space-y-2">
           {/* 1. Card do Semáforo */}
           <FinancialErrorBoundary fallbackTitle="Semáforo Indisponível" onReset={() => loadDashboardData(selectedMonthStr)}>
-            <SemaphoreCard 
+            <SemaphoreCard
               loadingRealData={loadingRealData}
               financeStatus={financeStatus}
               realDisposable={displayDisposable}
@@ -755,7 +753,7 @@ export default function DashboardPage() {
         {/* COLUNA DIREITA (tablet:col-span-7): Painel Estratégico (Nosso Fluxo & Sonhos ✨) */}
         <div className="flex flex-col gap-6 tablet:col-span-7 h-full flex-grow">
           <FinancialErrorBoundary fallbackTitle="Fluxo Financeiro Indisponível" onReset={() => loadDashboardData(selectedMonthStr)}>
-            <FlowSummary 
+            <FlowSummary
               loadingRealData={loadingRealData}
               strategy={strategy}
               realIncome={displayIncome}
@@ -784,8 +782,8 @@ export default function DashboardPage() {
       {/* SEÇÃO LARGURA TOTAL 100% 1: Engenharia Financeira & IA 💡 (Plano de Resgate Priorizado) */}
       <div className="w-full pt-2">
         <FinancialErrorBoundary fallbackTitle="Diagnóstico Indisponível">
-          <RecommendationsCard 
-            strategy={strategy} 
+          <RecommendationsCard
+            strategy={strategy}
             rawCards={rawCards}
             rawDebts={rawDebts}
             onOpenNegotiationModal={(item) => {
@@ -799,7 +797,7 @@ export default function DashboardPage() {
       {/* SEÇÃO LARGURA TOTAL 100% 2: Nosso Calendário de Vencimentos 📅 */}
       <div className="w-full pt-2">
         <FinancialErrorBoundary fallbackTitle="Agenda e Vencimentos Indisponíveis" onReset={() => loadDashboardData(selectedMonthStr)}>
-          <CalendarSection 
+          <CalendarSection
             selectedDate={selectedDate}
             handleDateSelect={handleDateSelect}
             selectedDateBills={selectedDateBills}
@@ -818,7 +816,7 @@ export default function DashboardPage() {
       </div>
 
       {/* MODAL DE SIMULAÇÃO DE RENEGOCIAÇÃO BANCÁRIA */}
-      <BankNegotiationModal 
+      <BankNegotiationModal
         isOpen={negotiationModalOpen}
         onClose={() => setNegotiationModalOpen(false)}
         itemToNegotiate={negotiationItem}
@@ -827,7 +825,7 @@ export default function DashboardPage() {
       />
 
       {/* MODAL DE IMPRESSÃO DE RELATÓRIO MENSAL E ANUAL (Plano da Geladeira) */}
-      <PrintReportModal 
+      <PrintReportModal
         isOpen={printModalOpen}
         onClose={() => setPrintModalOpen(false)}
         strategy={strategy}
@@ -884,7 +882,7 @@ export default function DashboardPage() {
           return cleanDescForm === cleanDescTx;
         });
         return (
-          <ConfirmPaymentDialog 
+          <ConfirmPaymentDialog
             isOpen={confirmModalOpen}
             onClose={() => setConfirmModalOpen(false)}
             bill={billToConfirm}
@@ -897,7 +895,7 @@ export default function DashboardPage() {
       })()}
 
       {/* Modal de Conquista / Subida de Estágio Financeiro */}
-      <CelebrationModal 
+      <CelebrationModal
         isOpen={celebrationOpen}
         onClose={() => setCelebrationOpen(false)}
         stage={celebrationStage}
@@ -914,7 +912,7 @@ export default function DashboardPage() {
               Sintonia Financeira
             </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4 text-center">
             <p className="text-xs text-zinc-300 leading-relaxed">
               Bem-vindos! Para desbloquear o <strong>Semáforo de Caixa</strong>, os gráficos de <strong>Ritmo de Gastos</strong>, o diagnóstico de cartões e o conselheiro IA, realize a primeira configuração do casal.
@@ -954,8 +952,8 @@ export default function DashboardPage() {
               </Button>
             </Link>
           </DialogFooter>
-    </DialogContent>
-  </Dialog>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

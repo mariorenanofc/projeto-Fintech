@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { 
-  MessageSquare, 
-  Calculator, 
-  X, 
-  Percent, 
-  History, 
+import {
+  MessageSquare,
+  Calculator,
+  X,
+  Percent,
+  History,
   Trash2,
   PlusCircle,
   XCircle,
@@ -130,7 +130,7 @@ export function FloatingTools() {
   // Não exibe a barra de ferramentas nas rotas públicas
   const isChat = pathname?.includes("/chat");
   const isPublic = ["/", "/politica-de-privacidade", "/termos-de-uso"].includes(pathname);
-  
+
   if (isPublic) {
     return null;
   }
@@ -142,7 +142,7 @@ export function FloatingTools() {
 
     const handleScroll = () => {
       const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-      
+
       if (scrollTop > lastScrollTop && scrollTop > 50) {
         // Rolando para baixo -> esconde balões flutuantes
         setIsVisible(false);
@@ -152,7 +152,7 @@ export function FloatingTools() {
         setIsVisible(true);
         document.body.classList.remove("scrolling-down");
       }
-      
+
       lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
     };
 
@@ -168,12 +168,12 @@ export function FloatingTools() {
     try {
       const savedHistory = localStorage.getItem("calc_history");
       const lastActiveStr = localStorage.getItem("calc_last_active");
-      
+
       if (savedHistory && lastActiveStr) {
         const lastActive = parseInt(lastActiveStr, 10);
         const timePassed = Date.now() - lastActive;
         const sevenMinutes = 7 * 60 * 1000;
-        
+
         if (timePassed < sevenMinutes) {
           setHistory(JSON.parse(savedHistory));
         } else {
@@ -195,7 +195,7 @@ export function FloatingTools() {
           const lastActive = parseInt(lastActiveStr, 10);
           const timePassed = Date.now() - lastActive;
           const sevenMinutes = 7 * 60 * 1000;
-          
+
           if (timePassed >= sevenMinutes) {
             setHistory([]);
             localStorage.removeItem("calc_history");
@@ -215,7 +215,7 @@ export function FloatingTools() {
   const updateActivity = () => {
     try {
       localStorage.setItem("calc_last_active", String(Date.now()));
-    } catch (e) {}
+    } catch (e) { }
   };
 
   // Suporte a teclado físico para a calculadora
@@ -224,7 +224,7 @@ export function FloatingTools() {
 
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key;
-      
+
       if (/[0-9+\-*/.()]/.test(key)) {
         e.preventDefault();
         handleKeyPress(key);
@@ -270,7 +270,7 @@ export function FloatingTools() {
         let finalExpression = sanitized.replace(/([0-9.]+)(%)/g, "($1/100)");
 
         const calcResult = new Function(`return ${finalExpression}`)();
-        
+
         if (calcResult === Infinity || calcResult === -Infinity || isNaN(calcResult)) {
           setResult("Erro");
           setPreviousExpression(expression + " =");
@@ -278,14 +278,14 @@ export function FloatingTools() {
         } else {
           const rounded = Number(calcResult);
           const formatted = rounded % 1 === 0 ? String(rounded) : String(Number(rounded.toFixed(4)));
-          
+
           // Adiciona ao histórico de forma temporária
           const newEntry = { equation: expression + " =", result: formatted };
           const updatedHistory = [newEntry, ...history];
           setHistory(updatedHistory);
           try {
             localStorage.setItem("calc_history", JSON.stringify(updatedHistory));
-          } catch (e) {}
+          } catch (e) { }
 
           setResult(formatted);
           setPreviousExpression(expression + " =");
@@ -335,7 +335,7 @@ export function FloatingTools() {
 
         const lastChar = expression.slice(-1);
         const isLastCharOperator = ["+", "-", "*", "/"].includes(lastChar);
-        
+
         if (isOperator && isLastCharOperator) {
           // Substitui o operador anterior pelo novo digitado
           setExpression(prev => prev.slice(0, -1) + val);
@@ -366,7 +366,7 @@ export function FloatingTools() {
     setHistory([]);
     try {
       localStorage.removeItem("calc_history");
-    } catch (e) {}
+    } catch (e) { }
     updateActivity();
   };
 
@@ -404,11 +404,10 @@ export function FloatingTools() {
       <div className={`fixed right-6 z-[9990] group transition-all duration-300 ${isVisible || isCalcOpen ? 'bottom-6 translate-y-0 opacity-100' : 'bottom-0 translate-y-full opacity-0 pointer-events-none'} ${isChat ? 'max-md:hidden' : ''}`}>
         <Button
           onClick={() => setIsCalcOpen(!isCalcOpen)}
-          className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center p-0 border transition-all hover:scale-110 ${
-            isCalcOpen 
-              ? "bg-zinc-900 border-white/10 text-white hover:bg-zinc-800" 
+          className={`w-14 h-14 rounded-full shadow-xl flex items-center justify-center p-0 border transition-all hover:scale-110 ${isCalcOpen
+              ? "bg-zinc-900 border-white/10 text-white hover:bg-zinc-800"
               : "bg-gradient-to-r from-yellow-500 to-yellow-400 hover:from-yellow-400 hover:to-yellow-500 text-zinc-950 shadow-yellow-500/20 border-yellow-400/20"
-          }`}
+            }`}
           title="Calculadora Virtual"
         >
           {isCalcOpen ? <X className="w-6 h-6" /> : <Calculator className="w-6 h-6" />}
@@ -428,14 +427,14 @@ export function FloatingTools() {
               Calculadora Casal
             </span>
             <div className="flex items-center gap-1.5">
-              <button 
+              <button
                 onClick={() => setIsHistoryOpen(!isHistoryOpen)}
                 className={`p-1 rounded transition-colors ${isHistoryOpen ? 'text-yellow-500 bg-yellow-500/10' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
                 title="Histórico de Cálculos"
               >
                 <History className="w-3.5 h-3.5" />
               </button>
-              <button 
+              <button
                 onClick={() => setIsCalcOpen(false)}
                 className="text-zinc-500 hover:text-white p-1 rounded hover:bg-white/5 transition-colors"
               >
@@ -460,15 +459,15 @@ export function FloatingTools() {
               <div className="flex justify-between items-center mb-2 px-1 text-[10px] uppercase tracking-wider font-bold text-zinc-500">
                 <span>Histórico Recente</span>
                 {history.length > 0 && (
-                  <button 
-                    onClick={clearHistory} 
+                  <button
+                    onClick={clearHistory}
                     className="text-rose-450 hover:text-rose-400 flex items-center gap-1 transition-colors uppercase text-[9px] font-black"
                   >
                     <Trash2 className="w-3 h-3" /> Limpar
                   </button>
                 )}
               </div>
-              
+
               <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 scrollbar-thin" data-lenis-prevent>
                 {history.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-[10px] text-zinc-650 font-bold uppercase tracking-wider">
@@ -476,7 +475,7 @@ export function FloatingTools() {
                   </div>
                 ) : (
                   history.map((entry, index) => (
-                    <button 
+                    <button
                       key={index}
                       onClick={() => handleSelectHistory(entry)}
                       className="w-full text-right bg-zinc-900/10 hover:bg-zinc-900/40 border border-white/5 hover:border-yellow-500/20 rounded-lg p-2 transition-all block group"
@@ -493,7 +492,7 @@ export function FloatingTools() {
                 )}
               </div>
 
-              <button 
+              <button
                 onClick={() => setIsHistoryOpen(false)}
                 className="mt-3 w-full bg-zinc-900 hover:bg-zinc-800 border border-white/5 py-1.5 rounded-xl text-[10px] uppercase tracking-wider font-bold text-zinc-400 hover:text-white transition-colors"
               >
@@ -561,33 +560,31 @@ export function FloatingTools() {
                   <div className="flex bg-zinc-950 border border-white/5 p-1 rounded-xl w-full h-11">
                     <button
                       type="button"
-                      onClick={() => setQuickForm({ 
-                        ...quickForm, 
-                        type: "expense", 
-                        category: "Moradia" 
+                      onClick={() => setQuickForm({
+                        ...quickForm,
+                        type: "expense",
+                        category: "Moradia"
                       })}
-                      className={`flex-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1 ${
-                        quickForm.type === "expense" 
-                          ? "bg-rose-500/20 text-rose-400 border border-rose-500/10 shadow-sm" 
+                      className={`flex-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1 ${quickForm.type === "expense"
+                          ? "bg-rose-500/20 text-rose-400 border border-rose-500/10 shadow-sm"
                           : "text-zinc-500 hover:text-zinc-300"
-                      }`}
+                        }`}
                     >
                       Gasto
                     </button>
                     <button
                       type="button"
-                      onClick={() => setQuickForm({ 
-                        ...quickForm, 
-                        type: "income", 
-                        category: "Salário", 
+                      onClick={() => setQuickForm({
+                        ...quickForm,
+                        type: "income",
+                        category: "Salário",
                         paymentMethod: quickForm.paymentMethod === "credit_card" ? "pix" : quickForm.paymentMethod,
                         creditCardId: ""
                       })}
-                      className={`flex-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1 ${
-                        quickForm.type === "income" 
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/10 shadow-sm" 
+                      className={`flex-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1 ${quickForm.type === "income"
+                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/10 shadow-sm"
                           : "text-zinc-500 hover:text-zinc-300"
-                      }`}
+                        }`}
                     >
                       Receita
                     </button>
@@ -633,7 +630,7 @@ export function FloatingTools() {
                       {formatInputDate(quickForm.date) || "Selecione..."}
                     </span>
                   </button>
-                  
+
                   {showDatePicker && (
                     <>
                       <div className="fixed inset-0 z-[99999]" onClick={() => setShowDatePicker(false)} />
@@ -673,12 +670,12 @@ export function FloatingTools() {
                     onChange={e => setQuickForm({ ...quickForm, category: e.target.value })}
                     className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
                   >
-                    {(quickForm.type === "income" 
+                    {(quickForm.type === "income"
                       ? ["Salário", "Pró-labore", "Rendimentos / Investimentos", "Reembolsos", "Outros"]
                       : [
-                          "Moradia", "Alimentação", "Transporte", "Lazer", "Saúde", 
-                          "Educação", "Cartão", "Lote/Terreno", "Empréstimo", "Aporte na Reserva", "Investimento", "Outros"
-                        ]
+                        "Moradia", "Alimentação", "Transporte", "Lazer", "Saúde",
+                        "Educação", "Cartão", "Lote/Terreno", "Empréstimo", "Aporte na Reserva", "Investimento", "Outros"
+                      ]
                     ).map(c => (
                       <option key={c} value={c}>{c}</option>
                     ))}
@@ -707,7 +704,7 @@ export function FloatingTools() {
               {quickForm.type === "expense" && quickForm.paymentMethod === "credit_card" && (
                 <div className="animate-fade-in relative">
                   <label className="text-[9px] text-yellow-500 uppercase font-black block mb-1">Qual Cartão de Crédito?</label>
-                  
+
                   <button
                     type="button"
                     onClick={() => setIsCardDropdownOpen(!isCardDropdownOpen)}
@@ -733,7 +730,7 @@ export function FloatingTools() {
                     </div>
                     <span className="text-[10px] text-zinc-500">▼</span>
                   </button>
-                  
+
                   {isCardDropdownOpen && (
                     <>
                       <div className="fixed inset-0 z-[99999]" onClick={() => setIsCardDropdownOpen(false)} />
@@ -752,11 +749,10 @@ export function FloatingTools() {
                                 });
                                 setIsCardDropdownOpen(false);
                               }}
-                              className={`w-full text-left p-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-between ${
-                                isSel
+                              className={`w-full text-left p-2.5 rounded-lg text-xs font-bold transition-all flex items-center justify-between ${isSel
                                   ? "bg-yellow-500/10 text-yellow-400"
                                   : "text-zinc-400 hover:bg-yellow-500 hover:text-zinc-950"
-                              }`}
+                                }`}
                             >
                               <div className="flex items-center gap-2">
                                 {getBankLogoUrl(c.name) && (
@@ -779,15 +775,15 @@ export function FloatingTools() {
               )}
 
               <DialogFooter className="mt-6 flex gap-3 pt-3 border-t border-white/5">
-                <Button 
+                <Button
                   type="button"
-                  variant="outline" 
+                  variant="outline"
                   onClick={() => setQuickLaunchOpen(false)}
                   className="flex-1 bg-zinc-900 text-zinc-300 border-white/10 hover:bg-zinc-800 hover:text-white h-11 rounded-xl font-bold"
                 >
                   Cancelar
                 </Button>
-                <Button 
+                <Button
                   type="submit"
                   className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-zinc-950 shadow-[0_0_15px_rgba(234,179,8,0.25)] h-11 rounded-xl font-bold border-none"
                 >

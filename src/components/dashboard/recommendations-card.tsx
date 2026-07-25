@@ -15,8 +15,8 @@ interface RecommendationsCardProps {
 export function RecommendationsCard({ strategy, rawCards = [], rawDebts = [], onOpenNegotiationModal }: RecommendationsCardProps) {
   if (!strategy || !strategy.hasStrategy) return null;
 
-  const percent = strategy.reservaMeta > 0 
-    ? Math.round(Math.min(100, (strategy.reservaFinanceiraAtual / strategy.reservaMeta) * 100)) 
+  const percent = strategy.reservaMeta > 0
+    ? Math.round(Math.min(100, (strategy.reservaFinanceiraAtual / strategy.reservaMeta) * 100))
     : 0;
 
   const essentialsIdeal = strategy.totalIncome * 0.50;
@@ -43,11 +43,11 @@ export function RecommendationsCard({ strategy, rawCards = [], rawDebts = [], on
           Ideias personalizadas e simulações para resgatar a saúde financeira do casal
         </p>
       </div>
-      
+
       <div className="space-y-6">
         {/* LINHA 1: Distribuição do Orçamento + Alocação Crítica (50% / 50% lado a lado em telas grandes) */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-          
+
           {/* CARD 1: Distribuição Sugerida do Orçamento */}
           <div className="bg-zinc-950/40 p-4 rounded-xl border border-white/5 space-y-4 flex flex-col justify-between h-full">
             <div>
