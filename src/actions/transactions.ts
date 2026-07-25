@@ -137,7 +137,7 @@ export async function addTransaction(item: TransactionInput) {
         description: finalDescription,
         category: item.category || "Geral",
         date: item.date || new Date().toISOString().substring(0, 10),
-        credit_card_id: item.creditCardId,
+        credit_card_id: item.creditCardId || null,
         transaction_kind: transactionKind,
         billing_month: billingMonth
       })
@@ -285,7 +285,7 @@ export async function updateTransaction(id: string, item: TransactionInput) {
       description: finalDescription,
       category: item.category || "Geral",
       date: item.date,
-      credit_card_id: item.creditCardId,
+      credit_card_id: item.creditCardId || null,
       transaction_kind: transactionKind,
       billing_month: billingMonth
     };
