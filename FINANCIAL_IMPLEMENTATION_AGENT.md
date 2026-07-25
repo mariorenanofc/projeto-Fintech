@@ -123,6 +123,17 @@ Implementado em 25/07/2026:
 
 Verificação em 25/07/2026: Sincronização automática de banco via CLI (`supabase db push`) concluída com sucesso. Todos os 23 testes unitários passando. TypeScript check compilando com sucesso total.
 
+### Fase 4 - Concluída
+
+Implementado em 25/07/2026:
+
+- `src/lib/financial/cash-flow.ts`: criados os tipos `DailyCashFlowEvent` (renomeado para evitar ambiguidade com `CashFlowEvent` legado) e a função pura `calculateDailyCashFlow` que computa cronologicamente do dia 1 ao último dia do mês o saldo de conta antes/depois, e sinaliza vales de caixa negativos.
+- `supabase/migrations/20260726020000_account_balance.sql`: adiciona o campo `account_balance` na tabela `profiles` para guardar o saldo consolidado informado.
+- `src/actions/cash-flow.ts`: cria a Server Action `getDailyCashFlow` que busca as despesas fixas, transações realizadas, faturas estruturadas e parcelas de dívidas mapeadas para cada data do mês, computando a projeção diária (e aplicando fallbacks inteligentes de conciliação para evitar duplicações).
+- `src/lib/financial/financial.test.ts`: adicionados 2 testes unitários completos cobrindo fluxos reais com vales de caixa negativos e fluxos relativos (saldo inicial nulo).
+
+Verificação em 25/07/2026: Sincronização de banco remoto via CLI (`supabase db push`) concluída com sucesso. Todos os 25 testes unitários passando. TypeScript check compilando com sucesso total.
+
 ### Fase 0: Fundacao e contrato de dados
 
 Objetivo: eliminar ambiguidades antes de alterar indicadores.

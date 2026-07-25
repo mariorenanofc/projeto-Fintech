@@ -12,7 +12,8 @@ import {
   calculateCreditUtilization,
   calculateLateCharges,
   getInvoiceCycleForPurchase,
-  getInvoiceDatesForBillingMonth
+  getInvoiceDatesForBillingMonth,
+  calculateDailyCashFlow
 } from "./index";
 
 describe("Financial Layer - money.ts", () => {
@@ -284,5 +285,80 @@ describe("Financial Layer - credit-cards.ts (Cycles)", () => {
 
     expect(result.closingDateStr).toBe("2026-08-28"); // Fechamento em agosto
     expect(result.dueDateStr).toBe("2026-09-05"); // Vencimento em setembro
+  });
+});
+
+describe("Financial Layer - cash-flow.ts", () => {
+  it("should compute chronological cash flow correctly with initial balance (real flow with negatives)", () => {
+    // Saldo inicial de 1000 reais.
+    // Despesa de 1200 reais no dia 5.
+    // Receita de 500 reais no dia 10.
+    // Mês de agosto (31 dias)
+    const result = calculateDailyCashFlow({
+      initialBalance: 1000,
+      year: 2026,
+      month: 8,
+      events: [
+        { id: "1", title: "Despesa Alta", amount: 1200, type: "expense", date: "2026-08-05" },
+        { id: "2", title: "Salário", amount: 500, type: "income", date: "2026-08-10" }
+      ]
+    });
+
+    expect(result.isRelativeFlow).toBe(false);
+    
+    // Dias 1 a 4: saldo permanece em 1000
+    expect(result.dailyData[0].balanceBefore).toBe(1000);
+    expect(result.dailyData[0].balanceAfter).toBe(1000);
+    expect(result.dailyData[3].balanceAfter).toBe(1000);
+
+    // Dia 5: despesa de 1200 -> saldo vai para -200 (isNegative: true)
+    const day5 = result.dailyData[4];
+    expect(day5.day).toBe(5);
+    expect(day5.balanceBefore).toBe(1000);
+    expect(day5.expenses).toBe(1200);
+    expect(day5.balanceAfter).toBe(-200);
+    expect(day5.isNegative).toBe(true);
+
+    // Dia 9: saldo continua em -200
+    const day9 = result.dailyData[8];
+    expect(day9.balanceAfter).toBe(-200);
+    expect(day9.isNegative).toBe(true);
+
+    // Dia 10: receita de 500 -> saldo vai para +300 (isNegative: false)
+    const day10 = result.dailyData[9];
+    expect(day10.day).toBe(10);
+    expect(day10.balanceBefore).toBe(-200);
+    expect(day10.incomes).toBe(500);
+    expect(day10.balanceAfter).toBe(300);
+    expect(day10.isNegative).toBe(false);
+
+    // Dia 31: saldo final de 300
+    expect(result.dailyData[30].balanceAfter).toBe(300);
+  });
+
+  it("should compute relative flow if initial balance is null", () => {
+    // Fluxo relativo: inicia com 0.
+    // Despesa de 100 reais no dia 2.
+    // Receita de 150 reais no dia 3.
+    const result = calculateDailyCashFlow({
+      initialBalance: null,
+      year: 2026,
+      month: 8,
+      events: [
+        { id: "1", title: "Conta", amount: 100, type: "expense", date: "2026-08-02" },
+        { id: "2", title: "Pix", amount: 150, type: "income", date: "2026-08-03" }
+      ]
+    });
+
+    expect(result.isRelativeFlow).toBe(true);
+    expect(result.dailyData[0].balanceBefore).toBe(0);
+    
+    // Dia 2: saldo -100
+    expect(result.dailyData[1].balanceAfter).toBe(-100);
+    expect(result.dailyData[1].isNegative).toBe(true);
+
+    // Dia 3: saldo +50
+    expect(result.dailyData[2].balanceAfter).toBe(50);
+    expect(result.dailyData[2].isNegative).toBe(false);
   });
 });
