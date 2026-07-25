@@ -336,7 +336,9 @@ export default function DashboardPage() {
           amount: invVal,
           dueDate: `${currentYearMonth}${String(dueDay).padStart(2, '0')}`,
           status: "pending",
-          category: "Cartão"
+          category: "Cartão",
+          creditCardId: card.id,
+          paymentMethod: "transfer"
         });
       }
     });
@@ -398,7 +400,9 @@ export default function DashboardPage() {
       amount: actualAmountPaid,
       description: billToConfirm.title,
       category: billToConfirm.category,
-      date: billToConfirm.dueDate
+      date: billToConfirm.dueDate,
+      creditCardId: billToConfirm.creditCardId,
+      paymentMethod: billToConfirm.paymentMethod as any
     });
 
     if (res.success) {
@@ -739,10 +743,11 @@ export default function DashboardPage() {
 
           {/* 2. Nossos Limites de Crédito Reais 💳 */}
           <FinancialErrorBoundary fallbackTitle="Limites de Crédito Indisponíveis">
-            <CreditCardLimitsCard 
+            <CreditCardLimitsCard
               rawCards={rawCards}
               financeStatus={financeStatus}
               strategy={strategy}
+              currentMonth={selectedMonthStr as `${number}-${string}`}
             />
           </FinancialErrorBoundary>
         </div>

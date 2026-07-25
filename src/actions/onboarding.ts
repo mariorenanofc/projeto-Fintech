@@ -1,6 +1,13 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  addMonths,
+  assertMonthKey,
+  getFinancialMonth,
+  getScheduledAmount,
+  calculateLateCharges
+} from "@/lib/financial";
 
 export interface IncomeInput {
   id?: string;
@@ -222,17 +229,6 @@ export async function saveOnboardingData(data: OnboardingData) {
 }
 
 /**
- * Helper para calcular o próximo mês string (Ex: "2026-08" -> "2026-09")
- */
-function getNextMonthStr(monthStr: string): string {
-  const [year, month] = monthStr.split("-").map(Number);
-  if (month === 12) {
-    return `${year + 1}-01`;
-  }
-  return `${year}-${String(month + 1).padStart(2, "0")}`;
-}
-
-/**
  * Server Action para ler os dados salvos e gerar o diagnóstico estratégico real e personalizado
  */
 export async function generateFinancialStrategy(selectedMonth?: string): Promise<FinancialStrategyResult> {
@@ -248,8 +244,9 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
     const familyGroupId = await getFamilyGroupId(supabase, user.id);
 
     // Mês atual de análise
-    const currentMonthStr = selectedMonth || new Date().toISOString().substring(0, 7); 
-    const nextMonthStr = getNextMonthStr(currentMonthStr);
+    const currentMonthStr = selectedMonth || getFinancialMonth();
+    assertMonthKey(currentMonthStr);
+    const nextMonthStr = addMonths(currentMonthStr, 1);
 
     // 3. Buscar dados de todas as tabelas em paralelo
     const [
@@ -257,13 +254,15 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
       incomesRes,
       expensesRes,
       cardsRes,
-      debtsRes
+      debtsRes,
+      statementsRes
     ] = await Promise.all([
       supabase.from("profiles").select("reserva_financeira_atual, investimentos_total").eq("id", user.id).single(),
       supabase.from("incomes").select("*").eq("family_group_id", familyGroupId),
       supabase.from("fixed_expenses").select("*").eq("family_group_id", familyGroupId),
       supabase.from("credit_cards").select("*").eq("family_group_id", familyGroupId),
-      supabase.from("debts_and_financings").select("*").eq("family_group_id", familyGroupId)
+      supabase.from("debts_and_financings").select("*").eq("family_group_id", familyGroupId),
+      supabase.from("credit_card_statements").select("*").eq("family_group_id", familyGroupId).in("billing_month", [currentMonthStr, nextMonthStr])
     ]);
 
     if (incomesRes.error) throw incomesRes.error;
@@ -310,25 +309,68 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
 
     // PASSO B: Mapeamento de Compromissos (Dívidas Fixas)
     const dbDebtsMapped = dbDebts.map(item => {
-      let instVal = Number(item.current_installment_value);
-      if (item.installments_schedule && Array.isArray(item.installments_schedule)) {
-        const schedItem = item.installments_schedule.find((s: any) => s.month === currentMonthStr);
-        if (schedItem) instVal = Number(schedItem.amount);
+      const schedule = Array.isArray(item.installments_schedule)
+        ? item.installments_schedule
+        : undefined;
+      const instVal = getScheduledAmount(
+        schedule,
+        currentMonthStr,
+        Number(item.current_installment_value)
+      );
+
+      // Cálculo de encargos da Fase 2 para exibição auditável
+      const overdueAccum = Number(item.overdue_value_accumulated || 0);
+      let calculatedTotalDue = overdueAccum;
+      let calculatedPenalty = 0;
+      let calculatedInterest = 0;
+
+      if (overdueAccum > 0) {
+        const installmentsOverdue = Math.max(1, Number(item.overdue_installments || 1));
+        const assumedDaysLate = installmentsOverdue * 30; // Assumido 30 dias por parcela vencida
+        
+        const simulatedDueDate = new Date();
+        simulatedDueDate.setDate(simulatedDueDate.getDate() - assumedDaysLate);
+        const dueDateStr = simulatedDueDate.toISOString().substring(0, 10);
+
+        try {
+          const charges = calculateLateCharges({
+            originalValue: overdueAccum,
+            dueDate: dueDateStr,
+            penaltyValue: Number(item.penalty_value || 0),
+            monthlyInterestRate: Number(item.monthly_late_interest_rate || 0),
+            interestMethod: (item.late_interest_method || "simple") as any
+          }, new Date());
+
+          calculatedTotalDue = charges.totalDue;
+          calculatedPenalty = charges.penaltyApplied;
+          calculatedInterest = charges.interestAccumulated;
+        } catch (err) {
+          console.error("Erro ao calcular encargos de atraso da dívida:", err);
+        }
       }
-      return { ...item, current_installment_value: instVal };
+
+      return {
+        ...item,
+        current_installment_value: instVal,
+        calculated_total_due: calculatedTotalDue,
+        calculated_penalty: calculatedPenalty,
+        calculated_interest: calculatedInterest
+      };
     });
     const totalDebtInstallments = dbDebtsMapped.reduce((sum, item) => sum + item.current_installment_value, 0);
 
-    // PASSO C: Mapeamento de Compromissos (Faturas de Cartão)
+    // PASSO C: Mapeamento de Compromissos (Faturas de Cartão com faturas estruturadas da Fase 3)
     const dbCardsMapped = dbCards.map(item => {
-      let invVal = Number(item.current_invoice);
-      let nextInvVal = Number(item.next_invoice || 0);
-      if (item.invoices_schedule && Array.isArray(item.invoices_schedule)) {
-        const currItem = item.invoices_schedule.find((s: any) => s.month === currentMonthStr);
-        if (currItem) invVal = Number(currItem.amount);
-        const nextItem = item.invoices_schedule.find((s: any) => s.month === nextMonthStr);
-        if (nextItem) nextInvVal = Number(nextItem.amount);
-      }
+      const schedule = Array.isArray(item.invoices_schedule)
+        ? item.invoices_schedule
+        : undefined;
+
+      const currentStatement = (statementsRes?.data || []).find((s: any) => s.credit_card_id === item.id && s.billing_month === currentMonthStr);
+      const nextStatement = (statementsRes?.data || []).find((s: any) => s.credit_card_id === item.id && s.billing_month === nextMonthStr);
+
+      const invVal = currentStatement ? Number(currentStatement.actual_amount) : getScheduledAmount(schedule, currentMonthStr, Number(item.current_invoice));
+      const nextInvVal = nextStatement ? Number(nextStatement.actual_amount) : getScheduledAmount(schedule, nextMonthStr, Number(item.next_invoice || 0));
+
       return { ...item, current_invoice: invVal, next_invoice: nextInvVal };
     }).sort((a, b) => a.current_invoice - b.current_invoice); // Menor para a maior fatura
 
@@ -359,7 +401,7 @@ export async function generateFinancialStrategy(selectedMonth?: string): Promise
 
         let rec = "";
         if (overdueInst > 0) {
-          rec = `Urgente: Vocês possuem ${overdueInst} parcelas vencidas acumuladas em R$ ${overdueAccum.toFixed(2)} com juros. Solicite a 'Incorporação de Parcelas' para jogar os atrasos para o final do contrato, limpando o CPF.`;
+          rec = `Urgente: Vocês possuem ${overdueInst} parcelas vencidas acumuladas em R$ ${overdueAccum.toFixed(2)} (Total com encargos: R$ ${debt.calculated_total_due.toFixed(2)}, sendo R$ ${debt.calculated_penalty.toFixed(2)} de multa e R$ ${debt.calculated_interest.toFixed(2)} de juros estimados). Solicite a 'Incorporação de Parcelas' para jogar os atrasos para o final do contrato, limpando o CPF.`;
         } else if (titleLower.includes("lote") || titleLower.includes("terreno") || titleLower.includes("consorcio") || titleLower.includes("imovel")) {
           rec = `Pagamento da parcela normal do mês de R$ ${instVal.toFixed(2)} para manter o contrato ativo e proteger o patrimônio.`;
         } else {

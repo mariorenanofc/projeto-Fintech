@@ -26,6 +26,7 @@ import { deleteTransaction } from "@/actions/transactions";
 import { getBankLogoUrl } from "@/components/ui/bank-select";
 import { toast } from "sonner";
 import Link from "next/link";
+import { sumMoney, getLocalDateString } from "@/lib/financial";
 
 interface CalendarSectionProps {
   selectedDate: Date | undefined;
@@ -69,7 +70,7 @@ export function CalendarSection({
 
   // Filtra as transações de despesas do mês
   const monthlyExpenses = transactions.filter(t => t.type === "expense");
-  const totalExpensesValue = monthlyExpenses.reduce((sum, t) => sum + Number(t.amount), 0);
+  const totalExpensesValue = sumMoney(monthlyExpenses.map(t => Number(t.amount)));
 
   // Quantidade de dias no mês
   const getDaysInMonth = () => {
@@ -91,16 +92,13 @@ export function CalendarSection({
 
   // Determina o saldo líquido de cada dia para colorir o calendário (Mapa de Calor)
   const getDayBalanceStatus = (date: Date) => {
-    // Corrige fuso horário local
-    const localOffset = date.getTimezoneOffset() * 60000;
-    const localDate = new Date(date.getTime() - localOffset);
-    const dateStr = localDate.toISOString().substring(0, 10);
+    const dateStr = getLocalDateString(date);
 
     const dayTx = transactions.filter(t => t.date === dateStr);
     if (dayTx.length === 0) return "none";
 
-    const income = dayTx.filter(t => t.type === "income").reduce((sum, t) => sum + Number(t.amount), 0);
-    const expense = dayTx.filter(t => t.type === "expense").reduce((sum, t) => sum + Number(t.amount), 0);
+    const income = sumMoney(dayTx.filter(t => t.type === "income").map(t => Number(t.amount)));
+    const expense = sumMoney(dayTx.filter(t => t.type === "expense").map(t => Number(t.amount)));
 
     if (income === 0 && expense === 0) return "none";
     return income >= expense ? "positive" : "negative";
@@ -138,20 +136,18 @@ export function CalendarSection({
   const upcomingBills = allBills.filter(
     b => b.status === "pending" && b.dueDate >= todayStr && b.dueDate <= in3DaysStr
   );
-  const upcomingBillsTotal = upcomingBills.reduce((sum, b) => sum + b.amount, 0);
+  const upcomingBillsTotal = sumMoney(upcomingBills.map(b => b.amount));
 
   // Filtra as transações e saldos do dia selecionado
   const getSelectedDayDetails = () => {
     if (!selectedDate) return { transactions: [], balance: 0, income: 0, expense: 0, dateStr: "" };
     
-    const localOffset = selectedDate.getTimezoneOffset() * 60000;
-    const localDate = new Date(selectedDate.getTime() - localOffset);
-    const dateStr = localDate.toISOString().substring(0, 10);
+    const dateStr = getLocalDateString(selectedDate);
 
     const dayTx = transactions.filter(t => t.date === dateStr);
-    const income = dayTx.filter(t => t.type === "income").reduce((sum, t) => sum + Number(t.amount), 0);
-    const expense = dayTx.filter(t => t.type === "expense").reduce((sum, t) => sum + Number(t.amount), 0);
-    const balance = income - expense;
+    const income = sumMoney(dayTx.filter(t => t.type === "income").map(t => Number(t.amount)));
+    const expense = sumMoney(dayTx.filter(t => t.type === "expense").map(t => Number(t.amount)));
+    const balance = sumMoney([income, -expense]);
 
     return {
       transactions: dayTx,

@@ -9,5 +9,8 @@ export interface Bill {
   paidAmount?: number;
   paidBy?: string;
   isIndividual?: boolean;
+  creditCardId?: string;
+  paymentMethod?: string;
 }
+
 

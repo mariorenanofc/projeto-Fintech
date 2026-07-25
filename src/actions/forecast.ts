@@ -2,6 +2,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getProjectionHeadline, getDynamicAnalysisText, ProjectionMilestones } from "@/lib/dynamic-analysis";
+import {
+  addMonths,
+  getFinancialMonth,
+  getScheduledAmount,
+  type MonthKey
+} from "@/lib/financial";
 
 export interface ForecastItemDetail {
   id: string;
@@ -64,11 +70,10 @@ async function getFamilyGroupId(supabase: any, userId: string) {
 }
 
 // Helper para adicionar N meses a uma data YYYY-MM
-function addMonthsToMonthStr(startMonthStr: string, monthsToAdd: number): { monthStr: string; monthLabel: string; monthShortLabel: string } {
-  const [year, month] = startMonthStr.split("-").map(Number);
-  const date = new Date(year, month - 1 + monthsToAdd, 1);
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
+function addMonthsToMonthStr(startMonthStr: MonthKey, monthsToAdd: number): { monthStr: MonthKey; monthLabel: string; monthShortLabel: string } {
+  const monthStr = addMonths(startMonthStr, monthsToAdd);
+  const [year, month] = monthStr.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, 1));
   
   const monthNames = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -79,10 +84,10 @@ function addMonthsToMonthStr(startMonthStr: string, monthsToAdd: number): { mont
     "Jul", "Ago", "Set", "Out", "Nov", "Dez"
   ];
 
-  const monthLabel = `${monthNames[date.getMonth()]} de ${y}`;
-  const monthShortLabel = `${shortMonthNames[date.getMonth()]}/${String(y).slice(-2)}`;
+  const monthLabel = `${monthNames[date.getUTCMonth()]} de ${year}`;
+  const monthShortLabel = `${shortMonthNames[date.getUTCMonth()]}/${String(year).slice(-2)}`;
 
-  return { monthStr: `${y}-${m}`, monthLabel, monthShortLabel };
+  return { monthStr, monthLabel, monthShortLabel };
 }
 
 /**
@@ -106,7 +111,7 @@ export async function getFinancialForecast(monthsAhead: number = 12): Promise<Fo
     }
 
     const familyGroupId = await getFamilyGroupId(supabase, user.id);
-    const startMonthStr = new Date().toISOString().substring(0, 7);
+    const startMonthStr = getFinancialMonth();
 
     // 1. Buscar todos os dados financeiros ativos
     const [
@@ -114,19 +119,22 @@ export async function getFinancialForecast(monthsAhead: number = 12): Promise<Fo
       incomesRes,
       expensesRes,
       cardsRes,
-      debtsRes
+      debtsRes,
+      purchaseInstRes
     ] = await Promise.all([
       supabase.from("profiles").select("reserva_financeira_atual, investimentos_total").eq("id", user.id).single(),
       supabase.from("incomes").select("*").eq("family_group_id", familyGroupId),
       supabase.from("fixed_expenses").select("*").eq("family_group_id", familyGroupId),
       supabase.from("credit_cards").select("*").eq("family_group_id", familyGroupId),
-      supabase.from("debts_and_financings").select("*").eq("family_group_id", familyGroupId)
+      supabase.from("debts_and_financings").select("*").eq("family_group_id", familyGroupId),
+      supabase.from("credit_card_purchase_installments").select("*").eq("family_group_id", familyGroupId)
     ]);
 
     const dbIncomes = incomesRes.data || [];
     const dbExpenses = expensesRes.data || [];
     const dbCards = cardsRes.data || [];
     const dbDebts = debtsRes.data || [];
+    const dbPurchaseInstallments = purchaseInstRes.data || [];
 
     const totalIncome = dbIncomes.reduce((sum, item) => sum + Number(item.amount), 0);
     const totalEssentials = dbExpenses.reduce((sum, item) => sum + Number(item.amount), 0);
@@ -137,16 +145,26 @@ export async function getFinancialForecast(monthsAhead: number = 12): Promise<Fo
     let currentAccumulatedReserve = initialReserve;
     let currentAccumulatedInvestments = initialInvestments;
 
-    // Cálculo do Saldo Devedor Total Remanescente Inicial
+    // Cálculo do Saldo Devedor Total Remanescente Inicial (incluindo saldo vencido acumulado)
     let activeToxicDebtsRemaining = dbDebts
       .filter(d => (d.tipo_divida || d.tipoDivida) !== "estrutural")
       .reduce((sum, d) => {
         const remainingInst = Math.max(0, Number(d.total_installments || 1) - Number(d.installments_paid || 0));
-        return sum + (remainingInst * Number(d.current_installment_value || 0));
+        const schedRemaining = remainingInst * Number(d.current_installment_value || 0);
+        const overdueAccum = Number(d.overdue_value_accumulated || 0);
+        return sum + schedRemaining + overdueAccum;
       }, 0);
 
     const initialCardsTotal = dbCards.reduce((sum, c) => sum + Number(c.current_invoice || 0), 0);
     activeToxicDebtsRemaining = Math.max(0, activeToxicDebtsRemaining + initialCardsTotal);
+
+    // Rastrear saldo em atraso de cada dívida individualmente na simulação
+    const debtsOverdueBalances = dbDebts.map(d => ({
+      id: d.id,
+      isEstrutural: (d.tipo_divida || d.tipoDivida) === "estrutural",
+      overdueBalance: Number(d.overdue_value_accumulated || 0),
+      monthlyRate: Number(d.monthly_late_interest_rate || 0)
+    }));
 
     // Mapeamento de Receitas Fixas para listagem detalhada
     const incomesList: ForecastItemDetail[] = dbIncomes.map(inc => ({
@@ -201,15 +219,10 @@ export async function getFinancialForecast(monthsAhead: number = 12): Promise<Fo
 
         // Se a parcela do contrato está dentro do período de parcelamento ativo
         if (projectedInstNumber <= totalInst) {
-          let instVal = Number(debt.current_installment_value);
-
-          // Verifica se há valor específico no cronograma JSONB do mês
-          if (debt.installments_schedule && Array.isArray(debt.installments_schedule)) {
-            const schedItem = debt.installments_schedule.find((s: any) => s.month === monthStr);
-            if (schedItem && Number(schedItem.amount) > 0) {
-              instVal = Number(schedItem.amount);
-            }
-          }
+          const schedule = Array.isArray(debt.installments_schedule)
+            ? debt.installments_schedule
+            : undefined;
+          const instVal = getScheduledAmount(schedule, monthStr, Number(debt.current_installment_value));
 
           const isEstrutural = (debt.tipo_divida || debt.tipoDivida) === "estrutural";
 
@@ -243,22 +256,27 @@ export async function getFinancialForecast(monthsAhead: number = 12): Promise<Fo
         }
       });
 
-      // B. Filtra Faturas de Cartão de Crédito para o mês m
+      // B. Filtra Faturas de Cartão de Crédito para o mês m (com faturas estruturadas de parcelas da Fase 3)
       let monthCardInvoices = 0;
       dbCards.forEach(card => {
+        const schedule = Array.isArray(card.invoices_schedule)
+          ? card.invoices_schedule
+          : undefined;
+
+        // Tentar somar todas as parcelas ativas pertencentes a este mês (competência) para este cartão
+        const cardInstallmentsForMonth = (dbPurchaseInstallments || []).filter(
+          (p: any) => p.credit_card_id === card.id && p.billing_month === monthStr
+        );
+
         let invVal = 0;
-        if (card.invoices_schedule && Array.isArray(card.invoices_schedule) && card.invoices_schedule.length > 0) {
-          const schedItem = card.invoices_schedule.find((s: any) => s.month === monthStr);
-          if (schedItem) invVal = Number(schedItem.amount);
-        }
-        
-        // Se não encontrou registro específico no cronograma JSONB, usa fatura atual ou próxima fatura projetada
-        if (invVal === 0) {
-          if (m === 1) {
-            invVal = Number(card.current_invoice || 0);
-          } else {
-            invVal = Number(card.next_invoice || card.current_invoice || 0);
-          }
+        if (cardInstallmentsForMonth.length > 0) {
+          invVal = cardInstallmentsForMonth.reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+        } else {
+          // Se não houver parcelas registradas locais, recorremos ao fallback de compatibilidade do cronograma
+          const fallbackInvoice = m === 1
+            ? Number(card.current_invoice || 0)
+            : Number(card.next_invoice || card.current_invoice || 0);
+          invVal = getScheduledAmount(schedule, monthStr, fallbackInvoice);
         }
 
         if (invVal > 0) {
@@ -318,7 +336,25 @@ export async function getFinancialForecast(monthsAhead: number = 12): Promise<Fo
         // Foco no Red: 100% da sobra reduz o saldo devedor de dívidas tóxicas
         focusValue = Math.max(0, remainingAfterEssentials - lazerTravaValue);
         
-        activeToxicDebtsRemaining = Math.max(0, activeToxicDebtsRemaining - focusValue - totalMonthToxicDebts);
+        // Antes de amortizar as parcelas futuras, aplicamos juros de mora no saldo vencido acumulado
+        // e amortizamos prioritariamente com o focusValue
+        let remainingFocusForInstallments = focusValue;
+        
+        debtsOverdueBalances.forEach(dob => {
+          if (!dob.isEstrutural && dob.overdueBalance > 0) {
+            const monthlyInterest = dob.overdueBalance * (dob.monthlyRate / 100);
+            dob.overdueBalance += monthlyInterest;
+            activeToxicDebtsRemaining += monthlyInterest; // Adiciona os juros de mora gerados no mês
+            
+            const paymentToOverdue = Math.min(remainingFocusForInstallments, dob.overdueBalance);
+            dob.overdueBalance -= paymentToOverdue;
+            remainingFocusForInstallments -= paymentToOverdue;
+            activeToxicDebtsRemaining = Math.max(0, activeToxicDebtsRemaining - paymentToOverdue);
+          }
+        });
+
+        // O que restou do focusValue é aplicado na amortização das parcelas normais do mês
+        activeToxicDebtsRemaining = Math.max(0, activeToxicDebtsRemaining - remainingFocusForInstallments - totalMonthToxicDebts);
         if (activeToxicDebtsRemaining === 0 && !firstToxicClearedMonth) {
           firstToxicClearedMonth = monthLabel;
         }

@@ -6,6 +6,7 @@ import { TiltCard } from "@/components/ui/tilt-card";
 import { CreditCard, CalendarDays } from "lucide-react";
 import { FinancialStrategyResult } from "@/actions/onboarding";
 import { getBankLogoUrl } from "@/components/ui/bank-select";
+import { calculateCreditUtilization, getScheduledAmount, type MonthKey } from "@/lib/financial";
 
 const parseSchedule = (schedule: any): any[] => {
   if (!schedule) return [];
@@ -25,9 +26,10 @@ interface CreditCardLimitsCardProps {
   rawCards: any[];
   financeStatus: "red" | "yellow" | "green";
   strategy?: FinancialStrategyResult | null;
+  currentMonth: MonthKey;
 }
 
-export function CreditCardLimitsCard({ rawCards = [], strategy = null }: CreditCardLimitsCardProps) {
+export function CreditCardLimitsCard({ rawCards = [], strategy = null, currentMonth }: CreditCardLimitsCardProps) {
   const [activeTab, setActiveTab] = useState<"limites" | "datas" | "tatico">("limites");
 
   if (!rawCards || rawCards.length === 0) return null;
@@ -79,12 +81,15 @@ export function CreditCardLimitsCard({ rawCards = [], strategy = null }: CreditC
             {rawCards.map((card, idx) => {
               const cleanName = (card.name || "").replace(/\s*\[close:\d+\]/, "").replace(/\s*\[due:\d+\]/, "");
               const schedule = parseSchedule(card.invoices_schedule || card.invoicesSchedule || []);
-              const totalUsed = schedule.length > 0
-                ? schedule.reduce((sum: number, sch: any) => sum + Number(sch.amount || 0), 0)
-                : Number(card.current_invoice || card.currentInvoice || 0);
-              const limitTotal = Number(card.total_limit || card.totalLimit || 1);
-              const limitUsedPercent = limitTotal > 0 ? Math.min(100, Math.round((totalUsed / limitTotal) * 100)) : 0;
-              const availableLimit = limitTotal - totalUsed;
+              const openBalance = getScheduledAmount(
+                schedule,
+                currentMonth,
+                Number(card.current_invoice || card.currentInvoice || 0)
+              );
+              const utilization = calculateCreditUtilization(
+                Number(card.total_limit || card.totalLimit || 0),
+                openBalance
+              );
 
               return (
                 <div key={card.id || idx} className="space-y-1.5 animate-fade-in">
@@ -99,22 +104,30 @@ export function CreditCardLimitsCard({ rawCards = [], strategy = null }: CreditC
                       )}
                       <span className="text-zinc-200">{cleanName}</span>
                     </div>
-                    <span className={availableLimit >= 0 ? "text-emerald-400" : "text-rose-450"}>
-                      R$ {availableLimit.toFixed(2)} {availableLimit >= 0 ? "livre" : "ultrapassado"}
+                    <span className={utilization.availableLimit !== null ? "text-emerald-400" : "text-zinc-400"}>
+                      {utilization.availableLimit === null
+                        ? "Limite não informado"
+                        : `R$ ${utilization.availableLimit.toFixed(2)} livre`}
                     </span>
                   </div>
                   <div className="w-full h-2 rounded-full bg-zinc-950 border border-white/5 overflow-hidden">
                     <motion.div
                       initial={{ width: "0%" }}
-                      whileInView={{ width: `${limitUsedPercent}%` }}
+                      whileInView={{ width: `${utilization.progressPercent ?? 0}%` }}
                       viewport={{ once: true }}
                       transition={{ duration: 1.2, delay: idx * 0.1, ease: [0.16, 1, 0.3, 1] }}
                       className="h-full bg-gradient-to-r from-yellow-500 to-amber-600 rounded-full"
                     />
                   </div>
                   <div className="flex items-center justify-between text-[9px] text-zinc-400">
-                    <span>Uso: {limitUsedPercent}%</span>
-                    <span>Limite Total: R$ {limitTotal.toFixed(2)}</span>
+                    <span>
+                      Uso: {utilization.utilizationPercent === null ? "não informado" : `${utilization.utilizationPercent}%`}
+                    </span>
+                    <span>
+                      {utilization.totalLimit === null
+                        ? "Cadastre o limite"
+                        : `Limite Total: R$ ${utilization.totalLimit.toFixed(2)}`}
+                    </span>
                   </div>
                 </div>
               );
