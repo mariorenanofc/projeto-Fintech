@@ -661,7 +661,11 @@ export default function TransactionsPage() {
                           <div className="flex bg-zinc-950 border border-white/5 p-1 rounded-xl w-full h-11">
                             <button
                               type="button"
-                              onClick={() => setForm({ ...form, type: "expense" })}
+                              onClick={() => setForm({ 
+                                ...form, 
+                                type: "expense", 
+                                category: "Moradia" 
+                              })}
                               className={`flex-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1 ${
                                 form.type === "expense" 
                                   ? "bg-rose-500/20 text-rose-400 border border-rose-500/10 shadow-sm" 
@@ -672,7 +676,14 @@ export default function TransactionsPage() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setForm({ ...form, type: "income" })}
+                              onClick={() => setForm({ 
+                                ...form, 
+                                type: "income", 
+                                category: "Salário", 
+                                paymentMethod: form.paymentMethod === "credit_card" ? "pix" : form.paymentMethod,
+                                creditCardId: "",
+                                creditCardName: ""
+                              })}
                               className={`flex-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-300 flex items-center justify-center gap-1 ${
                                 form.type === "income" 
                                   ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/10 shadow-sm" 
@@ -771,13 +782,21 @@ export default function TransactionsPage() {
                             onChange={e => setForm({ ...form, category: e.target.value })}
                             className="bg-zinc-950 border border-white/5 rounded-xl text-zinc-200 focus:border-yellow-500/50 focus:outline-none p-3 w-full text-xs h-11 font-semibold"
                           >
-                            {categories.map(c => (
+                            {(form.type === "income" 
+                              ? ["Salário", "Pró-labore", "Rendimentos / Investimentos", "Reembolsos", "Outros"]
+                              : [
+                                  "Moradia", "Alimentação", "Transporte", "Lazer", "Saúde", 
+                                  "Educação", "Cartão", "Lote/Terreno", "Empréstimo", "Aporte na Reserva", "Investimento", "Outros"
+                                ]
+                            ).map(c => (
                               <option key={c} value={c}>{c}</option>
                             ))}
                           </select>
                         </div>
                         <div>
-                          <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">Forma de Pagamento</label>
+                          <label className="text-[9px] text-zinc-400 uppercase font-black block mb-1">
+                            {form.type === "income" ? "Forma de Recebimento" : "Forma de Pagamento"}
+                          </label>
                           <select
                             value={form.paymentMethod || "pix"}
                             onChange={e => setForm({ ...form, paymentMethod: e.target.value as any })}
@@ -786,7 +805,9 @@ export default function TransactionsPage() {
                             <option value="pix">PIX</option>
                             <option value="money">Dinheiro à Vista</option>
                             <option value="transfer">Transferência / Débito</option>
-                            <option value="credit_card">Cartão de Crédito</option>
+                            {form.type === "expense" && (
+                              <option value="credit_card">Cartão de Crédito</option>
+                            )}
                           </select>
                         </div>
                       </div>
